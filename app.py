@@ -83,9 +83,11 @@ def consume():
 @app.route('/list', methods=['GET'])
 def list():
     try:
-        return json.dumps(get_list()), 200
+        response = flask.Response(json.dumps(get_list()))
     except DatabaseError:
-        return json.dumps({'text': 'Failed'}), 500
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 
 if __name__ == "__main__":
