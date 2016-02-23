@@ -30,7 +30,7 @@ def update_database(album_id):
             port=url.port
         )
         cur = conn.cursor()
-        cur.execute('INSERT INTO list (album) VALUES (%s)', (album_id,)))
+        cur.execute('INSERT INTO list (album) VALUES (%s)', (album_id,))
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
