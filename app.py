@@ -90,6 +90,11 @@ def list():
     return response
 
 
+@app.route('/scrape', methods=['GET'])
+def scrape():
+    return 'scrape', 200
+
+
 if __name__ == "__main__":
     app.run(debug=os.environ.get('BC_DEBUG', True))
 
