@@ -94,15 +94,6 @@ def add_many_to_list(album_ids):
             port=url.port
         )
         cur = conn.cursor()
-        album_ids = [
-            (str(album_id),)
-            for album_id in set(
-                album_ids
-            ).difference(
-                set(get_list())
-            )
-            if album_id is not None
-        ]
         cur.executemany('INSERT INTO list (album) VALUES (%s)', album_ids)
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
@@ -216,12 +207,25 @@ def add():
 @app.route('/scrape', methods=['POST'])
 def scrape():
 
+    def check_for_new_ids(results):
+        return [
+            (str(album_id),)
+            for album_id in set(
+                results
+            ).difference(
+                set(get_list())
+            )
+            if album_id is not None
+        ]
+
     def deferred_scrape(messages, scrape_function, callback):
         results = scrape_function(messages)
-        callback(results)
+        album_ids = check_for_new_ids(results)
+        if album_ids:
+            callback(album_ids)
         response = requests.post(
             BOT_URL.format(channel=CHANNEL_NAME), 
-            data='Finished checking for new albums!'
+            data='Finished checking for new albums! (%d found)' % (len(album_ids), )
         )
 
     form_data = flask.request.form
