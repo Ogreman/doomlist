@@ -30,6 +30,7 @@ APP_TOKENS = [
 COMMENT = '<!-- album id '
 COMMENT_LEN = len(COMMENT)
 CHANNEL_ID = '***REMOVED***'
+CHANNEL_NAME = 'streamshare'
 API_TOKEN = '***REMOVED***'
 BOT_URL = "https://doomsters.slack.com/services/hooks/slackbot?token=ZDwAB8bUIrE0zthovM90MB25&channel=%23{channel}"
 
@@ -219,7 +220,7 @@ def scrape():
         results = scrape_function(messages)
         callback(results)
         response = requests.post(
-            BOT_URL.format(channel=CHANNEL_ID), 
+            BOT_URL.format(channel=CHANNEL_NAME), 
             data='Finished checking for new albums!'
         )
 
@@ -239,7 +240,7 @@ def scrape():
             )
             thread.setDaemon(True)
             thread.start()
-            return json.dumps({'text': 'Done'})
+            return 'Done', 200
     return '', 200
 
 
