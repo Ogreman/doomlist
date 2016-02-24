@@ -58,6 +58,25 @@ def get_list():
         conn.close()
 
 
+def delete_album(album):
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("DELETE FROM list where 'album' = %s;", (album,))
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.route('/consume', methods=['POST'])
 def consume():
     form_data = flask.request.form
@@ -89,6 +108,20 @@ def list():
         response = flask.Response(json.dumps({'text': 'Failed'}))
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
+
+
+@app.route('/delete', methods=['POST'])
+def delete():
+    form_data = flask.request.form
+    if form_data.get('token') == APP_TOKEN:
+        album_id = form_data.get('text')
+        if album_id:
+            try:
+                delete_album(album_id.strip())
+            except DatabaseError:
+                return json.dumps({'text': 'Failed'})
+            else:
+                return json.dumps({'text': 'Done'})
 
 
 @app.route('/scrape', methods=['GET'])
