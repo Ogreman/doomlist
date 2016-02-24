@@ -145,23 +145,16 @@ def delete_album(album):
 def consume():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
-        text = form_data.get('text', '')
-        if 'bandcamp.com' in text and 'album' in text:
-            url = text.replace('\\', '').replace('<', '').replace('>', '')
-            response = requests.get(url)
-            if response.ok:
-                content = response.text
-                if COMMENT in content:
-                    pos = content.find(COMMENT)
-                    album_id = content[pos + COMMENT_LEN:pos + COMMENT_LEN + 20]
-                    album_id = album_id.split('-->')[0].strip()
-                    try:
-                        add_to_list(album_id)
-                    except DatabaseError:
-                        return json.dumps({'text': 'Failed to update database'}), 200
-                    else:
-                        return json.dumps({'text': 'Added to Bandcamp album list'}), 200
-            return json.dumps({'text': 'Failed to add to Bandcamp album list'}), 200
+        try:
+            album_id = scrapers.scrape_bandcamp_album_ids_from_urls(form_data)
+            add_to_list(album_id)
+        except DatabaseError:
+            return json.dumps({'text': 'Failed to update database'}), 200
+        except scrapers.NotFoundError:
+            return '', 200
+        else:
+            return json.dumps({'text': 'Added to Bandcamp album list'}), 200
+    return '', 200
 
 
 @app.route('/list', methods=['GET'])
@@ -183,9 +176,9 @@ def delete():
             try:
                 delete_album(album_id.strip())
             except DatabaseError:
-                return json.dumps({'text': 'Failed'})
+                return 'Failed to delete album', 200
             else:
-                return json.dumps({'text': 'Done'})
+                return 'Deleted album', 200
     return '', 200
 
 
@@ -198,9 +191,9 @@ def add():
             try:
                 add_to_list(album_id.strip())
             except DatabaseError:
-                return json.dumps({'text': 'Failed'})
+                return 'Failed to add new album', 200
             else:
-                return json.dumps({'text': 'Done'})
+                return 'Added new album', 200
     return '', 200
 
 
@@ -225,7 +218,7 @@ def scrape():
             callback(album_ids)
         response = requests.post(
             BOT_URL.format(channel=CHANNEL_NAME), 
-            data='Finished checking for new albums! (%d found)' % (len(album_ids), )
+            data='Finished checking for new albums: %d found.' % (len(album_ids), )
         )
 
     form_data = flask.request.form
