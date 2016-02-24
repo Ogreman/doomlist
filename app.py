@@ -151,7 +151,7 @@ def consume():
         except DatabaseError:
             return json.dumps({'text': 'Failed to update database'}), 200
         except scrapers.NotFoundError:
-            return json.dumps({'text': 'Not found'}), 200
+            pass
         else:
             return json.dumps({'text': 'Added to Bandcamp album list'}), 200
     return '', 200
