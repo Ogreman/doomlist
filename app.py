@@ -62,8 +62,9 @@ def get_list():
 def consume():
     form_data = flask.request.form
     if form_data.get('token') == APP_TOKEN:
-        if 'bandcamp.com' in form_data.get('text', ''):
-            url = form_data.get('text', '').replace('\\', '').replace('<', '').replace('>', '')
+        text = form_data.get('text', '')
+        if 'bandcamp.com' in text and 'album' in text:
+            url = text.replace('\\', '').replace('<', '').replace('>', '')
             response = requests.get(url)
             if response.ok:
                 content = response.text
@@ -77,7 +78,7 @@ def consume():
                         return json.dumps({'text': 'Failed to update database'}), 200
                     else:
                         return json.dumps({'text': 'Added to Bandcamp album list'}), 200
-    return json.dumps({'text': 'Failed to add to Bandcamp album list'}), 200
+            return json.dumps({'text': 'Failed to add to Bandcamp album list'}), 200
 
 
 @app.route('/list', methods=['GET'])
