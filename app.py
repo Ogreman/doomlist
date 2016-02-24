@@ -122,6 +122,7 @@ def delete():
                 return json.dumps({'text': 'Failed'})
             else:
                 return json.dumps({'text': 'Done'})
+    return '', 200
 
 
 @app.route('/scrape', methods=['GET'])
