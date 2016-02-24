@@ -12,7 +12,11 @@ url = urlparse.urlparse(os.environ["DATABASE_URL"])
 app = flask.Flask(__name__)
 
 
-APP_TOKEN = "***REMOVED***"
+APP_TOKENS = [
+    "***REMOVED***", 
+    "***REMOVED***",
+    "***REMOVED***",
+]
 COMMENT = '<!-- album id '
 COMMENT_LEN = len(COMMENT)
 
@@ -80,7 +84,7 @@ def delete_album(album):
 @app.route('/consume', methods=['POST'])
 def consume():
     form_data = flask.request.form
-    if form_data.get('token') == APP_TOKEN:
+    if form_data.get('token') in APP_TOKENS:
         text = form_data.get('text', '')
         if 'bandcamp.com' in text and 'album' in text:
             url = text.replace('\\', '').replace('<', '').replace('>', '')
@@ -113,7 +117,7 @@ def list():
 @app.route('/delete', methods=['POST'])
 def delete():
     form_data = flask.request.form
-    if form_data.get('token') == APP_TOKEN:
+    if form_data.get('token') in APP_TOKENS:
         album_id = form_data.get('text')
         if album_id:
             try:
@@ -128,7 +132,7 @@ def delete():
 @app.route('/add', methods=['POST'])
 def add():
     form_data = flask.request.form
-    if form_data.get('token') == APP_TOKEN:
+    if form_data.get('token') in APP_TOKENS:
         album_id = form_data.get('text')
         if album_id:
             try:
