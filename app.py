@@ -72,7 +72,7 @@ def delete_album(album):
             port=url.port
         )
         cur = conn.cursor()
-        cur.execute("DELETE FROM list where 'album' = %s;", (album,))
+        cur.execute("DELETE FROM list where album = %s;", (album,))
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
