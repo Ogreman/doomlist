@@ -1,9 +1,14 @@
+from __future__ import absolute_import
+
 import flask
 import requests
 import os
 import json
 import psycopg2
 import urlparse
+import slacker
+
+from scrapers import scrapers
 
 urlparse.uses_netloc.append("postgres")
 url = urlparse.urlparse(os.environ["DATABASE_URL"])
@@ -19,12 +24,14 @@ APP_TOKENS = [
 ]
 COMMENT = '<!-- album id '
 COMMENT_LEN = len(COMMENT)
+CHANNEL_ID = '***REMOVED***'
+API_TOKEN = '***REMOVED***'
 
 
 class DatabaseError(Exception): pass
 
 
-def update_database(album_id):
+def add_to_list(album_id):
     try:
         conn = psycopg2.connect(
             database=url.path[1:],
@@ -34,7 +41,28 @@ def update_database(album_id):
             port=url.port
         )
         cur = conn.cursor()
-        cur.execute('INSERT INTO list (album) VALUES (%s)', (album_id,))
+        if album_id not in get_list():
+            cur.execute('INSERT INTO list (album) VALUES (%s)', (album_id,))
+            conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
+def add_many_to_list(album_ids):
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        album_ids = list(set(album_ids).difference(set(get_list())))
+        cur.executemany('INSERT INTO list (album) VALUES (%s)', album_ids)
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -96,7 +124,7 @@ def consume():
                     album_id = content[pos + COMMENT_LEN:pos + COMMENT_LEN + 20]
                     album_id = album_id.split('-->')[0].strip()
                     try:
-                        update_database(album_id)
+                        add_to_list(album_id)
                     except DatabaseError:
                         return json.dumps({'text': 'Failed to update database'}), 200
                     else:
@@ -136,7 +164,7 @@ def add():
         album_id = form_data.get('text')
         if album_id:
             try:
-                update_database(album_id.strip())
+                add_to_list(album_id.strip())
             except DatabaseError:
                 return json.dumps({'text': 'Failed'})
             else:
@@ -144,9 +172,21 @@ def add():
     return '', 200
 
 
-@app.route('/scrape', methods=['GET'])
+@app.route('/scrape', methods=['POST'])
 def scrape():
-    return 'scrape', 200
+    form_data = flask.request.form
+    if form_data.get('token') in APP_TOKENS:
+        slack = slacker.Slacker(API_TOKEN)
+        response = slack.channels.history(CHANNEL_ID)
+        if response.successful:
+            messages = response.body.get('messages', [])
+            try:
+                add_many_to_list(list(scrapers.scrape_bandcamp_album_ids(messages)))
+            except DatabaseError:
+                return json.dumps({'text': 'Failed'})
+            else:
+                return json.dumps({'text': 'Done'})
+    return '', 200
 
 
 if __name__ == "__main__":
