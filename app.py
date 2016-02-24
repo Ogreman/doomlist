@@ -125,6 +125,21 @@ def delete():
     return '', 200
 
 
+@app.route('/add', methods=['POST'])
+def add():
+    form_data = flask.request.form
+    if form_data.get('token') == APP_TOKEN:
+        album_id = form_data.get('text')
+        if album_id:
+            try:
+                update_database(album_id.strip())
+            except DatabaseError:
+                return json.dumps({'text': 'Failed'})
+            else:
+                return json.dumps({'text': 'Done'})
+    return '', 200
+
+
 @app.route('/scrape', methods=['GET'])
 def scrape():
     return 'scrape', 200
