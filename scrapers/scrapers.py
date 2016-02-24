@@ -60,9 +60,11 @@ def scrape_bandcamp_album_ids(messages, do_requests=True):
         if message.get('type') == 'message':
             if 'attachments' in message:
                 for album_id in scrape_bandcamp_album_ids_from_attachments(message):
-                    yield album_id
+                    yield str(album_id)
             elif do_requests:
                 try:
-                    yield scrape_bandcamp_album_ids_from_urls(message)
+                    yield str(scrape_bandcamp_album_ids_from_urls(message))
                 except (ValueError, KeyError, NotFoundError):
                     continue
+
+

@@ -7,8 +7,12 @@ import json
 import psycopg2
 import urlparse
 import slacker
+import threading
+import collections
+
 
 from scrapers import scrapers
+
 
 urlparse.uses_netloc.append("postgres")
 url = urlparse.urlparse(os.environ["DATABASE_URL"])
@@ -52,6 +56,31 @@ def add_to_list(album_id):
         conn.close()
 
 
+def de_dup():
+    duplicates = [
+        (album_id, )
+        for album_id, count in collections.Counter(get_list()).items()
+        if count > 1
+    ]
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.executemany("DELETE FROM list where album = %s;", duplicates)
+        cur.executemany('INSERT INTO list (album) VALUES (%s)', duplicates)
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
 def add_many_to_list(album_ids):
     try:
         conn = psycopg2.connect(
@@ -62,7 +91,15 @@ def add_many_to_list(album_ids):
             port=url.port
         )
         cur = conn.cursor()
-        album_ids = list(set(album_ids).difference(set(get_list())))
+        album_ids = [
+            (str(album_id),)
+            for album_id in set(
+                album_ids
+            ).difference(
+                set(get_list())
+            )
+            if album_id is not None
+        ]
         cur.executemany('INSERT INTO list (album) VALUES (%s)', album_ids)
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
@@ -134,7 +171,7 @@ def consume():
 
 
 @app.route('/list', methods=['GET'])
-def list():
+def list_albums():
     try:
         response = flask.Response(json.dumps(get_list()))
     except DatabaseError:
@@ -175,18 +212,28 @@ def add():
 
 @app.route('/scrape', methods=['POST'])
 def scrape():
+
+    def deferred_scrape(messages, scrape_function, callback):
+        results = scrape_function(messages)
+        callback(results)
+
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
         slack = slacker.Slacker(API_TOKEN)
         response = slack.channels.history(CHANNEL_ID)
         if response.successful:
             messages = response.body.get('messages', [])
-            try:
-                add_many_to_list(list(scrapers.scrape_bandcamp_album_ids(messages)))
-            except DatabaseError:
-                return json.dumps({'text': 'Failed'})
-            else:
-                return json.dumps({'text': 'Done'})
+            thread = threading.Thread(
+                target=deferred_scrape,
+                args=(
+                    messages,
+                    scrapers.scrape_bandcamp_album_ids,
+                    add_many_to_list,
+                ),
+            )
+            thread.setDaemon(True)
+            thread.start()
+            return json.dumps({'text': 'Done'})
     return '', 200
 
 
