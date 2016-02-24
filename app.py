@@ -31,6 +31,8 @@ COMMENT = '<!-- album id '
 COMMENT_LEN = len(COMMENT)
 CHANNEL_ID = '***REMOVED***'
 API_TOKEN = '***REMOVED***'
+BOT_URL = "https://doomsters.slack.com/services/hooks/slackbot?token=ZDwAB8bUIrE0zthovM90MB25&channel=%23{channel}"
+
 
 
 class DatabaseError(Exception): pass
@@ -216,6 +218,10 @@ def scrape():
     def deferred_scrape(messages, scrape_function, callback):
         results = scrape_function(messages)
         callback(results)
+        response = requests.post(
+            BOT_URL.format(channel=CHANNEL_ID), 
+            data='Finished checking for new albums!'
+        )
 
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
