@@ -211,33 +211,36 @@ def scrape():
             if album_id is not None
         ]
 
-    def deferred_scrape(messages, scrape_function, callback):
-        results = scrape_function(messages)
-        album_ids = check_for_new_ids(results)
-        if album_ids:
-            callback(album_ids)
-        response = requests.post(
-            BOT_URL.format(channel=CHANNEL_NAME), 
-            data='Finished checking for new albums: %d found.' % (len(album_ids), )
-        )
-
-    form_data = flask.request.form
-    if form_data.get('token') in APP_TOKENS:
+    def deferred_scrape(response_url, scrape_function, callback):
         slack = slacker.Slacker(API_TOKEN)
         response = slack.channels.history(CHANNEL_ID)
         if response.successful:
             messages = response.body.get('messages', [])
-            thread = threading.Thread(
-                target=deferred_scrape,
-                args=(
-                    messages,
-                    scrapers.scrape_bandcamp_album_ids,
-                    add_many_to_list,
-                ),
-            )
-            thread.setDaemon(True)
-            thread.start()
-            return 'Done', 200
+            results = scrape_function(messages)
+            album_ids = check_for_new_ids(results)
+            if album_ids:
+                callback(album_ids)
+            if response_url:
+                requests.post(
+                    response_url,
+                    data=json.dumps(
+                        {'text': 'Finished checking for new albums: %d found.' % (len(album_ids), )}
+                    )
+                )
+
+    form_data = flask.request.form
+    if form_data.get('token') in APP_TOKENS:
+        thread = threading.Thread(
+            target=deferred_scrape,
+            args=(
+                form_data.get('response_url'),
+                scrapers.scrape_bandcamp_album_ids,
+                add_many_to_list,
+            ),
+        )
+        thread.setDaemon(True)
+        thread.start()
+        return 'Scrape request sent', 200
     return '', 200
 
 
