@@ -9,6 +9,7 @@ import urlparse
 import slacker
 import threading
 import collections
+import datetime
 
 
 from scrapers import scrapers
@@ -36,6 +37,86 @@ BOT_URL = "***REMOVED***"
 
 
 class DatabaseError(Exception): pass
+
+
+def log_request(method):
+    def wraps(*args, **kwargs):
+        message = "[{method}] {dt}: {method_name} called".format(
+            dt=str(datetime.datetime.utcnow()),
+            method=flask.request.method,
+            method_name=method.func_name,
+        )
+        thread_request = threading.Thread(target=add_to_logs, args=(message, ))
+        thread_request.setDaemon(True)
+        thread_request.start()
+        response = method(*args, **kwargs)
+        message = "[{code}] {dt}: {response}".format(
+            dt=str(datetime.datetime.utcnow()),
+            code=response.status_code, 
+            response=response.status
+        )
+        thread_response = threading.Thread(target=add_to_logs, args=(message, ))
+        thread_response.setDaemon(True)
+        thread_response.start()
+        return response
+    return wraps
+
+
+def create_logs_table():
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE logs (id serial PRIMARY KEY, message varchar);")
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
+def create_list_table():
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE list (id serial PRIMARY KEY, album varchar);")
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
+def add_to_logs(message):
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute('INSERT INTO logs (message) VALUES (%s)', (message,))
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
 
 
 def add_to_list(album_id):
@@ -112,6 +193,25 @@ def get_list():
         )
         cur = conn.cursor()
         cur.execute("SELECT album FROM list;")
+        return [item[0] for item in cur.fetchall()]
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
+def get_logs():
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("SELECT message FROM logs;")
         return [item[0] for item in cur.fetchall()]
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -226,6 +326,17 @@ def list_albums():
     except DatabaseError:
         response = flask.Response(json.dumps({'text': 'Failed'}))
     response.headers['Access-Control-Allow-Origin'] = '*'
+    response.content_type = 'application/json'
+    return response
+
+
+@app.route('/logs', methods=['GET'])
+def list_logs():
+    try:
+        response = flask.Response(json.dumps(get_logs()))
+    except DatabaseError:
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.content_type = 'application/json'
     return response
 
 
