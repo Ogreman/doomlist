@@ -220,9 +220,13 @@ def scrape():
                 messages = response.body.get('messages', [])
                 results = scrape_function(messages)
                 album_ids = check_for_new_ids(results)
-                if album_ids:
-                    callback(album_ids)
-                message = 'Finished checking for new albums: %d found.' % (len(album_ids), )
+                try:    
+                    if album_ids:
+                        callback(album_ids)
+                except DatabaseError:
+                    message = 'Failed to update list'
+                else:
+                    message = 'Finished checking for new albums: %d found.' % (len(album_ids), )
             else:
                 message = 'Failed to get channel history'
         if response_url:
