@@ -326,7 +326,6 @@ def list_albums():
     except DatabaseError:
         response = flask.Response(json.dumps({'text': 'Failed'}))
     response.headers['Access-Control-Allow-Origin'] = '*'
-    response.content_type = 'application/json'
     return response
 
 
@@ -336,7 +335,6 @@ def list_logs():
         response = flask.Response(json.dumps(get_logs()))
     except DatabaseError:
         response = flask.Response(json.dumps({'text': 'Failed'}))
-    response.content_type = 'application/json'
     return response
 
 
