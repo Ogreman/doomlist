@@ -32,6 +32,7 @@ COMMENT_LEN = len(COMMENT)
 CHANNEL_ID = '***REMOVED***'
 CHANNEL_NAME = 'streamshare'
 API_TOKEN = '***REMOVED***'
+BOT_URL = "***REMOVED***"
 
 
 class DatabaseError(Exception): pass
@@ -47,9 +48,8 @@ def add_to_list(album_id):
             port=url.port
         )
         cur = conn.cursor()
-        if album_id not in get_list():
-            cur.execute('INSERT INTO list (album) VALUES (%s)', (album_id,))
-            conn.commit()
+        cur.execute('INSERT INTO list (album) VALUES (%s)', (album_id,))
+        conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
     finally:
@@ -139,19 +139,83 @@ def delete_album(album):
         conn.close()
 
 
+def check_for_new_ids(results):
+    return [
+        (str(album_id),)
+        for album_id in set(
+            results
+        ).difference(
+            set(get_list())
+        )
+        if album_id is not None
+    ]
+
+
+def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
+    try:
+        slack = slacker.Slacker(API_TOKEN)
+        response = slack.channels.history(CHANNEL_ID)
+    except slacker.Error:
+        message = 'There was an error accessing the Slack API'
+    else:
+        if response.successful:
+            messages = response.body.get('messages', [])
+            results = scrape_function(messages)
+            album_ids = check_for_new_ids(results)
+            try:    
+                if album_ids:
+                    callback(album_ids)
+            except DatabaseError:
+                message = 'Failed to update list'
+            else:
+                message = 'Finished checking for new albums: %d found.' % (len(album_ids), )
+        else:
+            message = 'Failed to get channel history'
+    if response_url:
+        requests.post(
+            response_url,
+            data=json.dumps(
+                {'text': message}
+            )
+        )
+
+
+def deferred_consume(message, scrape_function, callback, response_url=BOT_URL):
+    try:
+        album_id = scrape_function(message)
+    except scrapers.NotFoundError:
+        message = 'No album ID found'
+    else:
+        if album_id not in get_list():
+            try:    
+                callback(album_id)
+            except DatabaseError:
+                message = 'Failed to update list'
+            else:
+                message = 'Added album to list'
+        else:
+            message = 'Album already in list'
+    if response_url:
+        requests.post(
+            response_url,
+            data=message
+        )
+
+
 @app.route('/consume', methods=['POST'])
 def consume():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
-        try:
-            album_id = scrapers.scrape_bandcamp_album_ids_from_urls(form_data)
-            add_to_list(album_id)
-        except DatabaseError:
-            return json.dumps({'text': 'Failed to update database'}), 200
-        except scrapers.NotFoundError:
-            pass
-        else:
-            return json.dumps({'text': 'Added to Bandcamp album list'}), 200
+        thread = threading.Thread(
+            target=deferred_consume,
+            args=(
+                form_data,
+                scrapers.scrape_bandcamp_album_ids_from_urls,
+                add_to_list,
+            ),
+        )
+        thread.setDaemon(True)
+        thread.start()
     return '', 200
 
 
@@ -197,54 +261,14 @@ def add():
 
 @app.route('/scrape', methods=['POST'])
 def scrape():
-
-    def check_for_new_ids(results):
-        return [
-            (str(album_id),)
-            for album_id in set(
-                results
-            ).difference(
-                set(get_list())
-            )
-            if album_id is not None
-        ]
-
-    def deferred_scrape(response_url, scrape_function, callback):
-        try:
-            slack = slacker.Slacker(API_TOKEN)
-            response = slack.channels.history(CHANNEL_ID)
-        except slacker.Error:
-            message = 'There was an error accessing the Slack API'
-        else:
-            if response.successful:
-                messages = response.body.get('messages', [])
-                results = scrape_function(messages)
-                album_ids = check_for_new_ids(results)
-                try:    
-                    if album_ids:
-                        callback(album_ids)
-                except DatabaseError:
-                    message = 'Failed to update list'
-                else:
-                    message = 'Finished checking for new albums: %d found.' % (len(album_ids), )
-            else:
-                message = 'Failed to get channel history'
-        if response_url:
-            requests.post(
-                response_url,
-                data=json.dumps(
-                    {'text': message}
-                )
-            )
-
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
         thread = threading.Thread(
             target=deferred_scrape,
             args=(
-                form_data.get('response_url'),
                 scrapers.scrape_bandcamp_album_ids,
                 add_many_to_list,
+                form_data.get('response_url', BOT_URL),
             ),
         )
         thread.setDaemon(True)
