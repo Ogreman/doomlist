@@ -32,8 +32,6 @@ COMMENT_LEN = len(COMMENT)
 CHANNEL_ID = '***REMOVED***'
 CHANNEL_NAME = 'streamshare'
 API_TOKEN = '***REMOVED***'
-BOT_URL = "https://doomsters.slack.com/services/hooks/slackbot?token=ZDwAB8bUIrE0zthovM90MB25&channel=%23{channel}"
-
 
 
 class DatabaseError(Exception): pass
@@ -212,21 +210,28 @@ def scrape():
         ]
 
     def deferred_scrape(response_url, scrape_function, callback):
-        slack = slacker.Slacker(API_TOKEN)
-        response = slack.channels.history(CHANNEL_ID)
-        if response.successful:
-            messages = response.body.get('messages', [])
-            results = scrape_function(messages)
-            album_ids = check_for_new_ids(results)
-            if album_ids:
-                callback(album_ids)
-            if response_url:
-                requests.post(
-                    response_url,
-                    data=json.dumps(
-                        {'text': 'Finished checking for new albums: %d found.' % (len(album_ids), )}
-                    )
+        try:
+            slack = slacker.Slacker(API_TOKEN)
+            response = slack.channels.history(CHANNEL_ID)
+        except slacker.Error:
+            message = 'There was an error accessing the Slack API'
+        else:
+            if response.successful:
+                messages = response.body.get('messages', [])
+                results = scrape_function(messages)
+                album_ids = check_for_new_ids(results)
+                if album_ids:
+                    callback(album_ids)
+                message = 'Finished checking for new albums: %d found.' % (len(album_ids), )
+            else:
+                message = 'Failed to get channel history'
+        if response_url:
+            requests.post(
+                response_url,
+                data=json.dumps(
+                    {'text': message}
                 )
+            )
 
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
