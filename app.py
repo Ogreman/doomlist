@@ -284,7 +284,7 @@ def deferred_consume(message, scrape_function, callback, response_url=BOT_URL):
     try:
         album_id = scrape_function(message)
     except scrapers.NotFoundError:
-        message = 'No album ID found'
+        message = None
     else:
         if album_id not in get_list():
             try:    
@@ -295,7 +295,7 @@ def deferred_consume(message, scrape_function, callback, response_url=BOT_URL):
                 message = 'Added album to list'
         else:
             message = 'Album already in list'
-    if response_url:
+    if response_url and message is not None:
         requests.post(
             response_url,
             data=message
