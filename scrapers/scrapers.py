@@ -42,7 +42,7 @@ def scrape_bandcamp_album_ids_from_urls(message):
     comment = '<!-- album id '
     comment_len = len(comment)
     text = message['text']
-    if 'http' in text and 'bandcamp.com' in text and 'album' in text:
+    if 'http' in text and 'bandcamp.com' in text:
         url = text.replace('<', '').replace('>', '')
         url = url.replace('\\', '').split('|')[0]
         response = requests.get(url)
