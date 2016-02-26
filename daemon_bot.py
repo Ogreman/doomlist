@@ -12,7 +12,6 @@ redis_connection = redis.from_url(os.environ["REDIS_URL"])
 def queue_daemon(queue, rv_ttl=500):
     while 1:
         msg = redis_connection.blpop(queue)
-        print msg[1]
         func, key, args, kwargs = pickle.loads(msg[1])
         try:
             rv = func(*args, **kwargs)
