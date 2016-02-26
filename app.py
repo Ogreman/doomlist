@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import flask
 import requests
 import os
@@ -7,21 +5,14 @@ import json
 import psycopg2
 import urlparse
 import slacker
-import threading
 import collections
 import datetime
 
-
 from scrapers import scrapers
+from delayed import delayed
 
 
-urlparse.uses_netloc.append("postgres")
-url = urlparse.urlparse(os.environ["DATABASE_URL"])
-
-
-app = flask.Flask(__name__)
-
-
+QUEUE_NAME = 'deferred_queue'
 APP_TOKENS = [
     "***REMOVED***", 
     "***REMOVED***",
@@ -36,30 +27,14 @@ API_TOKEN = '***REMOVED***'
 BOT_URL = "***REMOVED***"
 
 
+urlparse.uses_netloc.append("postgres")
+url = urlparse.urlparse(os.environ["DATABASE_URL"])
+
+app = flask.Flask(__name__)
+app.config['REDIS_QUEUE_KEY'] = QUEUE_NAME
+
+
 class DatabaseError(Exception): pass
-
-
-def log_request(method):
-    def wraps(*args, **kwargs):
-        message = "[{method}] {dt}: {method_name} called".format(
-            dt=str(datetime.datetime.utcnow()),
-            method=flask.request.method,
-            method_name=method.func_name,
-        )
-        thread_request = threading.Thread(target=add_to_logs, args=(message, ))
-        thread_request.setDaemon(True)
-        thread_request.start()
-        response = method(*args, **kwargs)
-        message = "[{code}] {dt}: {response}".format(
-            dt=str(datetime.datetime.utcnow()),
-            code=response.status_code, 
-            response=response.status
-        )
-        thread_response = threading.Thread(target=add_to_logs, args=(message, ))
-        thread_response.setDaemon(True)
-        thread_response.start()
-        return response
-    return wraps
 
 
 def create_logs_table():
@@ -251,6 +226,7 @@ def check_for_new_ids(results):
     ]
 
 
+@delayed.queue_func
 def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
     try:
         slack = slacker.Slacker(API_TOKEN)
@@ -280,6 +256,7 @@ def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
         )
 
 
+@delayed.queue_func
 def deferred_consume(message, scrape_function, callback, response_url=BOT_URL):
     try:
         album_id = scrape_function(message)
@@ -306,16 +283,11 @@ def deferred_consume(message, scrape_function, callback, response_url=BOT_URL):
 def consume():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
-        thread = threading.Thread(
-            target=deferred_consume,
-            args=(
-                form_data,
-                scrapers.scrape_bandcamp_album_ids_from_urls,
-                add_to_list,
-            ),
+        deferred_consume(
+            form_data,
+            scrapers.scrape_bandcamp_album_ids_from_urls,
+            add_to_list,
         )
-        thread.setDaemon(True)
-        thread.start()
     return '', 200
 
 
@@ -372,16 +344,11 @@ def add():
 def scrape():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
-        thread = threading.Thread(
-            target=deferred_scrape,
-            args=(
-                scrapers.scrape_bandcamp_album_ids,
-                add_many_to_list,
-                form_data.get('response_url', BOT_URL),
-            ),
+        deferred_scrape.delay(
+            scrapers.scrape_bandcamp_album_ids,
+            add_many_to_list,
+            form_data.get('response_url', BOT_URL),
         )
-        thread.setDaemon(True)
-        thread.start()
         return 'Scrape request sent', 200
     return '', 200
 
