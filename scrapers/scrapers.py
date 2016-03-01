@@ -1,4 +1,5 @@
 import requests
+import json
 
 
 class NotFoundError(Exception):
@@ -67,4 +68,20 @@ def scrape_bandcamp_album_ids(messages, do_requests=True):
                 except (ValueError, KeyError, NotFoundError):
                     continue
 
+
+def scrape_album_details_from_id(album_id):
+    variable_text = 'var playerdata = '
+    response = requests.get('https://bandcamp.com/EmbeddedPlayer/v=2/album=%s' % album_id)
+    if response.ok:
+        content = response.text
+        player_data_pos = content.find(variable_text)
+        if player_data_pos > 0:
+            player_data_pos += len(variable_text)
+            player_data_end_pos = player_data_pos + content[player_data_pos:].find('\n') - 1
+            try:
+                data = json.loads(content[player_data_pos:player_data_end_pos])
+                return data['album_title'], data['artist']
+            except (KeyError, TypeError, ValueError):
+                pass
+    return None 
 

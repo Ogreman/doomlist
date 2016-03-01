@@ -75,6 +75,25 @@ def create_list_table():
         conn.close()
 
 
+def create_albums_table():
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE albums (id varchar PRIMARY KEY, artist varchar, name varchar);")
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
 def add_to_logs(message):
     try:
         conn = psycopg2.connect(
@@ -105,6 +124,25 @@ def add_to_list(album_id):
         )
         cur = conn.cursor()
         cur.execute('INSERT INTO list (album) VALUES (%s)', (album_id,))
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
+def add_to_albums(album_id, artist, name):
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute('INSERT INTO albums (id, artist, name) VALUES (%s, %s, %s)', (album_id, artist, name))
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -157,6 +195,25 @@ def add_many_to_list(album_ids):
         conn.close()
 
 
+def add_many_to_albums(albums):
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.executemany('INSERT INTO albums (id, artist, name) VALUES (%s, %s, %s)', albums)
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
 def get_list():
     try:
         conn = psycopg2.connect(
@@ -169,6 +226,44 @@ def get_list():
         cur = conn.cursor()
         cur.execute("SELECT album FROM list;")
         return [item[0] for item in cur.fetchall()]
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
+def get_albums():
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("SELECT id, name, artist FROM albums;")
+        return cur.fetchall()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
+def get_album_ids():
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM albums;")
+        return [c[0] for c in cur.fetchall()]
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
     finally:
@@ -214,7 +309,7 @@ def delete_album(album):
         conn.close()
 
 
-def check_for_new_ids(results):
+def check_for_new_list_ids(results):
     return [
         (str(album_id),)
         for album_id in set(
@@ -222,6 +317,14 @@ def check_for_new_ids(results):
         ).difference(
             set(get_list())
         )
+        if album_id is not None
+    ]
+
+
+def check_for_new_albums():
+    return [
+        str(album_id)
+        for album_id in set(get_list()).difference(set(get_album_ids()))
         if album_id is not None
     ]
 
@@ -237,7 +340,7 @@ def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
         if response.successful:
             messages = response.body.get('messages', [])
             results = scrape_function(messages)
-            album_ids = check_for_new_ids(results)
+            album_ids = check_for_new_list_ids(results)
             try:    
                 if album_ids:
                     callback(album_ids)
@@ -279,6 +382,24 @@ def deferred_consume(message, scrape_function, callback, response_url=BOT_URL):
         )
 
 
+@delayed.queue_func
+def deferred_process_album_details(response_url=BOT_URL):
+    def get_album_details_from_ids():
+        for album_id in check_for_new_albums():
+            try:
+                album, artist = scrapers.scrape_album_details_from_id(album_id)
+                yield (album_id, artist, album)
+            except (TypeError, ValueError):
+                continue
+    try:
+        add_many_to_albums(list(get_album_details_from_ids()))
+    except DatabaseError:
+        pass
+    else:
+        if response_url:
+            requests.post(response_url, data='Processed album details')
+
+
 @app.route('/consume', methods=['POST'])
 def consume():
     form_data = flask.request.form
@@ -295,6 +416,25 @@ def consume():
 def list_albums():
     try:
         response = flask.Response(json.dumps(get_list()))
+    except DatabaseError:
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
+@app.route('/albums', methods=['GET'])
+def list_album_details():
+    try:
+        details = [
+            {
+                album_id: {
+                    'artist': artist,
+                    'album': album,
+                }
+            }
+            for album_id, album, artist in get_albums()
+        ]
+        response = flask.Response(json.dumps(details))
     except DatabaseError:
         response = flask.Response(json.dumps({'text': 'Failed'}))
     response.headers['Access-Control-Allow-Origin'] = '*'
@@ -350,6 +490,17 @@ def scrape():
             form_data.get('response_url', BOT_URL),
         )
         return 'Scrape request sent', 200
+    return '', 200
+
+
+@app.route('/proc', methods=['POST'])
+def proc():
+    form_data = flask.request.form
+    if form_data.get('token') in APP_TOKENS:
+        deferred_process_album_details.delay(
+            form_data.get('response_url', BOT_URL)
+        )
+        return 'Process request sent', 200
     return '', 200
 
 
