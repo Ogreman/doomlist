@@ -18,6 +18,7 @@ APP_TOKENS = [
     "***REMOVED***",
     "***REMOVED***",
     "***REMOVED***",
+    "***REMOVED***",
 ]
 COMMENT = '<!-- album id '
 COMMENT_LEN = len(COMMENT)
