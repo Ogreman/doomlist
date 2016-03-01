@@ -14,13 +14,13 @@ class DelayedResult(object):
         self.key = key
         self._return_value = None
 
-    # @property
-    # def return_value(self):
-    #     if self._return_value is None:
-    #         rv = redis_connection.get(self.key)
-    #         if rv is not None:
-    #             self._return_value = loads(rv)
-    #     return self._return_value
+    @property
+    def return_value(self):
+        if self._return_value is None:
+            rv = redis_connection.get(self.key)
+            if rv is not None:
+                self._return_value = loads(rv)
+        return self._return_value
 
 
 def queue_func(f):

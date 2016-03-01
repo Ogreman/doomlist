@@ -283,7 +283,7 @@ def deferred_consume(message, scrape_function, callback, response_url=BOT_URL):
 def consume():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
-        deferred_consume(
+        deferred_consume.delay(
             form_data,
             scrapers.scrape_bandcamp_album_ids_from_urls,
             add_to_list,
