@@ -511,5 +511,5 @@ def proc():
 
 
 if __name__ == "__main__":
-    app.run(debug=os.environ.get('BC_DEBUG', True))
+    app.run(debug=os.environ.get('DEBUG', True))
 
