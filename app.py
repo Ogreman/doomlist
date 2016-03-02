@@ -98,6 +98,44 @@ def create_albums_table():
         conn.close()
 
 
+def create_votes_table():
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("CREATE TABLE votes (id serial PRIMARY KEY, album varchar);")
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
+def add_to_votes(album_id):
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute('INSERT INTO votes (album) VALUES (%s)', (album_id,))
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
 def add_to_logs(message):
     try:
         conn = psycopg2.connect(
@@ -230,6 +268,25 @@ def get_list():
         cur = conn.cursor()
         cur.execute("SELECT album FROM list;")
         return [item[0] for item in cur.fetchall()]
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
+def get_votes_count(album_id):
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM votes WHERE album = %s;", (album_id,))
+        return cur.rowcount
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
     finally:
@@ -508,6 +565,35 @@ def proc():
         )
         return 'Process request sent', 200
     return '', 200
+
+
+@app.route('/votes/<album_id>', methods=['GET'])
+def votes(album_id):
+    try:
+        response = flask.Response(json.dumps({
+            'text': 'Success', 
+            'value': get_votes_count(album_id),
+        }))
+    except DatabaseError:
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
+@app.route('/vote', methods=['POST'])
+def vote():
+    form_data = flask.request.form
+    try:
+        album_id = form_data['album_id']
+        add_to_votes(album_id)
+        response = flask.Response(json.dumps({
+            'text': 'Success', 
+            'value': get_votes_count(album_id),
+        }))
+    except (DatabaseError, KeyError):
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 
 if __name__ == "__main__":
