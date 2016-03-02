@@ -361,9 +361,9 @@ def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
 
 
 @delayed.queue_func
-def deferred_consume(message, scrape_function, callback, response_url=BOT_URL):
+def deferred_consume(text, scrape_function, callback, response_url=BOT_URL):
     try:
-        album_id = scrape_function(message)
+        album_id = scrape_function(text)
     except scrapers.NotFoundError:
         message = None
     else:
@@ -406,8 +406,8 @@ def consume():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
         deferred_consume.delay(
-            form_data,
-            scrapers.scrape_bandcamp_album_ids_from_urls,
+            form_data.get('text', ''),
+            scrapers.scrape_bandcamp_album_ids_from_url,
             add_to_list,
         )
     return '', 200

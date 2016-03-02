@@ -39,12 +39,11 @@ def scrape_bandcamp_album_ids_from_attachments(message):
             continue
 
 
-def scrape_bandcamp_album_ids_from_urls(message):
+def scrape_bandcamp_album_ids_from_url(url):
     comment = '<!-- album id '
     comment_len = len(comment)
-    text = message['text']
-    if 'http' in text and 'bandcamp.com' in text:
-        url = text.replace('<', '').replace('>', '')
+    if 'http' in url and 'bandcamp.com' in url:
+        url = url.replace('<', '').replace('>', '')
         url = url.replace('\\', '').split('|')[0]
         response = requests.get(url)
         if response.ok:
@@ -64,7 +63,7 @@ def scrape_bandcamp_album_ids(messages, do_requests=True):
                     yield str(album_id)
             elif do_requests:
                 try:
-                    yield str(scrape_bandcamp_album_ids_from_urls(message))
+                    yield str(scrape_bandcamp_album_ids_from_url(message['text']))
                 except (ValueError, KeyError, NotFoundError):
                     continue
 
