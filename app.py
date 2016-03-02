@@ -1,18 +1,18 @@
-import flask
-import requests
 import os
 import json
-import psycopg2
-import urlparse
-import slacker
-import collections
 import datetime
+import collections
+import urlparse
+import psycopg2
+import requests
+import flask
+import slacker
 
 from scrapers import scrapers
 from delayed import delayed
+from flask.ext.cacheify import init_cacheify
 
 
-QUEUE_NAME = 'deferred_queue'
 APP_TOKENS = [
     "***REMOVED***", 
     "***REMOVED***",
@@ -31,11 +31,14 @@ BOT_URL = "***REMOVED***"
 urlparse.uses_netloc.append("postgres")
 url = urlparse.urlparse(os.environ["DATABASE_URL"])
 
+
 app = flask.Flask(__name__)
-app.config['REDIS_QUEUE_KEY'] = QUEUE_NAME
+app.config.from_object(os.environ['APP_SETTINGS'])
+app.cache = init_cacheify(app)
 
 
-class DatabaseError(Exception): pass
+class DatabaseError(Exception): 
+    pass
 
 
 def create_logs_table():
@@ -414,6 +417,7 @@ def consume():
 
 
 @app.route('/list', methods=['GET'])
+@app.cache.cached(timeout=1800)
 def list_albums():
     try:
         response = flask.Response(json.dumps(get_list()))
@@ -424,6 +428,7 @@ def list_albums():
 
 
 @app.route('/albums', methods=['GET'])
+@app.cache.cached(timeout=1800)
 def list_album_details():
     try:
         details = [
