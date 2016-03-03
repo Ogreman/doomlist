@@ -453,6 +453,7 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL):
                 message = 'Failed to update list'
             else:
                 message = 'Added album to list'
+                deferred_process_album_details.delay(album_id)
         else:
             message = 'Album already in list'
     if response_url and message is not None:
@@ -463,7 +464,7 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL):
 
 
 @delayed.queue_func
-def deferred_process_album_details(response_url=BOT_URL):
+def deferred_process_all_album_details(response_url=BOT_URL):
     def get_album_details_from_ids():
         for album_id in check_for_new_albums():
             try:
@@ -477,7 +478,16 @@ def deferred_process_album_details(response_url=BOT_URL):
         pass
     else:
         if response_url:
-            requests.post(response_url, data='Processed album details')
+            requests.post(response_url, data='Processed all album details')
+
+
+@delayed.queue_func
+def deferred_process_album_details(album_id):
+    try:
+        album, artist = scrapers.scrape_album_details_from_id(album_id)
+        add_to_albums(album_id, artist, name)
+    except (TypeError, ValueError, DatabaseError):
+        pass
 
 
 @app.route('/consume', methods=['POST'])
@@ -579,7 +589,7 @@ def scrape():
 def proc():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
-        deferred_process_album_details.delay(
+        deferred_process_all_album_details.delay(
             form_data.get('response_url', BOT_URL)
         )
         return 'Process request sent', 200
