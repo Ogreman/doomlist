@@ -15,7 +15,10 @@ def queue_daemon(queue, rv_ttl=500):
         try:
             func, key, args, kwargs = pickle.loads(msg[1])
         except Exception, e:
-            print "[daemon]: failed to unpickle %s" % msg
+            try:
+                print "[daemon]: failed to unpickle %s" % msg[1]
+            except (TypeError, IndexError):
+                pass
         else:
             try:
                 print "[daemon]: calling %s" % func
