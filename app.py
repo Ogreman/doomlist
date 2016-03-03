@@ -485,7 +485,7 @@ def deferred_process_all_album_details(response_url=BOT_URL):
 def deferred_process_album_details(album_id):
     try:
         album, artist = scrapers.scrape_album_details_from_id(album_id)
-        add_to_albums(album_id, artist, name)
+        add_to_albums(album_id, artist, album)
     except (TypeError, ValueError, DatabaseError):
         pass
 
