@@ -2,7 +2,7 @@ import os
 import redis
 import uuid
 
-from flask import current_app
+from config import Config
 from pickle import loads, dumps
 
 
@@ -25,7 +25,7 @@ class DelayedResult(object):
 
 def queue_func(f):
     def delay(*args, **kwargs):
-        qkey = current_app.config['REDIS_QUEUE_KEY']
+        qkey = Config.REDIS_QUEUE_KEY
         key = '%s:result:%s' % (qkey, str(uuid.uuid4()))
         s = dumps((f, key, args, kwargs))
         redis_connection.rpush(qkey, s)
