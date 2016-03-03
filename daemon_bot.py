@@ -3,8 +3,6 @@ import os
 import redis
 import pickle
 
-from app import QUEUE_NAME
-
 
 redis_connection = redis.from_url(os.environ["REDIS_URL"])
 
@@ -32,4 +30,4 @@ def queue_daemon(queue, rv_ttl=500):
                 print "[daemon]: stored return value at %s" % key
 
 
-queue_daemon(QUEUE_NAME)
+queue_daemon("deferred_queue")
