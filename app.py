@@ -313,6 +313,25 @@ def get_albums():
         conn.close()
 
 
+def get_album_details(album_id):
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("SELECT id, name, artist FROM albums WHERE id = %s;", (album_id, ))
+        return cur.fetchone()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
 def get_album_ids():
     try:
         conn = psycopg2.connect(
@@ -565,6 +584,22 @@ def proc():
         )
         return 'Process request sent', 200
     return '', 200
+
+
+@app.route('/album/<album_id>', methods=['GET'])
+def album(album_id):
+    try:
+        response = flask.Response(json.dumps({
+            'text': 'Success',
+            'album': dict(zip(
+                ('id', 'name', 'artist'),
+                get_album_details(album_id),
+            ))
+        }))
+    except (DatabaseError, TypeError):
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 
 @app.route('/votes/<album_id>', methods=['GET'])
