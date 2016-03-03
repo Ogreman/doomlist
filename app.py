@@ -597,7 +597,6 @@ def proc():
 
 
 @app.route('/album/<album_id>', methods=['GET'])
-@app.cache.cached(timeout=86400)
 def album(album_id):
     try:
         response = flask.Response(json.dumps({
