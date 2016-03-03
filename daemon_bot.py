@@ -21,7 +21,7 @@ def queue_daemon(queue, rv_ttl=500):
                 pass
         else:
             try:
-                print "[daemon]: calling %s" % func
+                print "[daemon]: calling %s" % func.func_name
                 rv = func(*args, **kwargs)
                 print "[daemon]: complete!"
             except Exception, e:
