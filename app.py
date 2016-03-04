@@ -22,8 +22,6 @@ app.cache = init_cacheify(app)
 
 API_TOKEN = app.config['API_TOKEN']
 BOT_URL = app.config['BOT_URL']
-CHANNEL_ID = '***REMOVED***'
-CHANNEL_NAME = 'streamshare'
 APP_TOKENS = [
     token for key, token in os.environ.items()
     if key.startswith('APP_TOKEN')
@@ -406,8 +404,8 @@ def check_for_new_albums():
 def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
     try:
         slack = slacker.Slacker(API_TOKEN)
-        response = slack.channels.history(CHANNEL_ID)
-    except slacker.Error:
+        response = slack.channels.history(os.environ['SLACK_CHANNEL_ID'])
+    except (KeyError, slacker.Error):
         message = 'There was an error accessing the Slack API'
     else:
         if response.successful:
