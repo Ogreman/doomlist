@@ -7,6 +7,8 @@ class Config(object):
     CSRF_ENABLED = True
     SECRET_KEY = os.environ.get('SECRET_KEY', 'change-me')
     REDIS_QUEUE_KEY = 'deferred_queue'
+    API_TOKEN = os.environ.get('API_TOKEN')
+    BOT_URL = os.environ.get('BOT_URL')
 
 
 class ProductionConfig(Config):

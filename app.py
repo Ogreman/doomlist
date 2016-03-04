@@ -13,28 +13,21 @@ from delayed import delayed
 from flask.ext.cacheify import init_cacheify
 
 
-APP_TOKENS = [
-    "***REMOVED***", 
-    "***REMOVED***",
-    "***REMOVED***",
-    "***REMOVED***",
-    "***REMOVED***",
-]
-COMMENT = '<!-- album id '
-COMMENT_LEN = len(COMMENT)
-CHANNEL_ID = '***REMOVED***'
-CHANNEL_NAME = 'streamshare'
-API_TOKEN = '***REMOVED***'
-BOT_URL = "***REMOVED***"
-
-
 urlparse.uses_netloc.append("postgres")
 url = urlparse.urlparse(os.environ["DATABASE_URL"])
-
-
 app = flask.Flask(__name__)
 app.config.from_object(os.environ['APP_SETTINGS'])
 app.cache = init_cacheify(app)
+
+
+API_TOKEN = app.config['API_TOKEN']
+BOT_URL = app.config['BOT_URL']
+CHANNEL_ID = '***REMOVED***'
+CHANNEL_NAME = 'streamshare'
+APP_TOKENS = [
+    token for key, token in os.environ.items()
+    if key.startswith('APP_TOKEN')
+]
 
 
 class DatabaseError(Exception): 
