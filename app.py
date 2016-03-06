@@ -40,8 +40,10 @@ def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
             try:    
                 if album_ids:
                     callback(album_ids)
-            except models.DatabaseError:
+            except models.DatabaseError as e:
                 message = 'Failed to update list'
+                print "[db]: failed to perform %s" % callback.func_name
+                print "[db]: %s" % e
             else:
                 message = 'Finished checking for new albums: %d found.' % (len(album_ids), )
         else:
@@ -62,16 +64,22 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL):
     except scrapers.NotFoundError:
         message = None
     else:
-        if album_id not in get_list():
-            try:    
-                callback(album_id)
-            except models.DatabaseError:
-                message = 'Failed to update list'
+        try:
+            if album_id not in get_list():
+                try:    
+                    callback(album_id)
+                except models.DatabaseError as e:
+                    message = 'Failed to update list'
+                    print "[db]: failed to perform %s" % callback.func_name
+                    print "[db]: %s" % e
+                else:
+                    message = 'Added album to list'
+                    deferred_process_album_details.delay(album_id)
             else:
-                message = 'Added album to list'
-                deferred_process_album_details.delay(album_id)
-        else:
-            message = 'Album already in list'
+                message = 'Album already in list'
+        except models.DatabaseError as e:
+            print "[db]: failed to check existing items"
+            print "[db]: %s" % e
     if response_url and message is not None:
         requests.post(
             response_url,
@@ -90,8 +98,9 @@ def deferred_process_all_album_details(response_url=BOT_URL):
                 continue
     try:
         models.add_many_to_albums(list(get_album_details_from_ids()))
-    except models.DatabaseError:
-        pass
+    except models.DatabaseError as e:
+        print "[db]: failed to add album details"
+        print "[db]: %s" % e
     else:
         if response_url:
             requests.post(response_url, data='Processed all album details')
@@ -102,7 +111,10 @@ def deferred_process_album_details(album_id):
     try:
         album, artist = scrapers.scrape_album_details_from_id(album_id)
         models.add_to_albums(album_id, artist, album)
-    except (TypeError, ValueError, models.DatabaseError):
+    except models.DatabaseError as e:
+        print "[db]: failed to add album details"
+        print "[db]: %s" % e
+    except (TypeError, ValueError):
         pass
 
 
