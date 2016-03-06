@@ -82,7 +82,7 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL):
 @delayed.queue_func
 def deferred_process_all_album_details(response_url=BOT_URL):
     def get_album_details_from_ids():
-        for album_id in check_for_new_albums():
+        for album_id in models.check_for_new_albums():
             try:
                 album, artist = scrapers.scrape_album_details_from_id(album_id)
                 yield (album_id, artist, album)
