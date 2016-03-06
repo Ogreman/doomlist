@@ -89,7 +89,7 @@ def deferred_process_all_album_details(response_url=BOT_URL):
             except (TypeError, ValueError):
                 continue
     try:
-        models.add_many_to_albums(list(models.get_album_details_from_ids()))
+        models.add_many_to_albums(list(get_album_details_from_ids()))
     except models.DatabaseError:
         pass
     else:
