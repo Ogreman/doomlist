@@ -275,7 +275,13 @@ def get_top_votes(count=5):
             port=url.port
         )
         cur = conn.cursor()
-        cur.execute("SELECT album, COUNT(*) FROM votes GROUP BY album ORDER BY COUNT(*) DESC;")
+        cur.execute("""
+            SELECT artist, name, count(DISTINCT votes.id) 
+            FROM votes 
+            JOIN albums on votes.album = albums.id 
+            GROUP BY votes.album, albums.artist, albums.name 
+            ORDER BY count(DISTINCT votes.id) DESC;"""
+        )
         return cur.fetchmany(count)
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError

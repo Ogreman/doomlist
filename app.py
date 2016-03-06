@@ -270,20 +270,16 @@ def vote():
 
 
 @app.route('/top', methods=['GET'])
-@app.cache.cached(timeout=1800)
+@app.cache.cached(timeout=60)
 def top():
     try:
-        top_albums_votes = models.get_top_votes()
-        albums = tuple(result[0] for result in top_albums_votes)
-        albums_details = models.get_album_details_from_ids(albums)
-        id_votes_mapping = dict(top_albums_votes)
         results = [
             {
-                'album': details[2],
-                'artist': details[1],
-                'votes': int(id_votes_mapping[details[0]]),
+                'album': details[1],
+                'artist': details[0],
+                'votes': details[2],
             }
-            for details in albums_details
+            for details in models.get_top_votes()
         ]
         response = flask.Response(json.dumps({
             'text': 'Success', 
