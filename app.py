@@ -269,6 +269,32 @@ def vote():
     return response
 
 
+@app.route('/top', methods=['GET'])
+@app.cache.cached(timeout=1800)
+def top():
+    try:
+        top_albums_votes = models.get_top_votes()
+        albums = tuple(result[0] for result in top_albums_votes)
+        albums_details = models.get_album_details_from_ids(albums)
+        id_votes_mapping = dict(top_albums_votes)
+        results = [
+            {
+                'album': details[2],
+                'artist': details[1],
+                'votes': int(id_votes_mapping[details[0]]),
+            }
+            for details in albums_details
+        ]
+        response = flask.Response(json.dumps({
+            'text': 'Success', 
+            'value': results,
+        }))
+    except models.DatabaseError:
+        response = flask.Response(json.dumps({'text': 'Failed'}))   
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
 if __name__ == "__main__":
     app.run(debug=os.environ.get('DEBUG', True))
 
