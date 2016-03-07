@@ -265,6 +265,30 @@ def get_votes_count(album_id):
         conn.close()
 
 
+def get_votes():
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT votes.album, artist, name, count(DISTINCT votes.id) 
+            FROM votes 
+            JOIN albums on votes.album = albums.id 
+            GROUP BY votes.album, albums.artist, albums.name 
+            """)
+        return cur.fetchall()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
 def get_top_votes(count=5):
     try:
         conn = psycopg2.connect(

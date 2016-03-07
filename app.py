@@ -240,6 +240,28 @@ def album(album_id):
     return response
 
 
+@app.route('/votes', methods=['GET'])
+def all_votes():
+    try:
+        results = [
+            {
+                'id': details[0],
+                'artist': details[1],
+                'album': details[2],
+                'votes': details[3],
+            }
+            for details in models.get_votes()
+        ]
+        response = flask.Response(json.dumps({
+            'text': 'Success', 
+            'value': results,
+        }))
+    except models.DatabaseError:
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
 @app.route('/votes/<album_id>', methods=['GET'])
 def votes(album_id):
     try:
