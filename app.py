@@ -275,9 +275,10 @@ def top():
     try:
         results = [
             {
-                'album': details[1],
-                'artist': details[0],
-                'votes': details[2],
+                'id': details[0],
+                'artist': details[1],
+                'album': details[2],
+                'votes': details[3],
             }
             for details in models.get_top_votes()
         ]

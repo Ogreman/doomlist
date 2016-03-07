@@ -276,7 +276,7 @@ def get_top_votes(count=5):
         )
         cur = conn.cursor()
         cur.execute("""
-            SELECT artist, name, count(DISTINCT votes.id) 
+            SELECT votes.album, artist, name, count(DISTINCT votes.id) 
             FROM votes 
             JOIN albums on votes.album = albums.id 
             GROUP BY votes.album, albums.artist, albums.name 
