@@ -65,7 +65,7 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL):
         message = None
     else:
         try:
-            if album_id not in get_list():
+            if album_id not in models.get_list():
                 try:    
                     callback(album_id)
                 except models.DatabaseError as e:
