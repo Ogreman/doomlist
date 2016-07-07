@@ -101,9 +101,11 @@ def deferred_process_all_album_details(response_url=BOT_URL):
     except models.DatabaseError as e:
         print "[db]: failed to add album details"
         print "[db]: %s" % e
+        message = 'Failed to process all album details...'
     else:
-        if response_url:
-            requests.post(response_url, data='Processed all album details')
+        message = 'Processed all album details'
+    if response_url:
+        requests.post(response_url, data=message)
 
 
 @delayed.queue_func
