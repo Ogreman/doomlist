@@ -141,6 +141,17 @@ def list_albums():
     return response
 
 
+@app.route('/list/count', methods=['GET'])
+@app.cache.cached(timeout=60 * 60)
+def id_count():
+    try:
+        response = flask.Response(json.dumps({'count': models.get_list_count()}))
+    except models.DatabaseError:
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
 @app.route('/albums', methods=['GET'])
 @app.cache.cached(timeout=60 * 60)
 def list_album_details():
@@ -165,7 +176,7 @@ def list_album_details():
 @app.cache.cached(timeout=1800)
 def count_albums():
     try:
-        response = flask.Response(json.dumps({'count': models.get_list_count()}))
+        response = flask.Response(json.dumps({'count': models.get_albums_count()}))
     except models.DatabaseError:
         response = flask.Response(json.dumps({'text': 'Failed'}))
     response.headers['Access-Control-Allow-Origin'] = '*'

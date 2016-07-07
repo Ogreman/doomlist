@@ -352,6 +352,25 @@ def get_albums():
         conn.close()
 
 
+def get_albums_count():
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("SELECT id FROM albums;")
+        return cur.rowcount
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+        
 def get_album_details(album_id):
     try:
         conn = psycopg2.connect(
