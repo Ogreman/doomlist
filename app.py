@@ -142,7 +142,7 @@ def list_albums():
 
 
 @app.route('/list/count', methods=['GET'])
-@app.cache.cached(timeout=60 * 60)
+@app.cache.cached(timeout=60)
 def id_count():
     try:
         response = flask.Response(json.dumps({'count': models.get_list_count()}))
@@ -173,7 +173,7 @@ def list_album_details():
 
 
 @app.route('/albums/count', methods=['GET'])
-@app.cache.cached(timeout=1800)
+@app.cache.cached(timeout=60)
 def count_albums():
     try:
         response = flask.Response(json.dumps({'count': models.get_albums_count()}))
