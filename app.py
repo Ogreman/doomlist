@@ -4,6 +4,8 @@ import datetime
 import requests
 import flask
 import slacker
+import csv
+import StringIO
 
 from scrapers import scrapers
 from delayed import delayed
@@ -187,6 +189,18 @@ def count_albums():
         response = flask.Response(json.dumps({'text': 'Failed'}))
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
+
+
+@app.route('/albums/dump', methods=['GET'])
+@app.cache.cached(timeout=60 * 30)
+def dump_album_details():
+    csv_file = StringIO.StringIO()
+    csv_writer = csv.writer(csv_file)
+    csv_writer.writerow(['id', 'album', 'artist'])
+    for album_id, album, artist in models.get_albums():
+        csv_writer.writerow([album_id, album, artist])
+    csv_file.seek(0)
+    return flask.send_file(csv_file, attachment_filename="doom.csv", as_attachment=True)
 
 
 @app.route('/logs', methods=['GET'])
