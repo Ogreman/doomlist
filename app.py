@@ -29,12 +29,14 @@ APP_TOKENS = [
 def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
     try:
         slack = slacker.Slacker(API_TOKEN)
+        requests.post(response_url, data=json.dumps({'text': 'Getting channel history...'}))
         response = slack.channels.history(os.environ['SLACK_CHANNEL_ID'])
     except (KeyError, slacker.Error):
         message = 'There was an error accessing the Slack API'
     else:
         if response.successful:
             messages = response.body.get('messages', [])
+            requests.post(response_url, data=json.dumps({'text': 'Scraping...'}))
             results = scrape_function(messages)
             album_ids = models.check_for_new_list_ids(results)
             try:    
@@ -97,6 +99,7 @@ def deferred_process_all_album_details(response_url=BOT_URL):
             except (TypeError, ValueError):
                 continue
     try:
+        requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
         models.add_many_to_albums(list(get_album_details_from_ids()))
     except models.DatabaseError as e:
         print "[db]: failed to add album details"
@@ -105,7 +108,7 @@ def deferred_process_all_album_details(response_url=BOT_URL):
     else:
         message = 'Processed all album details'
     if response_url:
-        requests.post(response_url, data=message)
+        requests.post(response_url, data=json.dumps({'text': message}))
 
 
 @delayed.queue_func
