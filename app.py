@@ -204,7 +204,7 @@ def dump_album_details():
 
 
 @app.route('/count', methods=['POST'])
-def scrape():
+def album_count():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
         models.get_albums_count(), 200
