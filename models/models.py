@@ -246,6 +246,25 @@ def get_list():
         conn.close()
 
 
+def get_list_count():
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("SELECT album FROM list;")
+        return cur.rowcount
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
 def get_votes_count(album_id):
     try:
         conn = psycopg2.connect(

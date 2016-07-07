@@ -161,6 +161,17 @@ def list_album_details():
     return response
 
 
+@app.route('/albums/count', methods=['GET'])
+@app.cache.cached(timeout=1800)
+def count_albums():
+    try:
+        response = flask.Response(json.dumps({'count': models.get_list_count()}))
+    except models.DatabaseError:
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
 @app.route('/logs', methods=['GET'])
 def list_logs():
     try:
