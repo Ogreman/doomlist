@@ -131,7 +131,7 @@ def consume():
 
 
 @app.route('/list', methods=['GET'])
-@app.cache.cached(timeout=1800)
+@app.cache.cached(timeout=60 * 60)
 def list_albums():
     try:
         response = flask.Response(json.dumps(models.get_list()))
@@ -142,7 +142,7 @@ def list_albums():
 
 
 @app.route('/albums', methods=['GET'])
-@app.cache.cached(timeout=1800)
+@app.cache.cached(timeout=60 * 60)
 def list_album_details():
     try:
         details = [
@@ -252,15 +252,11 @@ def album(album_id):
 
 
 @app.route('/votes', methods=['GET'])
+@app.cache.cached(timeout=60 * 5)
 def all_votes():
     try:
         results = [
-            {
-                'id': details[0],
-                'artist': details[1],
-                'album': details[2],
-                'votes': details[3],
-            }
+            dict(zip(('id', 'artist', 'album', 'votes'), details))
             for details in models.get_votes()
         ]
         response = flask.Response(json.dumps({
@@ -303,16 +299,11 @@ def vote():
 
 
 @app.route('/top', methods=['GET'])
-@app.cache.cached(timeout=60)
+@app.cache.cached(timeout=60 * 5)
 def top():
     try:
         results = [
-            {
-                'id': details[0],
-                'artist': details[1],
-                'album': details[2],
-                'votes': details[3],
-            }
+            dict(zip(('id', 'artist', 'album', 'votes'), details))
             for details in models.get_top_votes()
         ]
         response = flask.Response(json.dumps({
