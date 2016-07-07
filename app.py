@@ -100,13 +100,14 @@ def deferred_process_all_album_details(response_url=BOT_URL):
                 continue
     try:
         requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
-        models.add_many_to_albums(list(get_album_details_from_ids()))
+        album_details = list(get_album_details_from_ids())
+        models.add_many_to_albums(album_details)
     except models.DatabaseError as e:
         print "[db]: failed to add album details"
         print "[db]: %s" % e
         message = 'Failed to process all album details...'
     else:
-        message = 'Processed all album details'
+        message = 'Processed all album details: %d found.' % (len(album_details), )
     if response_url:
         requests.post(response_url, data=json.dumps({'text': message}))
 
