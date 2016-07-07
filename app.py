@@ -207,7 +207,7 @@ def dump_album_details():
 def album_count():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
-        str(models.get_albums_count()), 200
+        return str(models.get_albums_count()), 200
     return '', 200
 
 
