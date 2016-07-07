@@ -203,6 +203,14 @@ def dump_album_details():
     return flask.send_file(csv_file, attachment_filename="doom.csv", as_attachment=True)
 
 
+@app.route('/count', methods=['POST'])
+def scrape():
+    form_data = flask.request.form
+    if form_data.get('token') in APP_TOKENS:
+        models.get_albums_count(), 200
+    return '', 200
+
+
 @app.route('/logs', methods=['GET'])
 def list_logs():
     try:
