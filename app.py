@@ -300,6 +300,31 @@ def bc(album_id):
     return flask.redirect(BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
 
 
+def build_search_response(albums):
+    return {
+        "text": "Your search returned {} results".format(len(albums)),
+        "attachments": [
+            {
+                "fallback": "{} by {}".format(album[1], album[2]),
+                "color": "#36a64f",
+                "pretext": "{} by {}".format(album[1], album[2]),
+                "author_name": album[2],
+                "title": album[1],
+                "title_link": BANDCAMP_URL_TEMPLATE.format(album_id=album[0]),
+                "fields": [
+                    {
+                        "title": "Album ID",
+                        "value": album[0],
+                        "short": 'false',
+                    }
+                ],
+                "footer": "Doomlist",
+            }
+            for album in albums
+        ]
+    }
+
+
 @app.route('/search', methods=['POST'])
 def search():
     form_data = flask.request.form
@@ -311,29 +336,8 @@ def search():
             except models.DatabaseError:
                 return 'Failed to perform search', 200
             else:
-                response = {
-                    "text": "Your search returned {} results".format(len(albums)),
-                    "attachments": [
-                        {
-                            "fallback": "{} by {}".format(album[1], album[2]),
-                            "color": "#36a64f",
-                            "pretext": "{} by {}".format(album[1], album[2]),
-                            "author_name": album[2],
-                            "title": album[1],
-                            "title_link": BANDCAMP_URL_TEMPLATE.format(album_id=album[0]),
-                            "fields": [
-                                {
-                                    "title": "Album ID",
-                                    "value": album[0],
-                                    "short": false
-                                }
-                            ],
-                            "footer": "Doomlist",
-                        }
-                        for album in albums
-                    ]
-                }
-                return flask.Response(json.dumps(response))
+                response = build_search_response(albums)
+                return json.dumps(response)
     return '', 200
 
 
