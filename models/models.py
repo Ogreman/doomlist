@@ -495,7 +495,11 @@ def search_albums(query):
             port=url.port
         )
         cur = conn.cursor()
-        cur.execute("SELECT id, name, artist FROM albums where LOWER(name) LIKE %s", ('%' + query + '%',))
+        term = '%' + query + '%'
+        cur.execute(
+            "SELECT id, name, artist FROM albums where LOWER(name) LIKE %s OR LOWER(artist) LIKE %s", 
+            (term, term)
+        )
         return cur.fetchall()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
