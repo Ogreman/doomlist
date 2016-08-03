@@ -18,7 +18,8 @@ app = flask.Flask(__name__)
 app.config.from_object(os.environ['APP_SETTINGS'])
 app.cache = init_cacheify(app)
 
-
+ALBUM_TEMPLATE = "{name} by {artist}: {url}"
+BANDCAMP_URL_TEMPLATE = "https://bandcamp.com/EmbeddedPlayer/album={album_id}/size=large/artwork=small"
 API_TOKEN = app.config['API_TOKEN']
 BOT_URL_TEMPLATE = app.config['BOT_URL_TEMPLATE']
 DEFAULT_CHANNEL = app.config['DEFAULT_CHANNEL']
@@ -292,6 +293,34 @@ def album(album_id):
         response = flask.Response(json.dumps({'text': 'Failed'}))
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
+
+
+@app.route('/bc/<album_id>', methods=['GET'])
+def bc(album_id):
+    return redirect(BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
+
+
+@app.route('/search', methods=['POST'])
+def proc():
+    form_data = flask.request.form
+    if form_data.get('token') in APP_TOKENS:
+        query = form_data.get('text')
+        if query:
+            try:
+                albums = models.search_albums(query)
+            except models.DatabaseError:
+                return 'Failed to perform search', 200
+            else:
+                items = "\n".join(
+                    ALBUM_TEMPLATE.format(
+                        name=a[1], 
+                        artist=a[2], 
+                        url=BANDCAMP_URL_TEMPLATE.format(album_id=a[0])
+                    )
+                    for a in albums
+                )
+                return "Search returned:\n```{items}```".format(items=items), 200
+    return '', 200
 
 
 @app.route('/votes', methods=['GET'])

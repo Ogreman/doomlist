@@ -69,6 +69,25 @@ def create_albums_table():
         conn.close()
 
 
+def create_albums_index():
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("CREATE INDEX alb_lo_name ON albums (LOWER(name));")
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
 def create_votes_table():
     try:
         conn = psycopg2.connect(
@@ -459,6 +478,25 @@ def delete_album(album):
         cur = conn.cursor()
         cur.execute("DELETE FROM list where album = %s;", (album,))
         conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
+def search_albums(query):
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("SELECT id, name, artist FROM albums where LOWER(name) LIKE %s", ('%' + query + '%',))
+        return cur.fetchall()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
     finally:
