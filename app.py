@@ -311,15 +311,29 @@ def search():
             except models.DatabaseError:
                 return 'Failed to perform search', 200
             else:
-                items = "\n".join(
-                    ALBUM_TEMPLATE.format(
-                        name=a[1], 
-                        artist=a[2], 
-                        url=BANDCAMP_URL_TEMPLATE.format(album_id=a[0])
-                    )
-                    for a in albums
-                )
-                return "Search returned:\n```{items}```".format(items=items), 200
+                response = {
+                    "text": "Your search returned {} results".format(len(albums)),
+                    "attachments": [
+                        {
+                            "fallback": "{} by {}".format(album[1], album[2]),
+                            "color": "#36a64f",
+                            "pretext": "{} by {}".format(album[1], album[2]),
+                            "author_name": album[2],
+                            "title": album[1],
+                            "title_link": BANDCAMP_URL_TEMPLATE.format(album_id=album[0]),
+                            "fields": [
+                                {
+                                    "title": "Album ID",
+                                    "value": album[0],
+                                    "short": false
+                                }
+                            ],
+                            "footer": "Doomlist",
+                        }
+                        for album in albums
+                    ]
+                }
+                return flask.Response(json.dumps(response))
     return '', 200
 
 
