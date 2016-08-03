@@ -297,7 +297,7 @@ def album(album_id):
 
 @app.route('/bc/<album_id>', methods=['GET'])
 def bc(album_id):
-    return redirect(BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
+    return flask.redirect(BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
 
 
 @app.route('/search', methods=['POST'])
