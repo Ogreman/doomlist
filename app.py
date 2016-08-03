@@ -337,7 +337,7 @@ def search():
                 return 'Failed to perform search', 200
             else:
                 response = build_search_response(albums)
-                return json.dumps(response)
+                return flask.Response(json.dumps(response), mimetype='application/json')
     return '', 200
 
 
