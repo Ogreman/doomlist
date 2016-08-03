@@ -8,7 +8,8 @@ class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY', 'change-me')
     REDIS_QUEUE_KEY = 'deferred_queue'
     API_TOKEN = os.environ.get('API_TOKEN')
-    BOT_URL = os.environ.get('BOT_URL')
+    BOT_URL_TEMPLATE = os.environ.get('BOT_URL_TEMPLATE')
+    DEFAULT_CHANNEL = os.environ.get('DEFAULT_CHANNEL')
 
 
 class ProductionConfig(Config):

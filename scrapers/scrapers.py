@@ -55,7 +55,7 @@ def scrape_bandcamp_album_ids_from_url(url):
     raise NotFoundError
 
 
-def scrape_bandcamp_album_ids(messages, do_requests=True):
+def scrape_bandcamp_album_ids_from_messages(messages, do_requests=True):
     for message in messages:
         if message.get('type') == 'message':
             if 'attachments' in message:

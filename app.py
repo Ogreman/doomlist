@@ -20,7 +20,9 @@ app.cache = init_cacheify(app)
 
 
 API_TOKEN = app.config['API_TOKEN']
-BOT_URL = app.config['BOT_URL']
+BOT_URL_TEMPLATE = app.config['BOT_URL_TEMPLATE']
+DEFAULT_CHANNEL = app.config['DEFAULT_CHANNEL']
+DOOM_BOT_URL = BOT_URL_TEMPLATE.format(channel=DEFAULT_CHANNEL)
 APP_TOKENS = [
     token for key, token in os.environ.items()
     if key.startswith('APP_TOKEN')
@@ -28,7 +30,7 @@ APP_TOKENS = [
 
 
 @delayed.queue_func
-def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
+def deferred_scrape(scrape_function, callback, response_url=DOOM_BOT_URL):
     try:
         slack = slacker.Slacker(API_TOKEN)
         requests.post(response_url, data=json.dumps({'text': 'Getting channel history...'}))
@@ -62,7 +64,7 @@ def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
 
 
 @delayed.queue_func
-def deferred_consume(text, scrape_function, callback, response_url=BOT_URL):
+def deferred_consume(text, scrape_function, callback, response_url=DOOM_BOT_URL):
     try:
         album_id = scrape_function(text)
     except scrapers.NotFoundError:
@@ -92,7 +94,7 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL):
 
 
 @delayed.queue_func
-def deferred_process_all_album_details(response_url=BOT_URL):
+def deferred_process_all_album_details(response_url=DOOM_BOT_URL):
     def get_album_details_from_ids():
         for album_id in models.check_for_new_albums():
             try:
@@ -130,10 +132,12 @@ def deferred_process_album_details(album_id):
 def consume():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
+        channel = form_data.get('channel_name', 'doom')
         deferred_consume.delay(
             form_data.get('text', ''),
             scrapers.scrape_bandcamp_album_ids_from_url,
             models.add_to_list,
+            response_url=BOT_URL_TEMPLATE.format(channel=channel),
         )
     return '', 200
 
@@ -255,9 +259,9 @@ def scrape():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
         deferred_scrape.delay(
-            scrapers.scrape_bandcamp_album_ids,
+            scrapers.scrape_bandcamp_album_ids_from_messages,
             models.add_many_to_list,
-            form_data.get('response_url', BOT_URL),
+            form_data.get('response_url', DOOM_BOT_URL),
         )
         return 'Scrape request sent', 200
     return '', 200
@@ -268,7 +272,7 @@ def proc():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
         deferred_process_all_album_details.delay(
-            form_data.get('response_url', BOT_URL)
+            form_data.get('response_url', DOOM_BOT_URL)
         )
         return 'Process request sent', 200
     return '', 200
