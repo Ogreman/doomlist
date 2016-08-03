@@ -301,7 +301,7 @@ def bc(album_id):
 
 
 @app.route('/search', methods=['POST'])
-def proc():
+def search():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
         query = form_data.get('text')
