@@ -308,13 +308,17 @@ def link():
         album_id = form_data.get('text')
         if not album_id:
             return 'Provide an album ID', 200
-        _, _, _, url = models.get_album_details(album_id)
-        response = {
-            "response_type": "in_channel",
-            "text": url,
-            "unfurl_links": "true",
-        }
-        return flask.Response(json.dumps(response), mimetype='application/json')
+        try:
+            _, _, _, url = models.get_album_details(album_id)
+        except TypeError:
+            return 'Album not found in Doomlist', 200
+        else:
+            response = {
+                "response_type": "in_channel",
+                "text": url,
+                "unfurl_links": "true",
+            }
+            return flask.Response(json.dumps(response), mimetype='application/json')
     return '', 200
 
 
