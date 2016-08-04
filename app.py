@@ -335,8 +335,9 @@ def random_album():
         except TypeError:
             return 'No album found in the Doomlist', 200
         else:
+            response_type = 'in_channel' if form_data.get('text') == 'post' else 'ephemeral'
             response = {
-                "response_type": "ephemeral",
+                "response_type": response_type,
                 "text": url,
                 "unfurl_links": "true",
             }
