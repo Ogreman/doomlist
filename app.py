@@ -300,6 +300,29 @@ def bc(album_id):
     return flask.redirect(BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
 
 
+@app.route('/link', methods=['POST']):
+def link():
+    form_data = flask.request.form
+    if form_data.get('token') in APP_TOKENS:
+        album_id = form_data.get('text')
+        if not album_id:
+            return 'Provide an album ID', 200
+        url = BANDCAMP_URL_TEMPLATE.format(album_id=album_id)
+        response = {
+            "attachments": [
+                {
+                    "fallback": url,
+                    "color": "#36a64f",
+                    "title": "Bandcamp link for " + album_id,
+                    "title_link": url,
+                    "footer": "Doomlist",
+                }
+            ]
+        }
+        return flask.Response(json.dumps(response), mimetype='application/json')
+    return '', 200
+
+
 def build_search_response(albums):
     return {
         "text": "Your search returned {} results".format(len(albums)),
