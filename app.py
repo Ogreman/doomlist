@@ -120,8 +120,8 @@ def deferred_process_all_album_details(response_url=DOOM_BOT_URL):
 @delayed.queue_func
 def deferred_process_album_details(album_id):
     try:
-        album, artist = scrapers.scrape_album_details_from_id(album_id)
-        models.add_to_albums(album_id, artist, album)
+        album, artist, url = scrapers.scrape_album_details_from_id(album_id)
+        models.add_to_albums(album_id, artist, album, url)
     except models.DatabaseError as e:
         print "[db]: failed to add album details"
         print "[db]: %s" % e
@@ -174,9 +174,10 @@ def list_album_details():
                 album_id: {
                     'artist': artist,
                     'album': album,
+                    'url': url,
                 }
             }
-            for album_id, album, artist in models.get_albums()
+            for album_id, album, artist, url in models.get_albums()
         ]
         response = flask.Response(json.dumps(details))
     except models.DatabaseError:
@@ -201,9 +202,9 @@ def count_albums():
 def dump_album_details():
     csv_file = StringIO.StringIO()
     csv_writer = csv.writer(csv_file)
-    csv_writer.writerow(['id', 'album', 'artist'])
-    for album_id, album, artist in models.get_albums():
-        csv_writer.writerow([album_id, album, artist])
+    csv_writer.writerow(['id', 'album', 'artist', 'url'])
+    for album_id, album, artist, url in models.get_albums():
+        csv_writer.writerow([album_id, album, artist, url])
     csv_file.seek(0)
     return flask.send_file(csv_file, attachment_filename="doom.csv", as_attachment=True)
 
@@ -285,7 +286,7 @@ def album(album_id):
         response = flask.Response(json.dumps({
             'text': 'Success',
             'album': dict(zip(
-                ('id', 'name', 'artist'),
+                ('id', 'name', 'artist', 'url'),
                 models.get_album_details(album_id),
             ))
         }))
@@ -307,7 +308,7 @@ def link():
         album_id = form_data.get('text')
         if not album_id:
             return 'Provide an album ID', 200
-        url = BANDCAMP_URL_TEMPLATE.format(album_id=album_id)
+        _, _, _, url = models.get_album_details(album_id)
         response = {
             "response_type": "in_channel",
             "text": url,
@@ -327,7 +328,7 @@ def build_search_response(albums):
                 "pretext": "{} by {}".format(album[1], album[2]),
                 "author_name": album[2],
                 "title": album[1],
-                "title_link": BANDCAMP_URL_TEMPLATE.format(album_id=album[0]),
+                "title_link": album[3],
                 "fields": [
                     {
                         "title": "Album ID",

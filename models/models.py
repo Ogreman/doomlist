@@ -12,6 +12,25 @@ class DatabaseError(Exception):
     pass
 
 
+def add_column(table, col, col_type):
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("ALTER TABLE " + table + " ADD " + col + " " + col_type)
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
 def create_logs_table():
     try:
         conn = psycopg2.connect(
@@ -60,7 +79,7 @@ def create_albums_table():
             port=url.port
         )
         cur = conn.cursor()
-        cur.execute("CREATE TABLE albums (id varchar PRIMARY KEY, artist varchar, name varchar);")
+        cur.execute("CREATE TABLE albums (id varchar PRIMARY KEY, artist varchar, name varchar, url varchar);")
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -164,7 +183,7 @@ def add_to_list(album_id):
         conn.close()
 
 
-def add_to_albums(album_id, artist, name):
+def add_to_albums(album_id, artist, name, url):
     try:
         conn = psycopg2.connect(
             database=url.path[1:],
@@ -174,7 +193,7 @@ def add_to_albums(album_id, artist, name):
             port=url.port
         )
         cur = conn.cursor()
-        cur.execute('INSERT INTO albums (id, artist, name) VALUES (%s, %s, %s)', (album_id, artist, name))
+        cur.execute('INSERT INTO albums (id, artist, name, url) VALUES (%s, %s, %s, %s)', (album_id, artist, name, url))
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -237,7 +256,7 @@ def add_many_to_albums(albums):
             port=url.port
         )
         cur = conn.cursor()
-        cur.executemany('INSERT INTO albums (id, artist, name) VALUES (%s, %s, %s)', albums)
+        cur.executemany('INSERT INTO albums (id, artist, name, url) VALUES (%s, %s, %s, %s)', albums)
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -362,7 +381,7 @@ def get_albums():
             port=url.port
         )
         cur = conn.cursor()
-        cur.execute("SELECT id, name, artist FROM albums;")
+        cur.execute("SELECT id, name, artist, url FROM albums;")
         return cur.fetchall()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -400,7 +419,7 @@ def get_album_details(album_id):
             port=url.port
         )
         cur = conn.cursor()
-        cur.execute("SELECT id, name, artist FROM albums WHERE id = %s;", (album_id, ))
+        cur.execute("SELECT id, name, artist, url FROM albums WHERE id = %s;", (album_id, ))
         return cur.fetchone()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -419,7 +438,7 @@ def get_album_details_from_ids(album_ids):
             port=url.port
         )
         cur = conn.cursor()
-        cur.execute("SELECT id, artist, name FROM albums WHERE id IN %s;", (album_ids, ))
+        cur.execute("SELECT id, artist, name, url FROM albums WHERE id IN %s;", (album_ids, ))
         return cur.fetchall()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -485,6 +504,44 @@ def delete_album(album):
         conn.close()
 
 
+def _reset_albums():
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("DELETE FROM albums")
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()    
+
+
+def _reset_votes():
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("DELETE FROM votes")
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()    
+
+
 def search_albums(query):
     try:
         conn = psycopg2.connect(
@@ -497,7 +554,7 @@ def search_albums(query):
         cur = conn.cursor()
         term = '%' + query + '%'
         cur.execute(
-            "SELECT id, name, artist FROM albums where LOWER(name) LIKE %s OR LOWER(artist) LIKE %s", 
+            "SELECT id, name, artist, url FROM albums where LOWER(name) LIKE %s OR LOWER(artist) LIKE %s", 
             (term, term)
         )
         return cur.fetchall()

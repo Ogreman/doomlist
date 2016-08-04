@@ -79,7 +79,7 @@ def scrape_album_details_from_id(album_id):
             player_data_end_pos = player_data_pos + content[player_data_pos:].find('\n') - 1
             try:
                 data = json.loads(content[player_data_pos:player_data_end_pos])
-                return data['album_title'], data['artist']
+                return data['album_title'], data['artist'], data['linkback']
             except (KeyError, TypeError, ValueError):
                 pass
     return None 
