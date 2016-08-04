@@ -309,10 +309,9 @@ def link():
             return 'Provide an album ID', 200
         url = BANDCAMP_URL_TEMPLATE.format(album_id=album_id)
         response = {
+            "text": "Your link to the requested album is here",
             "attachments": [
                 {
-                    "fallback": url,
-                    "color": "#36a64f",
                     "title": "Bandcamp link for " + album_id,
                     "title_link": url,
                     "footer": "Doomlist",
