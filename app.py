@@ -300,7 +300,7 @@ def bc(album_id):
     return flask.redirect(BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
 
 
-@app.route('/link', methods=['POST']):
+@app.route('/link', methods=['POST'])
 def link():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
