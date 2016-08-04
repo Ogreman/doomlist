@@ -309,14 +309,9 @@ def link():
             return 'Provide an album ID', 200
         url = BANDCAMP_URL_TEMPLATE.format(album_id=album_id)
         response = {
-            "text": "Your link to the requested album is here",
-            "attachments": [
-                {
-                    "title": "Bandcamp link for " + album_id,
-                    "title_link": url,
-                    "footer": "Doomlist",
-                }
-            ]
+            "response_type": "in_channel",
+            "text": url,
+            "unfurl_links": true
         }
         return flask.Response(json.dumps(response), mimetype='application/json')
     return '', 200
