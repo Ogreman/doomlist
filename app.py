@@ -311,7 +311,7 @@ def link():
         response = {
             "response_type": "in_channel",
             "text": url,
-            "unfurl_links": true
+            "unfurl_links": "true",
         }
         return flask.Response(json.dumps(response), mimetype='application/json')
     return '', 200
