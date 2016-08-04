@@ -310,11 +310,33 @@ def link():
             return 'Provide an album ID', 200
         try:
             _, _, _, url = models.get_album_details(album_id)
+        except models.DatabaseError:
+            return 'Doomlist error - check with admin', 200
         except TypeError:
-            return 'Album not found in Doomlist', 200
+            return 'Album not found in the Doomlist', 200
         else:
             response = {
                 "response_type": "in_channel",
+                "text": url,
+                "unfurl_links": "true",
+            }
+            return flask.Response(json.dumps(response), mimetype='application/json')
+    return '', 200
+
+
+@app.route('/random', methods=['POST'])
+def random_album():
+    form_data = flask.request.form
+    if form_data.get('token') in APP_TOKENS:
+        try:
+            _, _, _, url = models.get_random_album()
+        except models.DatabaseError:
+            return 'Doomlist error - check with admin', 200
+        except TypeError:
+            return 'No album found in the Doomlist', 200
+        else:
+            response = {
+                "response_type": "ephemeral",
                 "text": url,
                 "unfurl_links": "true",
             }

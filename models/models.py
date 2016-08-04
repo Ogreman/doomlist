@@ -565,6 +565,25 @@ def search_albums(query):
         conn.close()
 
 
+def get_random_album():
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:],
+            user=url.username,
+            password=url.password,
+            host=url.hostname,
+            port=url.port
+        )
+        cur = conn.cursor()
+        cur.execute("SELECT id, name, artist, url FROM albums ORDER BY RANDOM() LIMIT 1")
+        return cur.fetchone()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
 def check_for_new_list_ids(results):
     return [
         (str(album_id),)
