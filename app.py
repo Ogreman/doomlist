@@ -421,6 +421,7 @@ def search():
 
 @app.route('/search/button', methods=['POST'])
 def button():
+    print flask.request.form
     return 'received', 200
 
 
