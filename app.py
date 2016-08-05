@@ -388,6 +388,14 @@ def build_search_response(albums):
                         "short": 'false',
                     }
                 ],
+                "actions": [
+                    {
+                        "name": "album",
+                        "text": "Post",
+                        "type": "button",
+                        "value": album[3],
+                    }
+                ]
                 "footer": "Doomlist",
             }
             for album in albums
@@ -474,6 +482,11 @@ def top():
         response = flask.Response(json.dumps({'text': 'Failed'}))   
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
+
+
+@app.route('/auth', methods=['GET'])
+def auth():
+    return ''
 
 
 if __name__ == "__main__":
