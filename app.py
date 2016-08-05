@@ -422,25 +422,24 @@ def search():
 
 @app.route('/search/button', methods=['POST'])
 def button():
-    form_data = flask.request.form
-    print form_data
-    if form_data.get('token') in APP_TOKENS:
-        print "allowed"
-        try:
-            url = form_data["actions"][0]["value"]
-            print "found url"
-        except KeyError:
-            print "failed"
-            return 'Doomlist error - check with admin', 200
-        else:
-            response = {
-                "response_type": "ephemeral",
-                "text": url,
-                "replace_original": "false",
-            }
-            print "responding..."
-            return flask.Response(json.dumps(response), mimetype='application/json')
-    print "nope"
+    try:
+        form_data = json.loads(flask.request.form['payload'])
+    except KeyError:
+        return '', 200
+    else:
+        if form_data.get('token') in APP_TOKENS:
+            try:
+                url = form_data["actions"][0]["value"]
+            except KeyError:
+                return 'Doomlist error - check with admin', 200
+            else:
+                response = {
+                    "response_type": "ephemeral",
+                    "text": url,
+                    "replace_original": "false",
+                    "unfurl_links": "true",
+                }
+                return flask.Response(json.dumps(response), mimetype='application/json')
     return '', 200
 
 
