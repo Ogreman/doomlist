@@ -422,8 +422,20 @@ def search():
 
 @app.route('/search/button', methods=['POST'])
 def button():
-    print flask.request.form
-    return 'received', 200
+    form_data = flask.request.form
+    if form_data.get('token') in APP_TOKENS:
+        try:
+            url = form_data["actions"][0]["value"]
+        except KeyError:
+            return 'Doomlist error - check with admin', 200
+        else:
+            response = {
+                "response_type": "ephemeral",
+                "text": url,
+                "unfurl_links": "true",
+            }
+            return flask.Response(json.dumps(response), mimetype='application/json')
+    return '', 200
 
 
 @app.route('/votes', methods=['GET'])
