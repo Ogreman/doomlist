@@ -434,6 +434,7 @@ def button():
                 "text": url,
                 "replace_original": "false",
             }
+            print response
             return flask.Response(json.dumps(response), mimetype='application/json')
     return '', 200
 
