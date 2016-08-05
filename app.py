@@ -83,10 +83,10 @@ def deferred_consume(text, scrape_function, callback, response_url=DOOM_BOT_URL)
                     print "[db]: failed to perform %s" % callback.func_name
                     print "[db]: %s" % e
                 else:
-                    message = 'Added album to list'
+                    message = 'Added album to list: ' + str(album_id)
                     deferred_process_album_details.delay(album_id)
             else:
-                message = 'Album already in list'
+                message = 'Album already in list: ' + str(album_id)
         except models.DatabaseError as e:
             print "[db]: failed to check existing items"
             print "[db]: %s" % e
@@ -161,6 +161,10 @@ def consume_all():
                     models.add_to_list,
                     response_url=response_url,
                 )
+            elif 'youtube' in url or 'youtu.be' in url:
+                requests.post(response_url, data=json.dumps({'text': "YouTube scraper not yet implemented"}))
+            elif 'soundcloud' in url:
+                requests.post(response_url, data=json.dumps({'text': "Soundcloud scraper not yet implemented"}))
     return '', 200
 
 
