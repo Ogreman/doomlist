@@ -434,7 +434,7 @@ def button():
                 return 'Doomlist error - check with admin', 200
             else:
                 response = {
-                    "response_type": "ephemeral",
+                    "response_type": "in_channel",
                     "text": url,
                     "replace_original": "false",
                     "unfurl_links": "true",
