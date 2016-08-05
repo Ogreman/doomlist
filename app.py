@@ -439,7 +439,7 @@ def button():
                     "replace_original": False,
                     "unfurl_links": "true",
                 }
-                requests.post(form_data['response_url'], data=json.dumps(response))
+                return flask.Response(json.dumps(response), mimetype='application/json')
     return '', 200
 
 
