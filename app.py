@@ -432,7 +432,6 @@ def button():
             response = {
                 "response_type": "ephemeral",
                 "text": url,
-                "unfurl_links": "true",
                 "replace_original": "false",
             }
             return flask.Response(json.dumps(response), mimetype='application/json')
