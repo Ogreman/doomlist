@@ -395,7 +395,7 @@ def build_search_response(albums):
                         "type": "button",
                         "value": album[3],
                     }
-                ]
+                ],
                 "footer": "Doomlist",
             }
             for album in albums
