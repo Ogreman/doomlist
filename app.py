@@ -436,7 +436,7 @@ def button():
                 response = {
                     "response_type": "in_channel",
                     "text": url,
-                    "replace_original": "false",
+                    "replace_original": False,
                     "unfurl_links": "true",
                 }
                 requests.post(form_data['response_url'], data=json.dumps(response))
