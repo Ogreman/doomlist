@@ -381,6 +381,7 @@ def build_search_response(albums):
                 "author_name": album[2],
                 "title": album[1],
                 "title_link": album[3],
+                "callback_id": "album_results_" + album[0],
                 "fields": [
                     {
                         "title": "Album ID",
