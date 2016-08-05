@@ -102,8 +102,8 @@ def deferred_process_all_album_details(response_url=DOOM_BOT_URL):
     def get_album_details_from_ids():
         for album_id in models.check_for_new_albums():
             try:
-                album, artist = scrapers.scrape_album_details_from_id(album_id)
-                yield (album_id, artist, album)
+                album, artist, url = scrapers.scrape_album_details_from_id(album_id)
+                yield (album_id, artist, album, url)
             except (TypeError, ValueError):
                 continue
     try:
