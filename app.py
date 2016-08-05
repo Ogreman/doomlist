@@ -18,6 +18,8 @@ app = flask.Flask(__name__)
 app.config.from_object(os.environ['APP_SETTINGS'])
 app.cache = init_cacheify(app)
 
+URL_REGEX = "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+SCRAPE_TRIGGER_WORD = "scrape"
 ALBUM_TEMPLATE = "{name} by {artist}: {url}"
 BANDCAMP_URL_TEMPLATE = "https://bandcamp.com/EmbeddedPlayer/album={album_id}/size=large/artwork=small"
 API_TOKEN = app.config['API_TOKEN']
@@ -140,6 +142,24 @@ def consume():
             models.add_to_list,
             response_url=BOT_URL_TEMPLATE.format(channel=channel),
         )
+    return '', 200
+
+
+@app.route('/consume/all', methods=['POST'])
+def consume_all():
+    form_data = flask.request.form
+    if form_data.get('token') in APP_TOKENS:
+        channel = form_data.get('channel_name', 'doom')
+        response_url = BOT_URL_TEMPLATE.format(channel=channel)
+        contents = form_data.get('text', '')
+        for url in re.findall(URL_REGEX, contents):
+            if 'bandcamp' in url:
+                deferred_consume.delay(
+                    url,
+                    scrapers.scrape_bandcamp_album_ids_from_url,
+                    models.add_to_list,
+                    response_url=response_url,
+                )
     return '', 200
 
 
