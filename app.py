@@ -419,6 +419,11 @@ def search():
     return '', 200
 
 
+@app.route('/search/button', methods=['POST'])
+def button():
+    return 'received', 200
+
+
 @app.route('/votes', methods=['GET'])
 @app.cache.cached(timeout=60 * 5)
 def all_votes():
