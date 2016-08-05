@@ -430,12 +430,14 @@ def button():
         if form_data.get('token') in APP_TOKENS:
             try:
                 url = form_data["actions"][0]["value"]
+                user = form_data["user"]["name"]
+                message = "{user} posted {url} from the Doomlist".format(user=user, url=url)
             except KeyError:
                 return 'Doomlist error - check with admin', 200
             else:
                 response = {
                     "response_type": "in_channel",
-                    "text": url,
+                    "text": message,
                     "replace_original": False,
                     "unfurl_links": "true",
                 }
