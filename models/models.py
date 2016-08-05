@@ -351,17 +351,43 @@ def get_logs():
         conn.close()
 
 
-def delete_album(album):
+def delete_from_list(album_id):
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("DELETE FROM list where album = %s;", (album,))
+        cur.execute("DELETE FROM list where album = %s;", (album_id,))
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
     finally:
         cur.close()
         conn.close()
+
+
+def delete_from_albums(album_id):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM albums where id = %s;", (album_id,))
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
+def _reset_list():
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM list")
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()  
 
 
 def _reset_albums():

@@ -258,7 +258,7 @@ def delete():
         album_id = form_data.get('text')
         if album_id:
             try:
-                models.delete_album(album_id.strip())
+                models.delete_from_list(album_id.strip())
             except models.DatabaseError:
                 return 'Failed to delete album', 200
             else:
