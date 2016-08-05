@@ -1,3 +1,4 @@
+import re
 import os
 import json
 import datetime
@@ -153,7 +154,6 @@ def consume_all():
         response_url = BOT_URL_TEMPLATE.format(channel=channel)
         contents = form_data.get('text', '')
         for url in re.findall(URL_REGEX, contents):
-            print "[debug]: " + url
             if 'bandcamp' in url:
                 deferred_consume.delay(
                     url,
