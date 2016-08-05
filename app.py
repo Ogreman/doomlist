@@ -162,9 +162,9 @@ def consume_all():
                     response_url=response_url,
                 )
             elif 'youtube' in url or 'youtu.be' in url:
-                requests.post(response_url, data=json.dumps({'text': "YouTube scraper not yet implemented"}))
+                requests.post(response_url, data="YouTube scraper not yet implemented")
             elif 'soundcloud' in url:
-                requests.post(response_url, data=json.dumps({'text': "Soundcloud scraper not yet implemented"}))
+                requests.post(response_url, data="Soundcloud scraper not yet implemented")
     return '', 200
 
 
