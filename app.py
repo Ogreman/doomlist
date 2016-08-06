@@ -21,6 +21,8 @@ app.config.from_object(os.environ['APP_SETTINGS'])
 app.cache = init_cacheify(app)
 
 API_TOKEN = app.config['API_TOKEN']
+CLIENT_ID = app.config['CLIENT_ID']
+CLIENT_SECRET = app.config['CLIENT_SECRET']
 BOT_URL_TEMPLATE = app.config['BOT_URL_TEMPLATE']
 DEFAULT_CHANNEL = app.config['DEFAULT_CHANNEL']
 DOOM_BOT_URL = app.config['BOT_URL_TEMPLATE'].format(channel=DEFAULT_CHANNEL)
@@ -28,6 +30,7 @@ ADMIN_IDS = app.config['ADMIN_IDS']
 APP_TOKENS = app.config['APP_TOKENS']
 URL_REGEX = "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 BANDCAMP_URL_TEMPLATE = "https://bandcamp.com/EmbeddedPlayer/album={album_id}/size=large/artwork=small"
+SLACK_AUTH_URL = "https://slack.com/api/oauth.access?client_id={client_id}&client_secret={client_secret}&code={code}"
 
 
 def admin_only(func):
@@ -521,6 +524,15 @@ def list_logs():
         response = flask.Response(json.dumps({'text': 'Failed'}))
     return response
 
+
+@app.route('/slack/auth', methods=['POST'])
+def auth():
+    code = flask.request.args.get('code')
+    url = SLACK_AUTH_URL.format(code=code, client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
+    response = requests.get(url)
+    print "[auth]: " + str(response)
+    return response
+    
 
 if __name__ == "__main__":
     app.run(debug=app.config.get('DEBUG', True))

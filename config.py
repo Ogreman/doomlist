@@ -18,6 +18,9 @@ class Config(object):
         user_id for key, user_id in os.environ.items()
         if key.startswith('ADMIN_ID')
     ]
+    CLIENT_ID = os.environ.get('CLIENT_ID')
+    CLIENT_SECRET = os.environ.get('CLIENT_SECRET')
+
 
 
 class ProductionConfig(Config):
