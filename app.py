@@ -39,6 +39,9 @@ ADMIN_IDS = [
 
 
 def admin_only(func):
+    """
+    Decorator for locking down slack endpoints to admins
+    """
     @functools.wraps(func)
     def wraps(*args, **kwargs):
         if flask.request.form.get('user_id', '') in ADMIN_IDS:
@@ -182,87 +185,12 @@ def consume_all():
     return '', 200
 
 
-@app.route('/api/list', methods=['GET'])
-@app.cache.cached(timeout=60 * 60)
-def list_albums():
-    try:
-        response = flask.Response(json.dumps(models.get_list()))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
-
-
-@app.route('/api/list/count', methods=['GET'])
-@app.cache.cached(timeout=60)
-def id_count():
-    try:
-        response = flask.Response(json.dumps({'count': models.get_list_count()}))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
-
-
-@app.route('/api/albums', methods=['GET'])
-@app.cache.cached(timeout=60 * 60)
-def list_album_details():
-    try:
-        details = [
-            {
-                album_id: {
-                    'artist': artist,
-                    'album': album,
-                    'url': url,
-                }
-            }
-            for album_id, album, artist, url in models.get_albums()
-        ]
-        response = flask.Response(json.dumps(details))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
-
-
-@app.route('/api/albums/count', methods=['GET'])
-@app.cache.cached(timeout=60)
-def count_albums():
-    try:
-        response = flask.Response(json.dumps({'count': models.get_albums_count()}))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
-
-
-@app.route('/albums/dump', methods=['GET'])
-@app.cache.cached(timeout=60 * 30)
-def dump_album_details():
-    csv_file = StringIO.StringIO()
-    csv_writer = csv.writer(csv_file)
-    csv_writer.writerow(['id', 'album', 'artist', 'url'])
-    for album_id, album, artist, url in models.get_albums():
-        csv_writer.writerow([album_id, album, artist, url])
-    csv_file.seek(0)
-    return flask.send_file(csv_file, attachment_filename="doom.csv", as_attachment=True)
-
-
 @app.route('/slack/count', methods=['POST'])
 def album_count():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
         return str(models.get_albums_count()), 200
     return '', 200
-
-
-@app.route('/api/logs', methods=['GET'])
-def list_logs():
-    try:
-        response = flask.Response(json.dumps(models.get_logs()))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))
-    return response
 
 
 @app.route('/slack/delete', methods=['POST'])
@@ -319,27 +247,6 @@ def process():
         )
         return 'Process request sent', 200
     return '', 200
-
-
-@app.route('/api/album/<album_id>', methods=['GET'])
-def album(album_id):
-    try:
-        response = flask.Response(json.dumps({
-            'text': 'Success',
-            'album': dict(zip(
-                ('id', 'name', 'artist', 'url'),
-                models.get_album_details(album_id),
-            ))
-        }))
-    except (models.DatabaseError, TypeError):
-        response = flask.Response(json.dumps({'text': 'Failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
-
-
-@app.route('/api/bc/<album_id>', methods=['GET'])
-def bc(album_id):
-    return flask.redirect(BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
 
 
 @app.route('/slack/link', methods=['POST'])
@@ -461,6 +368,93 @@ def button():
     return '', 200
 
 
+@app.route('/api/list', methods=['GET'])
+@app.cache.cached(timeout=60 * 60)
+def list_albums():
+    try:
+        response = flask.Response(json.dumps(models.get_list()))
+    except models.DatabaseError:
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
+@app.route('/api/list/count', methods=['GET'])
+@app.cache.cached(timeout=60)
+def id_count():
+    try:
+        response = flask.Response(json.dumps({'count': models.get_list_count()}))
+    except models.DatabaseError:
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
+@app.route('/api/albums', methods=['GET'])
+@app.cache.cached(timeout=60 * 60)
+def list_album_details():
+    try:
+        details = [
+            {
+                album_id: {
+                    'artist': artist,
+                    'album': album,
+                    'url': url,
+                }
+            }
+            for album_id, album, artist, url in models.get_albums()
+        ]
+        response = flask.Response(json.dumps(details))
+    except models.DatabaseError:
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
+@app.route('/api/albums/count', methods=['GET'])
+@app.cache.cached(timeout=60)
+def count_albums():
+    try:
+        response = flask.Response(json.dumps({'count': models.get_albums_count()}))
+    except models.DatabaseError:
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
+@app.route('/api/albums/dump', methods=['GET'])
+@app.cache.cached(timeout=60 * 30)
+def dump_album_details():
+    csv_file = StringIO.StringIO()
+    csv_writer = csv.writer(csv_file)
+    csv_writer.writerow(['id', 'album', 'artist', 'url'])
+    for album_id, album, artist, url in models.get_albums():
+        csv_writer.writerow([album_id, album, artist, url])
+    csv_file.seek(0)
+    return flask.send_file(csv_file, attachment_filename="doom.csv", as_attachment=True)
+
+
+@app.route('/api/album/<album_id>', methods=['GET'])
+def album(album_id):
+    try:
+        response = flask.Response(json.dumps({
+            'text': 'Success',
+            'album': dict(zip(
+                ('id', 'name', 'artist', 'url'),
+                models.get_album_details(album_id),
+            ))
+        }))
+    except (models.DatabaseError, TypeError):
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
+@app.route('/api/bc/<album_id>', methods=['GET'])
+def bc(album_id):
+    return flask.redirect(BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
+
+
 @app.route('/api/votes', methods=['GET'])
 @app.cache.cached(timeout=60 * 5)
 def all_votes():
@@ -523,6 +517,15 @@ def top():
     except models.DatabaseError:
         response = flask.Response(json.dumps({'text': 'Failed'}))   
     response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
+@app.route('/api/logs', methods=['GET'])
+def list_logs():
+    try:
+        response = flask.Response(json.dumps(models.get_logs()))
+    except models.DatabaseError:
+        response = flask.Response(json.dumps({'text': 'Failed'}))
     return response
 
 
