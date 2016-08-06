@@ -530,8 +530,8 @@ def auth():
     code = flask.request.args.get('code')
     url = SLACK_AUTH_URL.format(code=code, client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
     response = requests.get(url)
-    print "[auth]: " + str(response)
-    return response
+    print "[auth]: " + str(response.json())
+    return response.content, 200
 
 
 if __name__ == "__main__":
