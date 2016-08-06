@@ -41,7 +41,7 @@ def admin_only(func):
     def wraps(*args, **kwargs):
         if flask.request.form.get('user_id', '') in ADMIN_IDS or app.config['DEBUG']:
             return func(*args, **kwargs)
-        return '', 200
+        return '', 403
     return wraps
 
 
@@ -53,7 +53,7 @@ def slack_check(func):
     def wraps(*args, **kwargs):
         if flask.request.form.get('token', '') in APP_TOKENS or app.config['DEBUG']:
             return func(*args, **kwargs)
-        return '', 200
+        return '', 403
     return wraps
 
 
