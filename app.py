@@ -51,6 +51,7 @@ def slack_check(func):
     """
     @functools.wraps(func)
     def wraps(*args, **kwargs):
+        print flask.request.form
         if flask.request.form.get('token', '') in APP_TOKENS or app.config['DEBUG']:
             return func(*args, **kwargs)
         return '', 403
