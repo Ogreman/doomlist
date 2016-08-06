@@ -61,14 +61,16 @@ def slack_check(func):
 def deferred_scrape(scrape_function, callback, response_url=DOOM_BOT_URL):
     try:
         slack = slacker.Slacker(API_TOKEN)
-        requests.post(response_url, data=json.dumps({'text': 'Getting channel history...'}))
+        if response_url:
+            requests.post(response_url, data=json.dumps({'text': 'Getting channel history...'}))
         response = slack.channels.history(os.environ['SLACK_CHANNEL_ID'])
     except (KeyError, slacker.Error):
         message = 'There was an error accessing the Slack API'
     else:
         if response.successful:
             messages = response.body.get('messages', [])
-            requests.post(response_url, data=json.dumps({'text': 'Scraping...'}))
+            if response_url:
+                requests.post(response_url, data=json.dumps({'text': 'Scraping...'}))
             results = scrape_function(messages)
             album_ids = models.check_for_new_list_ids(results)
             try:    
@@ -131,7 +133,8 @@ def deferred_process_all_album_details(response_url=DOOM_BOT_URL):
             except (TypeError, ValueError):
                 continue
     try:
-        requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
+        if response_url:
+            requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
         album_details = list(get_album_details_from_ids())
         models.add_many_to_albums(album_details)
     except models.DatabaseError as e:
@@ -229,10 +232,11 @@ def add():
 @admin_only
 def scrape():
     form_data = flask.request.form
+    response = None if 'silence' in form_data else form_data.get('response_url', DOOM_BOT_URL)
     deferred_scrape.delay(
         scrapers.scrape_bandcamp_album_ids_from_messages,
         models.add_many_to_list,
-        form_data.get('response_url', DOOM_BOT_URL),
+        response
     )
     return 'Scrape request sent', 200
 
@@ -242,9 +246,8 @@ def scrape():
 @admin_only
 def process():
     form_data = flask.request.form
-    deferred_process_all_album_details.delay(
-        form_data.get('response_url', DOOM_BOT_URL)
-    )
+    response = None if 'silence' in form_data else form_data.get('response_url', DOOM_BOT_URL)
+    deferred_process_all_album_details.delay(response)
     return 'Process request sent', 200
 
 
