@@ -6,6 +6,7 @@ import requests
 import flask
 import slacker
 import csv
+import functools
 import StringIO
 
 from scrapers import scrapers
@@ -31,6 +32,19 @@ APP_TOKENS = [
     token for key, token in os.environ.items()
     if key.startswith('APP_TOKEN')
 ]
+ADMIN_IDS = [
+    user_id for key, token in os.environ.items()
+    if key.startswith('ADMIN_ID')
+]
+
+
+def admin_only(func):
+    @functools.wraps(func)
+    def wraps(*args, **kwargs):
+        if flask.request.form.get('user_id', '') in ADMIN_IDS:
+            return func(*args, **kwargs)
+        return '', 200
+    return wraps
 
 
 @delayed.queue_func
@@ -282,6 +296,7 @@ def add():
 
 
 @app.route('/slack/scrape', methods=['POST'])
+@admin_only
 def scrape():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
@@ -295,6 +310,7 @@ def scrape():
 
 
 @app.route('/slack/process', methods=['POST'])
+@admin_only
 def process():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
