@@ -33,7 +33,7 @@ APP_TOKENS = [
     if key.startswith('APP_TOKEN')
 ]
 ADMIN_IDS = [
-    user_id for key, token in os.environ.items()
+    user_id for key, user_id in os.environ.items()
     if key.startswith('ADMIN_ID')
 ]
 
