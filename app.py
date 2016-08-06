@@ -26,6 +26,8 @@ DEFAULT_CHANNEL = app.config['DEFAULT_CHANNEL']
 DOOM_BOT_URL = app.config['BOT_URL_TEMPLATE'].format(channel=DEFAULT_CHANNEL)
 ADMIN_IDS = app.config['ADMIN_IDS']
 APP_TOKENS = app.config['APP_TOKENS']
+URL_REGEX = "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+BANDCAMP_URL_TEMPLATE = "https://bandcamp.com/EmbeddedPlayer/album={album_id}/size=large/artwork=small"
 
 
 def admin_only(func):
@@ -34,7 +36,7 @@ def admin_only(func):
     """
     @functools.wraps(func)
     def wraps(*args, **kwargs):
-        if flask.request.form.get('user_id', '') in ADMIN_IDS:
+        if flask.request.form.get('user_id', '') in ADMIN_IDS or app.config['DEBUG']:
             return func(*args, **kwargs)
         return '', 200
     return wraps
@@ -46,7 +48,7 @@ def slack_check(func):
     """
     @functools.wraps(func)
     def wraps(*args, **kwargs):
-        if flask.request.form.get('token', '') in APP_TOKENS:
+        if flask.request.form.get('token', '') in APP_TOKENS or app.config['DEBUG']:
             return func(*args, **kwargs)
         return '', 200
     return wraps
@@ -521,5 +523,5 @@ def list_logs():
 
 
 if __name__ == "__main__":
-    app.run(debug=os.environ.get('DEBUG', True))
+    app.run(debug=app.config.get('DEBUG', True))
 

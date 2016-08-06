@@ -10,9 +10,6 @@ class Config(object):
     API_TOKEN = os.environ.get('API_TOKEN')
     BOT_URL_TEMPLATE = os.environ.get('BOT_URL_TEMPLATE')
     DEFAULT_CHANNEL = os.environ.get('DEFAULT_CHANNEL')
-    URL_REGEX = "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
-    ALBUM_TEMPLATE = "{name} by {artist}: {url}"
-    BANDCAMP_URL_TEMPLATE = "https://bandcamp.com/EmbeddedPlayer/album={album_id}/size=large/artwork=small"
     APP_TOKENS = [
         token for key, token in os.environ.items()
         if key.startswith('APP_TOKEN')
