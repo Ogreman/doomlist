@@ -132,7 +132,7 @@ def deferred_process_album_details(album_id):
         pass
 
 
-@app.route('/consume', methods=['POST'])
+@app.route('/slack/consume', methods=['POST'])
 def consume():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
@@ -146,7 +146,7 @@ def consume():
     return '', 200
 
 
-@app.route('/consume/all', methods=['POST'])
+@app.route('/slack/consume/all', methods=['POST'])
 def consume_all():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
@@ -168,7 +168,7 @@ def consume_all():
     return '', 200
 
 
-@app.route('/list', methods=['GET'])
+@app.route('/api/list', methods=['GET'])
 @app.cache.cached(timeout=60 * 60)
 def list_albums():
     try:
@@ -179,7 +179,7 @@ def list_albums():
     return response
 
 
-@app.route('/list/count', methods=['GET'])
+@app.route('/api/list/count', methods=['GET'])
 @app.cache.cached(timeout=60)
 def id_count():
     try:
@@ -190,7 +190,7 @@ def id_count():
     return response
 
 
-@app.route('/albums', methods=['GET'])
+@app.route('/api/albums', methods=['GET'])
 @app.cache.cached(timeout=60 * 60)
 def list_album_details():
     try:
@@ -211,7 +211,7 @@ def list_album_details():
     return response
 
 
-@app.route('/albums/count', methods=['GET'])
+@app.route('/api/albums/count', methods=['GET'])
 @app.cache.cached(timeout=60)
 def count_albums():
     try:
@@ -234,7 +234,7 @@ def dump_album_details():
     return flask.send_file(csv_file, attachment_filename="doom.csv", as_attachment=True)
 
 
-@app.route('/count', methods=['POST'])
+@app.route('/slack/count', methods=['POST'])
 def album_count():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
@@ -242,7 +242,7 @@ def album_count():
     return '', 200
 
 
-@app.route('/logs', methods=['GET'])
+@app.route('/api/logs', methods=['GET'])
 def list_logs():
     try:
         response = flask.Response(json.dumps(models.get_logs()))
@@ -251,7 +251,7 @@ def list_logs():
     return response
 
 
-@app.route('/delete', methods=['POST'])
+@app.route('/slack/delete', methods=['POST'])
 def delete():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
@@ -266,7 +266,7 @@ def delete():
     return '', 200
 
 
-@app.route('/add', methods=['POST'])
+@app.route('/slack/add', methods=['POST'])
 def add():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
@@ -281,7 +281,7 @@ def add():
     return '', 200
 
 
-@app.route('/scrape', methods=['POST'])
+@app.route('/slack/scrape', methods=['POST'])
 def scrape():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
@@ -294,8 +294,8 @@ def scrape():
     return '', 200
 
 
-@app.route('/proc', methods=['POST'])
-def proc():
+@app.route('/slack/process', methods=['POST'])
+def process():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
         deferred_process_all_album_details.delay(
@@ -305,7 +305,7 @@ def proc():
     return '', 200
 
 
-@app.route('/album/<album_id>', methods=['GET'])
+@app.route('/api/album/<album_id>', methods=['GET'])
 def album(album_id):
     try:
         response = flask.Response(json.dumps({
@@ -321,12 +321,12 @@ def album(album_id):
     return response
 
 
-@app.route('/bc/<album_id>', methods=['GET'])
+@app.route('/api/bc/<album_id>', methods=['GET'])
 def bc(album_id):
     return flask.redirect(BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
 
 
-@app.route('/link', methods=['POST'])
+@app.route('/slack/link', methods=['POST'])
 def link():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
@@ -349,7 +349,7 @@ def link():
     return '', 200
 
 
-@app.route('/random', methods=['POST'])
+@app.route('/slack/random', methods=['POST'])
 def random_album():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
@@ -404,7 +404,7 @@ def build_search_response(albums):
     }
 
 
-@app.route('/search', methods=['POST'])
+@app.route('/slack/search', methods=['POST'])
 def search():
     form_data = flask.request.form
     if form_data.get('token') in APP_TOKENS:
@@ -420,7 +420,7 @@ def search():
     return '', 200
 
 
-@app.route('/search/button', methods=['POST'])
+@app.route('/slack/search/button', methods=['POST'])
 def button():
     try:
         form_data = json.loads(flask.request.form['payload'])
@@ -445,7 +445,7 @@ def button():
     return '', 200
 
 
-@app.route('/votes', methods=['GET'])
+@app.route('/api/votes', methods=['GET'])
 @app.cache.cached(timeout=60 * 5)
 def all_votes():
     try:
@@ -463,7 +463,7 @@ def all_votes():
     return response
 
 
-@app.route('/votes/<album_id>', methods=['GET'])
+@app.route('/api/votes/<album_id>', methods=['GET'])
 def votes(album_id):
     try:
         response = flask.Response(json.dumps({
@@ -476,7 +476,7 @@ def votes(album_id):
     return response
 
 
-@app.route('/vote', methods=['POST'])
+@app.route('/api/vote', methods=['POST'])
 def vote():
     form_data = flask.request.form
     try:
@@ -492,7 +492,7 @@ def vote():
     return response
 
 
-@app.route('/top', methods=['GET'])
+@app.route('/api/top', methods=['GET'])
 @app.cache.cached(timeout=60 * 5)
 def top():
     try:
@@ -508,11 +508,6 @@ def top():
         response = flask.Response(json.dumps({'text': 'Failed'}))   
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
-
-
-@app.route('/auth', methods=['GET'])
-def auth():
-    return ''
 
 
 if __name__ == "__main__":
