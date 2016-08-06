@@ -525,14 +525,14 @@ def list_logs():
     return response
 
 
-@app.route('/slack/auth', methods=['POST'])
+@app.route('/slack/auth', methods=['GET'])
 def auth():
     code = flask.request.args.get('code')
     url = SLACK_AUTH_URL.format(code=code, client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
     response = requests.get(url)
     print "[auth]: " + str(response)
     return response
-    
+
 
 if __name__ == "__main__":
     app.run(debug=app.config.get('DEBUG', True))
