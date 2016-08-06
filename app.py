@@ -20,22 +20,12 @@ app = flask.Flask(__name__)
 app.config.from_object(os.environ['APP_SETTINGS'])
 app.cache = init_cacheify(app)
 
-URL_REGEX = "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
-SCRAPE_TRIGGER_WORD = "scrape"
-ALBUM_TEMPLATE = "{name} by {artist}: {url}"
-BANDCAMP_URL_TEMPLATE = "https://bandcamp.com/EmbeddedPlayer/album={album_id}/size=large/artwork=small"
 API_TOKEN = app.config['API_TOKEN']
 BOT_URL_TEMPLATE = app.config['BOT_URL_TEMPLATE']
 DEFAULT_CHANNEL = app.config['DEFAULT_CHANNEL']
-DOOM_BOT_URL = BOT_URL_TEMPLATE.format(channel=DEFAULT_CHANNEL)
-APP_TOKENS = [
-    token for key, token in os.environ.items()
-    if key.startswith('APP_TOKEN')
-]
-ADMIN_IDS = [
-    user_id for key, user_id in os.environ.items()
-    if key.startswith('ADMIN_ID')
-]
+DOOM_BOT_URL = app.config['BOT_URL_TEMPLATE'].format(channel=DEFAULT_CHANNEL)
+ADMIN_IDS = app.config['ADMIN_IDS']
+APP_TOKENS = app.config['APP_TOKENS']
 
 
 def admin_only(func):
@@ -45,6 +35,18 @@ def admin_only(func):
     @functools.wraps(func)
     def wraps(*args, **kwargs):
         if flask.request.form.get('user_id', '') in ADMIN_IDS:
+            return func(*args, **kwargs)
+        return '', 200
+    return wraps
+
+
+def slack_check(func):
+    """
+    Decorator for locking down slack endpoints to registered apps only
+    """
+    @functools.wraps(func)
+    def wraps(*args, **kwargs):
+        if flask.request.form.get('token', '') in APP_TOKENS:
             return func(*args, **kwargs)
         return '', 200
     return wraps
@@ -150,147 +152,137 @@ def deferred_process_album_details(album_id):
 
 
 @app.route('/slack/consume', methods=['POST'])
+@slack_check
 def consume():
     form_data = flask.request.form
-    if form_data.get('token') in APP_TOKENS:
-        channel = form_data.get('channel_name', 'doom')
-        deferred_consume.delay(
-            form_data.get('text', ''),
-            scrapers.scrape_bandcamp_album_ids_from_url,
-            models.add_to_list,
-            response_url=BOT_URL_TEMPLATE.format(channel=channel),
-        )
-    return '', 200
+    channel = form_data.get('channel_name', 'doom')
+    deferred_consume.delay(
+        form_data.get('text', ''),
+        scrapers.scrape_bandcamp_album_ids_from_url,
+        models.add_to_list,
+        response_url=BOT_URL_TEMPLATE.format(channel=channel),
+    )
 
 
 @app.route('/slack/consume/all', methods=['POST'])
+@slack_check
 def consume_all():
     form_data = flask.request.form
-    if form_data.get('token') in APP_TOKENS:
-        channel = form_data.get('channel_name', 'doom')
-        response_url = BOT_URL_TEMPLATE.format(channel=channel)
-        contents = form_data.get('text', '')
-        for url in re.findall(URL_REGEX, contents):
-            if 'bandcamp' in url:
-                deferred_consume.delay(
-                    url,
-                    scrapers.scrape_bandcamp_album_ids_from_url,
-                    models.add_to_list,
-                    response_url=response_url,
-                )
-            elif 'youtube' in url or 'youtu.be' in url:
-                requests.post(response_url, data="YouTube scraper not yet implemented")
-            elif 'soundcloud' in url:
-                requests.post(response_url, data="Soundcloud scraper not yet implemented")
-    return '', 200
+    channel = form_data.get('channel_name', 'doom')
+    response_url = BOT_URL_TEMPLATE.format(channel=channel)
+    contents = form_data.get('text', '')
+    for url in re.findall(URL_REGEX, contents):
+        if 'bandcamp' in url:
+            deferred_consume.delay(
+                url,
+                scrapers.scrape_bandcamp_album_ids_from_url,
+                models.add_to_list,
+                response_url=response_url,
+            )
+        elif 'youtube' in url or 'youtu.be' in url:
+            requests.post(response_url, data="YouTube scraper not yet implemented")
+        elif 'soundcloud' in url:
+            requests.post(response_url, data="Soundcloud scraper not yet implemented")
 
 
 @app.route('/slack/count', methods=['POST'])
+@slack_check
 def album_count():
-    form_data = flask.request.form
-    if form_data.get('token') in APP_TOKENS:
-        return str(models.get_albums_count()), 200
-    return '', 200
+    return str(models.get_albums_count()), 200
 
 
 @app.route('/slack/delete', methods=['POST'])
+@slack_check
 def delete():
     form_data = flask.request.form
-    if form_data.get('token') in APP_TOKENS:
-        album_id = form_data.get('text')
-        if album_id:
-            try:
-                models.delete_from_list(album_id.strip())
-            except models.DatabaseError:
-                return 'Failed to delete album', 200
-            else:
-                return 'Deleted album', 200
-    return '', 200
+    album_id = form_data.get('text')
+    if album_id:
+        try:
+            models.delete_from_list(album_id.strip())
+        except models.DatabaseError:
+            return 'Failed to delete album', 200
+        else:
+            return 'Deleted album', 200
 
 
 @app.route('/slack/add', methods=['POST'])
+@slack_check
 def add():
     form_data = flask.request.form
-    if form_data.get('token') in APP_TOKENS:
-        album_id = form_data.get('text')
-        if album_id:
-            try:
-                models.add_to_list(album_id.strip())
-            except models.DatabaseError:
-                return 'Failed to add new album', 200
-            else:
-                return 'Added new album', 200
-    return '', 200
+    album_id = form_data.get('text')
+    if album_id:
+        try:
+            models.add_to_list(album_id.strip())
+        except models.DatabaseError:
+            return 'Failed to add new album', 200
+        else:
+            return 'Added new album', 200
 
 
 @app.route('/slack/scrape', methods=['POST'])
+@slack_check
 @admin_only
 def scrape():
     form_data = flask.request.form
-    if form_data.get('token') in APP_TOKENS:
-        deferred_scrape.delay(
-            scrapers.scrape_bandcamp_album_ids_from_messages,
-            models.add_many_to_list,
-            form_data.get('response_url', DOOM_BOT_URL),
-        )
-        return 'Scrape request sent', 200
-    return '', 200
+    deferred_scrape.delay(
+        scrapers.scrape_bandcamp_album_ids_from_messages,
+        models.add_many_to_list,
+        form_data.get('response_url', DOOM_BOT_URL),
+    )
+    return 'Scrape request sent', 200
 
 
 @app.route('/slack/process', methods=['POST'])
+@slack_check
 @admin_only
 def process():
     form_data = flask.request.form
-    if form_data.get('token') in APP_TOKENS:
-        deferred_process_all_album_details.delay(
-            form_data.get('response_url', DOOM_BOT_URL)
-        )
-        return 'Process request sent', 200
-    return '', 200
+    deferred_process_all_album_details.delay(
+        form_data.get('response_url', DOOM_BOT_URL)
+    )
+    return 'Process request sent', 200
 
 
 @app.route('/slack/link', methods=['POST'])
+@slack_check
 def link():
     form_data = flask.request.form
-    if form_data.get('token') in APP_TOKENS:
-        album_id = form_data.get('text')
-        if not album_id:
-            return 'Provide an album ID', 200
-        try:
-            _, _, _, url = models.get_album_details(album_id)
-        except models.DatabaseError:
-            return 'Doomlist error - check with admin', 200
-        except TypeError:
-            return 'Album not found in the Doomlist', 200
-        else:
-            response = {
-                "response_type": "in_channel",
-                "text": url,
-                "unfurl_links": "true",
-            }
-            return flask.Response(json.dumps(response), mimetype='application/json')
-    return '', 200
+    album_id = form_data.get('text')
+    if not album_id:
+        return 'Provide an album ID', 200
+    try:
+        _, _, _, url = models.get_album_details(album_id)
+    except models.DatabaseError:
+        return 'Doomlist error - check with admin', 200
+    except TypeError:
+        return 'Album not found in the Doomlist', 200
+    else:
+        response = {
+            "response_type": "in_channel",
+            "text": url,
+            "unfurl_links": "true",
+        }
+        return flask.Response(json.dumps(response), mimetype='application/json')
 
 
 @app.route('/slack/random', methods=['POST'])
+@slack_check
 def random_album():
     form_data = flask.request.form
-    if form_data.get('token') in APP_TOKENS:
-        try:
-            _, _, _, url = models.get_random_album()
-        except models.DatabaseError:
-            return 'Doomlist error - check with admin', 200
-        except TypeError:
-            return 'No album found in the Doomlist', 200
-        else:
-            response_type = 'in_channel' if 'post' in form_data.get('text', '') else 'ephemeral'
-            response = {
-                "response_type": response_type,
-                "text": url,
-                "unfurl_links": "true",
-            }
-            return flask.Response(json.dumps(response), mimetype='application/json')
-    return '', 200
+    try:
+        _, _, _, url = models.get_random_album()
+    except models.DatabaseError:
+        return 'Doomlist error - check with admin', 200
+    except TypeError:
+        return 'No album found in the Doomlist', 200
+    else:
+        response_type = 'in_channel' if 'post' in form_data.get('text', '') else 'ephemeral'
+        response = {
+            "response_type": response_type,
+            "text": url,
+            "unfurl_links": "true",
+        }
+        return flask.Response(json.dumps(response), mimetype='application/json')
 
 
 def build_search_response(albums):
@@ -328,19 +320,18 @@ def build_search_response(albums):
 
 
 @app.route('/slack/search', methods=['POST'])
+@slack_check
 def search():
     form_data = flask.request.form
-    if form_data.get('token') in APP_TOKENS:
-        query = form_data.get('text')
-        if query:
-            try:
-                albums = models.search_albums(query)
-            except models.DatabaseError:
-                return 'Failed to perform search', 200
-            else:
-                response = build_search_response(albums)
-                return flask.Response(json.dumps(response), mimetype='application/json')
-    return '', 200
+    query = form_data.get('text')
+    if query:
+        try:
+            albums = models.search_albums(query)
+        except models.DatabaseError:
+            return 'Failed to perform search', 200
+        else:
+            response = build_search_response(albums)
+            return flask.Response(json.dumps(response), mimetype='application/json')
 
 
 @app.route('/slack/search/button', methods=['POST'])
