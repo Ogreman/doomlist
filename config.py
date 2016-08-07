@@ -7,7 +7,9 @@ class Config(object):
     CSRF_ENABLED = True
     SECRET_KEY = os.environ.get('SECRET_KEY', 'change-me')
     REDIS_QUEUE_KEY = 'deferred_queue'
+    SLACK_TEAM = os.environ.get('SLACK_TEAM')
     API_TOKEN = os.environ.get('API_TOKEN')
+    SLACKBOT_TOKEN = os.environ.get('SLACKBOT_TOKEN')
     BOT_URL_TEMPLATE = os.environ.get('BOT_URL_TEMPLATE')
     DEFAULT_CHANNEL = os.environ.get('DEFAULT_CHANNEL')
     APP_TOKENS = [
