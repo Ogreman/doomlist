@@ -20,17 +20,21 @@ app = flask.Flask(__name__)
 app.config.from_object(os.environ['APP_SETTINGS'])
 app.cache = init_cacheify(app)
 
+LIST_NAME = app.config['LIST_NAME']
 API_TOKEN = app.config['API_TOKEN']
 CLIENT_ID = app.config['CLIENT_ID']
 CLIENT_SECRET = app.config['CLIENT_SECRET']
 BOT_URL_TEMPLATE = app.config['BOT_URL_TEMPLATE']
 DEFAULT_CHANNEL = app.config['DEFAULT_CHANNEL']
-DOOM_BOT_URL = app.config['BOT_URL_TEMPLATE'].format(channel=DEFAULT_CHANNEL)
+BOT_URL = BOT_URL_TEMPLATE.format(channel=DEFAULT_CHANNEL)
 ADMIN_IDS = app.config['ADMIN_IDS']
 APP_TOKENS = app.config['APP_TOKENS']
 URL_REGEX = "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
 BANDCAMP_URL_TEMPLATE = "https://bandcamp.com/EmbeddedPlayer/album={album_id}/size=large/artwork=small"
 SLACK_AUTH_URL = "https://slack.com/api/oauth.access?client_id={client_id}&client_secret={client_secret}&code={code}"
+
+db_error_message = '{name} error - check with admin'.format(name=LIST_NAME)
+not_found_message = 'Album not found in the {name}'.format(name=LIST_NAME)
 
 
 def admin_only(func):
@@ -58,7 +62,7 @@ def slack_check(func):
 
 
 @delayed.queue_func
-def deferred_scrape(scrape_function, callback, response_url=DOOM_BOT_URL):
+def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
     try:
         slack = slacker.Slacker(API_TOKEN)
         if response_url:
@@ -94,7 +98,7 @@ def deferred_scrape(scrape_function, callback, response_url=DOOM_BOT_URL):
 
 
 @delayed.queue_func
-def deferred_consume(text, scrape_function, callback, response_url=DOOM_BOT_URL):
+def deferred_consume(text, scrape_function, callback, response_url=BOT_URL):
     try:
         album_id = scrape_function(text)
     except scrapers.NotFoundError:
@@ -124,7 +128,7 @@ def deferred_consume(text, scrape_function, callback, response_url=DOOM_BOT_URL)
 
 
 @delayed.queue_func
-def deferred_process_all_album_details(response_url=DOOM_BOT_URL):
+def deferred_process_all_album_details(response_url=BOT_URL):
     def get_album_details_from_ids():
         for album_id in models.check_for_new_albums():
             try:
@@ -163,7 +167,7 @@ def deferred_process_album_details(album_id):
 @slack_check
 def consume():
     form_data = flask.request.form
-    channel = form_data.get('channel_name', 'doom')
+    channel = form_data.get('channel_name', 'chat')
     deferred_consume.delay(
         form_data.get('text', ''),
         scrapers.scrape_bandcamp_album_ids_from_url,
@@ -176,7 +180,7 @@ def consume():
 @slack_check
 def consume_all():
     form_data = flask.request.form
-    channel = form_data.get('channel_name', 'doom')
+    channel = form_data.get('channel_name', 'chat')
     response_url = BOT_URL_TEMPLATE.format(channel=channel)
     contents = form_data.get('text', '')
     for url in re.findall(URL_REGEX, contents):
@@ -232,7 +236,7 @@ def add():
 @admin_only
 def scrape():
     form_data = flask.request.form
-    response = None if 'silence' in form_data else form_data.get('response_url', DOOM_BOT_URL)
+    response = None if 'silence' in form_data else form_data.get('response_url', BOT_URL)
     deferred_scrape.delay(
         scrapers.scrape_bandcamp_album_ids_from_messages,
         models.add_many_to_list,
@@ -246,7 +250,7 @@ def scrape():
 @admin_only
 def process():
     form_data = flask.request.form
-    response = None if 'silence' in form_data else form_data.get('response_url', DOOM_BOT_URL)
+    response = None if 'silence' in form_data else form_data.get('response_url', BOT_URL)
     deferred_process_all_album_details.delay(response)
     return 'Process request sent', 200
 
@@ -261,9 +265,9 @@ def link():
     try:
         _, _, _, url = models.get_album_details(album_id)
     except models.DatabaseError:
-        return 'Doomlist error - check with admin', 200
+        return db_error_message, 200
     except TypeError:
-        return 'Album not found in the Doomlist', 200
+        return not_found_message, 200
     else:
         response = {
             "response_type": "in_channel",
@@ -280,9 +284,9 @@ def random_album():
     try:
         _, _, _, url = models.get_random_album()
     except models.DatabaseError:
-        return 'Doomlist error - check with admin', 200
+        return db_error_message, 200
     except TypeError:
-        return 'No album found in the Doomlist', 200
+        return not_found_message, 200
     else:
         response_type = 'in_channel' if 'post' in form_data.get('text', '') else 'ephemeral'
         response = {
@@ -320,7 +324,7 @@ def build_search_response(albums):
                         "value": album[3],
                     }
                 ],
-                "footer": "Doomlist",
+                "footer": LIST_NAME,
             }
             for album in albums
         ]
@@ -353,9 +357,9 @@ def button():
             try:
                 url = form_data["actions"][0]["value"]
                 user = form_data["user"]["name"]
-                message = "{user} posted {url} from the Doomlist".format(user=user, url=url)
+                message = "{user} posted {url} from the {name}".format(user=user, url=url, name=LIST_NAME)
             except KeyError:
-                return 'Doomlist error - check with admin', 200
+                return db_error_message, 200
             else:
                 response = {
                     "response_type": "in_channel",
@@ -430,7 +434,7 @@ def dump_album_details():
     for album_id, album, artist, url in models.get_albums():
         csv_writer.writerow([album_id, album, artist, url])
     csv_file.seek(0)
-    return flask.send_file(csv_file, attachment_filename="doom.csv", as_attachment=True)
+    return flask.send_file(csv_file, attachment_filename="albums.csv", as_attachment=True)
 
 
 @app.route('/api/album/<album_id>', methods=['GET'])
