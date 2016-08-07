@@ -20,8 +20,8 @@ class Config(object):
         user_id for key, user_id in os.environ.items()
         if key.startswith('ADMIN_ID')
     ]
-    CLIENT_ID = os.environ.get('SLACK_CLIENT_ID')
-    CLIENT_SECRET = os.environ.get('SLACK_CLIENT_SECRET')
+    SLACK_CLIENT_ID = os.environ.get('SLACK_CLIENT_ID')
+    SLACK_CLIENT_SECRET = os.environ.get('SLACK_CLIENT_SECRET')
     LIST_NAME = os.environ.get('LIST_NAME', 'Albumlist')
 
 
