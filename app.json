@@ -14,7 +14,8 @@
   "env": {
     "APP_SETTINGS": {
         "description": "Which config class of settings to use (see: config.py).",
-        "value": "config.StagingConfig"
+        "value": "config.StagingConfig",
+        "required": false,
     },
     "SECRET_KEY": {
         "description": "A secret key for verifying magic Flask stuff.",
@@ -26,7 +27,8 @@
     },
     "SLACK_API_TOKEN": {
         "description": "To be able to fully scrape the archives of a given channel, an API token is required but not necessary for the rest of the functionality.",
-        "value": "CHANGE_ME"
+        "value": "CHANGE_ME",
+        "required": false,
     },
     "SLACKBOT_TOKEN": {
         "description": "The fallback for many operations is for Slackbot to notify the team when something happens. This token can be found in the custom Slackbot integration.",
@@ -38,15 +40,18 @@
     },
     "DEFAULT_CHANNEL": {
         "description": "The default channel for the responses to post to.",
-        "value": "general"
+        "value": "general",
+        "required": false,
     },
     "APP_TOKEN_A": {
         "description": "The config looks for Slack integration tokens starting wtih APP_TOKEN. These are used to allow access to any of the /slack/[endpoints].",
-        "value": "CHANGE_ME"
+        "value": "CHANGE_ME",
+        "required": false,
     },
     "ADMIN_ID_MARYJANE": {
         "description": "The config looks for Slack user ID's for access against some of the [admin] only slash commands.",
-        "value": "CHANGE_ME"
+        "value": "CHANGE_ME",
+        "required": false,
     },
     "LIST_NAME": {
         "description": "A name given for the team's album list.",
@@ -61,8 +66,9 @@
         "value": "CHANGE_ME"
     },
     "SLACK_CHANNEL_ID": {
-        "description": "The channel to scrape with the API for new albums.",
-        "value": "CHANGE_ME"
+        "description": "The channel to scrape with the API for new albums when using doing a full scrape.",
+        "value": "CHANGE_ME",
+        "required": false
     }
   },
   "formation": {
