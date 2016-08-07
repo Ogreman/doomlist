@@ -21,9 +21,9 @@ app.config.from_object(os.environ['APP_SETTINGS'])
 app.cache = init_cacheify(app)
 
 LIST_NAME = app.config['LIST_NAME']
-API_TOKEN = app.config['API_TOKEN']
-CLIENT_ID = app.config['CLIENT_ID']
-CLIENT_SECRET = app.config['CLIENT_SECRET']
+API_TOKEN = app.config['SLACK_API_TOKEN']
+CLIENT_ID = app.config['SLACK_CLIENT_ID']
+CLIENT_SECRET = app.config['SLACK_CLIENT_SECRET']
 SLACK_TEAM = app.config['SLACK_TEAM']
 BOT_URL_TEMPLATE = app.config['BOT_URL_TEMPLATE']
 DEFAULT_CHANNEL = app.config['DEFAULT_CHANNEL']
