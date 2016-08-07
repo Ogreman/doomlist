@@ -77,7 +77,6 @@
   },
   "image": "heroku/python",
   "addons": [
-    "openredis",
     {
       "plan": "heroku-redis:hobby-dev"
     },
