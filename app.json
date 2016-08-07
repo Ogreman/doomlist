@@ -1,0 +1,94 @@
+{
+  "name": "Slack Albumlist",
+  "description": "A Flask webserver for scraping and sharing albums in Slack",
+  "repository": "https://github.com/Ogreman/albumlist",
+  "keywords": [
+    "python", 
+    "flask", 
+    "slack", 
+    "bandcamp", 
+    "albums", 
+    "music"
+  ],
+  "success_url": "/api/albums",
+  "env": {
+    "APP_SETTINGS": {
+        "description": "Which config class of settings to use (see: config.py).",
+        "value": "config.StagingConfig"
+    },
+    "SECRET_KEY": {
+        "description": "A secret key for verifying magic Flask stuff.",
+        "generator": "secret"
+    },
+    "SLACK_TEAM": {
+        "description": "Slack team name identified by the subdomain.",
+        "value": "CHANGE_ME"
+    },
+    "SLACK_API_TOKEN": {
+        "description": "To be able to fully scrape the archives of a given channel, an API token is required but not necessary for the rest of the functionality.",
+        "value": "CHANGE_ME"
+    },
+    "SLACKBOT_TOKEN": {
+        "description": "The fallback for many operations is for Slackbot to notify the team when something happens. This token can be found in the custom Slackbot integration.",
+        "value": "CHANGE_ME"
+    },
+    "BOT_URL_TEMPLATE": {
+        "description": "Standard URL template to post to to notify the team.",
+        "value": "https://{team}.slack.com/services/hooks/slackbot?token={token}&channel=%23{channel}"
+    },
+    "DEFAULT_CHANNEL": {
+        "description": "The default channel for the responses to post to.",
+        "value": "general"
+    },
+    "APP_TOKEN_A": {
+        "description": "The config looks for Slack integration tokens starting wtih APP_TOKEN. These are used to allow access to any of the /slack/[endpoints].",
+        "value": "CHANGE_ME"
+    },
+    "ADMIN_ID_MARYJANE": {
+        "description": "The config looks for Slack user ID's for access against some of the [admin] only slash commands.",
+        "value": "CHANGE_ME"
+    },
+    "LIST_NAME": {
+        "description": "A name given for the team's album list.",
+        "value": "Albumlist"
+    },
+    "SLACK_CLIENT_ID": {
+        "description": "The Slack app's client ID for validating authentication when adding to a Slack team.",
+        "value": "CHANGE_ME"
+    },
+    "SLACK_CLIENT_SECRET": {
+        "description": "The Slack app's client secret for validating authentication when adding to a Slack team.",
+        "value": "CHANGE_ME"
+    },
+    "SLACK_CHANNEL_ID": {
+        "description": "The channel to scrape with the API for new albums.",
+        "value": "CHANGE_ME"
+    }
+  },
+  "formation": {
+    "web": {
+        "quantity": 1,
+        "size": "Standard-1x"
+    },
+    "worker": {
+        "quantity": 1,
+        "size": "Standard-1x"
+    }
+  },
+  "image": "heroku/python",
+  "addons": [
+    "openredis",
+    {
+      "plan": "heroku-redis:hobby-dev"
+    },
+    {
+      "plan": "heroku-postgresql",
+      "options": {
+        "version": "9.5"
+      }
+    },
+    {
+      "plan": "memcachier:dev"
+    }
+  ]
+}
