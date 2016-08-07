@@ -15,7 +15,7 @@
     "APP_SETTINGS": {
         "description": "Which config class of settings to use (see: config.py).",
         "value": "config.StagingConfig",
-        "required": false,
+        "required": false
     },
     "SECRET_KEY": {
         "description": "A secret key for verifying magic Flask stuff.",
@@ -28,7 +28,7 @@
     "SLACK_API_TOKEN": {
         "description": "To be able to fully scrape the archives of a given channel, an API token is required but not necessary for the rest of the functionality.",
         "value": "CHANGE_ME",
-        "required": false,
+        "required": false
     },
     "SLACKBOT_TOKEN": {
         "description": "The fallback for many operations is for Slackbot to notify the team when something happens. This token can be found in the custom Slackbot integration.",
@@ -41,17 +41,17 @@
     "DEFAULT_CHANNEL": {
         "description": "The default channel for the responses to post to.",
         "value": "general",
-        "required": false,
+        "required": false
     },
     "APP_TOKEN_A": {
         "description": "The config looks for Slack integration tokens starting wtih APP_TOKEN. These are used to allow access to any of the /slack/[endpoints].",
         "value": "CHANGE_ME",
-        "required": false,
+        "required": false
     },
     "ADMIN_ID_MARYJANE": {
         "description": "The config looks for Slack user ID's for access against some of the [admin] only slash commands.",
         "value": "CHANGE_ME",
-        "required": false,
+        "required": false
     },
     "LIST_NAME": {
         "description": "A name given for the team's album list.",
