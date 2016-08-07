@@ -177,6 +177,7 @@ def consume():
         models.add_to_list,
         response_url=BOT_URL_TEMPLATE.format(channel=channel),
     )
+    return '', 200
 
 
 @app.route('/slack/consume/all', methods=['POST'])
@@ -198,6 +199,7 @@ def consume_all():
             requests.post(response_url, data="YouTube scraper not yet implemented")
         elif 'soundcloud' in url:
             requests.post(response_url, data="Soundcloud scraper not yet implemented")
+    return '', 200
 
 
 @app.route('/slack/count', methods=['POST'])
@@ -218,6 +220,7 @@ def delete():
             return 'Failed to delete album', 200
         else:
             return 'Deleted album', 200
+    return '', 200
 
 
 @app.route('/slack/add', methods=['POST'])
@@ -232,6 +235,7 @@ def add():
             return 'Failed to add new album', 200
         else:
             return 'Added new album', 200
+    return '', 200
 
 
 @app.route('/slack/scrape', methods=['POST'])
@@ -347,6 +351,7 @@ def search():
         else:
             response = build_search_response(albums)
             return flask.Response(json.dumps(response), mimetype='application/json')
+    return '', 200
 
 
 @app.route('/slack/search/button', methods=['POST'])
