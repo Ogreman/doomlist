@@ -77,11 +77,11 @@
   "formation": {
     "web": {
         "quantity": 1,
-        "size": "Free-1x"
+        "size": "free"
     },
     "worker": {
         "quantity": 1,
-        "size": "Free-1x"
+        "size": "free"
     }
   },
   "image": "heroku/python",
