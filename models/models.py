@@ -344,7 +344,7 @@ def get_albums():
 
 def get_albums_by_channel(channel):
     sql = """
-        SELECT id, name, artist, url, img 
+        SELECT id, name, artist, url, img
         FROM albums 
         WHERE channel = %s;
     """

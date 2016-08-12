@@ -173,7 +173,7 @@ def deferred_process_all_album_details(response_url=BOT_URL):
 def deferred_process_album_details(album_id, channel=''):
     try:
         album, artist, url = scrapers.scrape_album_details_from_id(album_id)
-        models.add_to_albums(album_id, artist, album, url, channel)
+        models.add_to_albums(album_id, artist, album, url, channel=channel)
         deferred_process_album_cover.delay(album_id)
     except models.DatabaseError as e:
         print "[db]: failed to add album details"
