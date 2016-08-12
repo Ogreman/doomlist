@@ -129,7 +129,7 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL):
                     print "[db]: %s" % e
                 else:
                     message = 'Added album to list: ' + str(album_id)
-                    deferred_process_album_details.delay(album_id)
+                    deferred_process_album_details.delay(str(album_id))
             else:
                 message = 'Album already in list: ' + str(album_id)
         except models.DatabaseError as e:
@@ -182,7 +182,7 @@ def deferred_process_album_details(album_id):
 @delayed.queue_func
 def deferred_process_album_cover(album_id):
     try:
-        _, _, _, album_url, _ = models.get_album_details(str(album_id))
+        _, _, _, album_url, _ = models.get_album_details(album_id)
         album_cover_url = scrapers.scrape_album_cover_url_from_url(album_url)
         models.add_img_to_album(album_id, album_cover_url)
     except models.DatabaseError as e:
@@ -193,6 +193,8 @@ def deferred_process_album_cover(album_id):
         print "[scraper]: %s" % e
     except (TypeError, ValueError):
         pass
+    else:
+        print "[scraper]: processed cover for " + str(album_id)
 
 
 @delayed.queue_func
