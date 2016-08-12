@@ -62,10 +62,18 @@ def create_list_table():
 
 
 def create_albums_table():
+    sql = """
+        CREATE TABLE albums (
+        id varchar PRIMARY KEY,
+        artist varchar DEFAULT '',
+        name varchar DEFAULT '',
+        url varchar DEFAULT '',
+        img varchar DEFAULT ''
+        );"""
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("CREATE TABLE albums (id varchar PRIMARY KEY, artist varchar, name varchar, url varchar, img varchar);")
+        cur.execute(sql)
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -75,10 +83,15 @@ def create_albums_table():
 
 
 def create_albums_index():
+    sql = """
+        CREATE INDEX alb_lo_name 
+        ON albums (
+        LOWER(name)
+        );"""
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("CREATE INDEX alb_lo_name ON albums (LOWER(name));")
+        cur.execute(sql)
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -88,10 +101,15 @@ def create_albums_index():
 
 
 def create_votes_table():
+    sql = """
+        CREATE TABLE votes (
+        id serial PRIMARY KEY, 
+        album varchar
+        );"""
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("CREATE TABLE votes (id serial PRIMARY KEY, album varchar);")
+        cur.execute(sql)
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -140,10 +158,18 @@ def add_to_list(album_id):
 
 
 def add_to_albums(album_id, artist, name, url, img=''):
+    sql = """
+        INSERT INTO albums (
+        id, 
+        artist, 
+        name, 
+        url, 
+        img
+        ) VALUES (%s, %s, %s, %s, %s);"""
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute('INSERT INTO albums (id, artist, name, url, img) VALUES (%s, %s, %s, %s, %s)', (album_id, artist, name, url, img))
+        cur.execute(sql, (album_id, artist, name, url, img))
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -185,10 +211,18 @@ def add_many_to_list(album_ids):
 
 
 def add_many_to_albums(albums):
+    sql = """
+        INSERT INTO albums (
+        id, 
+        artist, 
+        name, 
+        url, 
+        img
+        ) VALUES (%s, %s, %s, %s, %s);"""
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.executemany('INSERT INTO albums (id, artist, name, url, img) VALUES (%s, %s, %s, %s, %s)', albums)
+        cur.executemany(sql, albums)
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -199,9 +233,11 @@ def add_many_to_albums(albums):
 
 def add_img_to_album(album_id, album_img):
     try:
-        sql = """UPDATE albums
-                    SET img = %s
-                    WHERE id = %s"""
+        sql = """
+            UPDATE albums
+            SET img = %s
+            WHERE id = %s;
+            """
         conn = get_connection()
         cur = conn.cursor()
         cur.execute(sql, (album_img, album_id))
@@ -253,15 +289,16 @@ def get_votes_count(album_id):
 
 
 def get_votes():
+    sql = """
+        SELECT votes.album, artist, name, count(DISTINCT votes.id) 
+        FROM votes 
+        JOIN albums on votes.album = albums.id 
+        GROUP BY votes.album, albums.artist, albums.name 
+        """
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("""
-            SELECT votes.album, artist, name, count(DISTINCT votes.id) 
-            FROM votes 
-            JOIN albums on votes.album = albums.id 
-            GROUP BY votes.album, albums.artist, albums.name 
-            """)
+        cur.execute(sql)
         return cur.fetchall()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -271,16 +308,17 @@ def get_votes():
 
 
 def get_top_votes(count=5):
+    sql = """
+        SELECT votes.album, artist, name, count(DISTINCT votes.id) 
+        FROM votes 
+        JOIN albums on votes.album = albums.id 
+        GROUP BY votes.album, albums.artist, albums.name 
+        ORDER BY count(DISTINCT votes.id) DESC;
+        """
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("""
-            SELECT votes.album, artist, name, count(DISTINCT votes.id) 
-            FROM votes 
-            JOIN albums on votes.album = albums.id 
-            GROUP BY votes.album, albums.artist, albums.name 
-            ORDER BY count(DISTINCT votes.id) DESC;"""
-        )
+        cur.execute(sql)
         return cur.fetchmany(count)
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -316,10 +354,15 @@ def get_albums_count():
 
         
 def get_album_details(album_id):
+    sql = """
+        SELECT id, name, artist, url, img 
+        FROM albums 
+        WHERE id = %s;
+        """
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT id, name, artist, url, img FROM albums WHERE id = %s;", (album_id, ))
+        cur.execute(sql, (album_id, ))
         return cur.fetchone()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -329,10 +372,15 @@ def get_album_details(album_id):
 
 
 def get_album_details_from_ids(album_ids):
+    sql = """
+        SELECT id, artist, name, url, img
+        FROM albums 
+        WHERE id IN %s;
+        """
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT id, artist, name, url, img FROM albums WHERE id IN %s;", (album_ids, ))
+        cur.execute(sql, (album_ids, ))
         return cur.fetchall()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -433,14 +481,17 @@ def _reset_votes():
 
 
 def search_albums(query):
+    sql = """
+        SELECT id, name, artist, url, img 
+        FROM albums 
+        WHERE LOWER(name) LIKE %s 
+        OR LOWER(artist) LIKE %s;
+        """
     try:
         conn = get_connection()
         cur = conn.cursor()
         term = '%' + query + '%'
-        cur.execute(
-            "SELECT id, name, artist, url, img FROM albums where LOWER(name) LIKE %s OR LOWER(artist) LIKE %s", 
-            (term, term)
-        )
+        cur.execute(sql, (term, term))
         return cur.fetchall()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -450,10 +501,16 @@ def search_albums(query):
 
 
 def get_random_album():
+    sql = """
+        SELECT id, name, artist, url, img 
+        FROM albums 
+        ORDER BY RANDOM() 
+        LIMIT 1;
+        """
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT id, name, artist, url, img FROM albums ORDER BY RANDOM() LIMIT 1")
+        cur.execute(sql)
         return cur.fetchone()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
