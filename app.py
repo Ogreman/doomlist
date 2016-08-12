@@ -469,9 +469,10 @@ def list_album_details():
                     'artist': artist,
                     'album': album,
                     'url': url,
+                    'img': img if img else '',
                 }
             }
-            for album_id, album, artist, url in models.get_albums()
+            for album_id, album, artist, url, img in models.get_albums()
         ]
         response = flask.Response(json.dumps(details))
     except models.DatabaseError:
