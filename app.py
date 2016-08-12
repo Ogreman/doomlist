@@ -202,7 +202,7 @@ def deferred_process_all_album_covers(response_url=BOT_URL):
     try:
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
-        for album_id in [alb[0] for alb in models.get_albums() if alb[4] == '']:
+        for album_id in [alb[0] for alb in models.get_albums() if not alb[4]]:
             deferred_process_album_cover.delay(album_id)
     except models.DatabaseError as e:
         print "[db]: failed to get all album details"
