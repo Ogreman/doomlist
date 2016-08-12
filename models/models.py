@@ -65,7 +65,7 @@ def create_albums_table():
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("CREATE TABLE albums (id varchar PRIMARY KEY, artist varchar, name varchar, url varchar);")
+        cur.execute("CREATE TABLE albums (id varchar PRIMARY KEY, artist varchar, name varchar, url varchar, img varchar);")
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -143,7 +143,7 @@ def add_to_albums(album_id, artist, name, url):
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute('INSERT INTO albums (id, artist, name, url) VALUES (%s, %s, %s, %s)', (album_id, artist, name, url))
+        cur.execute('INSERT INTO albums (id, artist, name, url, img) VALUES (%s, %s, %s, %s, "")', (album_id, artist, name, url))
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -188,7 +188,20 @@ def add_many_to_albums(albums):
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.executemany('INSERT INTO albums (id, artist, name, url) VALUES (%s, %s, %s, %s)', albums)
+        cur.executemany('INSERT INTO albums (id, artist, name, url, img) VALUES (%s, %s, %s, %s, "")', albums)
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
+def add_img_to_album(album_id, album_img):
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.executemany('UPDATE albums SET img = %s WHERE id = %s;', (album_img, album_id))
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -277,7 +290,7 @@ def get_albums():
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT id, name, artist, url FROM albums;")
+        cur.execute("SELECT id, name, artist, url, img FROM albums;")
         return cur.fetchall()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -303,7 +316,7 @@ def get_album_details(album_id):
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT id, name, artist, url FROM albums WHERE id = %s;", (album_id, ))
+        cur.execute("SELECT id, name, artist, url, img FROM albums WHERE id = %s;", (album_id, ))
         return cur.fetchone()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -316,7 +329,7 @@ def get_album_details_from_ids(album_ids):
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT id, artist, name, url FROM albums WHERE id IN %s;", (album_ids, ))
+        cur.execute("SELECT id, artist, name, url, img FROM albums WHERE id IN %s;", (album_ids, ))
         return cur.fetchall()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError

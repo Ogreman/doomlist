@@ -171,11 +171,45 @@ def deferred_process_album_details(album_id):
     try:
         album, artist, url = scrapers.scrape_album_details_from_id(album_id)
         models.add_to_albums(album_id, artist, album, url)
+        deferred_process_album_cover.delay(album_id)
     except models.DatabaseError as e:
         print "[db]: failed to add album details"
         print "[db]: %s" % e
     except (TypeError, ValueError):
         pass
+
+
+@delayed.queue_func
+def deferred_process_album_cover(album_id):
+    try:
+        _, _, _, album_url, _ = models.get_album_details(album_id)
+        album_cover_url = scrapers.scrape_album_cover_url_from_url(album_url)
+        models.add_img_to_album(album_id, album_cover_url)
+    except models.DatabaseError as e:
+        print "[db]: failed to add album details"
+        print "[db]: %s" % e
+    except scrapers.NotFoundError as e:
+        print "[scraper]: failed to find album art"
+        print "[scraper]: %s" % e
+    except (TypeError, ValueError):
+        pass
+
+
+@delayed.queue_func
+def deferred_process_all_album_covers(response_url=BOT_URL):
+    try:
+        if response_url:
+            requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
+        for album_id in [alb[0] for alb in models.get_albums() if alb[4] == '']:
+            deferred_process_album_cover.delay(album_id)
+    except models.DatabaseError as e:
+        print "[db]: failed to get all album details"
+        print "[db]: %s" % e
+        message = 'Failed to process all album details...'
+    else:
+        message = 'Processed all album covers'
+    if response_url:
+        requests.post(response_url, data=json.dumps({'text': message}))
 
 
 @app.route('/slack/consume', methods=['POST'])
@@ -275,6 +309,16 @@ def process():
     return 'Process request sent', 200
 
 
+@app.route('/slack/process/covers', methods=['POST'])
+@slack_check
+@admin_only
+def process():
+    form_data = flask.request.form
+    response = None if 'silence' in form_data else form_data.get('response_url', BOT_URL)
+    deferred_process_all_album_covers.delay(response)
+    return 'Process request sent', 200
+
+
 @app.route('/slack/link', methods=['POST'])
 @slack_check
 def link():
@@ -283,7 +327,7 @@ def link():
     if not album_id:
         return 'Provide an album ID', 200
     try:
-        _, _, _, url = models.get_album_details(album_id)
+        _, _, _, url, _ = models.get_album_details(album_id)
     except models.DatabaseError:
         return db_error_message, 200
     except TypeError:
@@ -326,6 +370,7 @@ def build_search_response(albums):
                 "color": "#36a64f",
                 "pretext": "{} by {}".format(album[1], album[2]),
                 "author_name": album[2],
+                "image_url": album[4],
                 "title": album[1],
                 "title_link": album[3],
                 "callback_id": "album_results_" + album[0],
@@ -464,7 +509,7 @@ def album(album_id):
         response = flask.Response(json.dumps({
             'text': 'Success',
             'album': dict(zip(
-                ('id', 'name', 'artist', 'url'),
+                ('id', 'name', 'artist', 'url', 'img'),
                 models.get_album_details(album_id),
             ))
         }))

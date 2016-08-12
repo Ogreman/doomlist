@@ -1,5 +1,6 @@
 import requests
 import json
+import lxml.html as lxh
 
 
 class NotFoundError(Exception):
@@ -52,6 +53,19 @@ def scrape_bandcamp_album_ids_from_url(url):
                 pos = content.find(comment)
                 album_id = content[pos + comment_len:pos + comment_len + 20]
                 return album_id.split('-->')[0].strip()
+    raise NotFoundError
+
+
+def scrape_album_cover_url_from_url(url):
+    if 'http' in url and 'bandcamp.com' in url:
+        response = requests.get(url)
+        if response.ok:
+            html = lxh.fromstring(response.text)
+            try:
+                img = html.cssselect('div#tralbumArt')[0].cssselect('img')[0]
+                return img.attrib['src']
+            except (IndexError, KeyError):
+                raise NotFoundError
     raise NotFoundError
 
 
