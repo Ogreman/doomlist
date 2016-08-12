@@ -52,6 +52,18 @@ def admin_only(func):
     return wraps
 
 
+def not_bots(func):
+    """
+    Decorator for preventing triggers by bots
+    """
+    @functools.wraps(func)
+    def wraps(*args, **kwargs):
+        if 'bot_id' not in flask.request.form:
+            return func(*args, **kwargs)
+        return '', 200
+    return wraps
+
+
 def slack_check(func):
     """
     Decorator for locking down slack endpoints to registered apps only
@@ -168,6 +180,7 @@ def deferred_process_album_details(album_id):
 
 @app.route('/slack/consume', methods=['POST'])
 @slack_check
+@not_bots
 def consume():
     form_data = flask.request.form
     channel = form_data.get('channel_name', 'chat')
