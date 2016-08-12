@@ -399,13 +399,16 @@ def search():
     form_data = flask.request.form
     query = form_data.get('text')
     if query:
-        try:
-            albums = models.search_albums(query)
-        except models.DatabaseError:
-            return 'Failed to perform search', 200
-        else:
-            response = build_search_response(albums)
-            return flask.Response(json.dumps(response), mimetype='application/json')
+        response = app.cache.get('q-' + query)
+        if not response:
+            try:
+                albums = models.search_albums(query)
+            except models.DatabaseError:
+                return 'Failed to perform search', 200
+            else:
+                response = build_search_response(albums)
+                app.cache.set('q-' + query, response, 60 * 15)
+        return flask.Response(json.dumps(response), mimetype='application/json')
     return '', 200
 
 
@@ -606,5 +609,6 @@ def auth():
 
 
 if __name__ == "__main__":
+    app.cache.clear()
     app.run(debug=app.config.get('DEBUG', True))
 
