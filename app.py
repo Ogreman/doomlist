@@ -472,25 +472,29 @@ def id_count():
 
 
 @app.route('/api/albums', methods=['GET'])
-@app.cache.cached(timeout=60 * 60)
 def list_album_details():
     channel = flask.request.args.get('channel')
     if channel:
-        get_func = models.get_albums_by_channel
+        get_func = functools.partial(models.get_albums_by_channel, channel)
+        key = "api-albums-" + channel
     else:
         get_func = models.get_albums
+        key = "api-albums"
     try:
-        details = [
-            {
-                album_id: {
-                    'artist': artist,
-                    'album': album,
-                    'url': url,
-                    'img': img if img else '',
+        details = app.cache.get(key)
+        if not details:
+            details = [
+                {
+                    album_id: {
+                        'artist': artist,
+                        'album': album,
+                        'url': url,
+                        'img': img if img else '',
+                    }
                 }
-            }
-            for album_id, album, artist, url, img in get_func()
-        ]
+                for album_id, album, artist, url, img in get_func()
+            ]
+            app.cache.set(key, details, 60 * 30)
         response = flask.Response(json.dumps(details))
     except models.DatabaseError:
         response = flask.Response(json.dumps({'text': 'Failed'}))
