@@ -139,11 +139,11 @@ def add_to_list(album_id):
         conn.close()
 
 
-def add_to_albums(album_id, artist, name, url):
+def add_to_albums(album_id, artist, name, url, img=''):
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute('INSERT INTO albums (id, artist, name, url, img) VALUES (%s, %s, %s, %s, "")', (album_id, artist, name, url))
+        cur.execute('INSERT INTO albums (id, artist, name, url, img) VALUES (%s, %s, %s, %s, %s)', (album_id, artist, name, url, img))
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -188,7 +188,7 @@ def add_many_to_albums(albums):
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.executemany('INSERT INTO albums (id, artist, name, url, img) VALUES (%s, %s, %s, %s, "")', albums)
+        cur.executemany('INSERT INTO albums (id, artist, name, url, img) VALUES (%s, %s, %s, %s, %s)', albums)
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -199,9 +199,12 @@ def add_many_to_albums(albums):
 
 def add_img_to_album(album_id, album_img):
     try:
+        sql = """UPDATE albums
+                    SET img = %s
+                    WHERE id = %s"""
         conn = get_connection()
         cur = conn.cursor()
-        cur.executemany('UPDATE albums SET img = %s WHERE id = %s;', (album_img, album_id))
+        cur.execute(sql, (album_img, album_id))
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError

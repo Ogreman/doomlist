@@ -148,7 +148,7 @@ def deferred_process_all_album_details(response_url=BOT_URL):
         for album_id in models.check_for_new_albums():
             try:
                 album, artist, url = scrapers.scrape_album_details_from_id(album_id)
-                yield (album_id, artist, album, url)
+                yield (album_id, artist, album, url, '')
             except (TypeError, ValueError):
                 continue
     try:
@@ -182,11 +182,11 @@ def deferred_process_album_details(album_id):
 @delayed.queue_func
 def deferred_process_album_cover(album_id):
     try:
-        _, _, _, album_url, _ = models.get_album_details(album_id)
+        _, _, _, album_url, _ = models.get_album_details(str(album_id))
         album_cover_url = scrapers.scrape_album_cover_url_from_url(album_url)
         models.add_img_to_album(album_id, album_cover_url)
     except models.DatabaseError as e:
-        print "[db]: failed to add album details"
+        print "[db]: failed to add album cover"
         print "[db]: %s" % e
     except scrapers.NotFoundError as e:
         print "[scraper]: failed to find album art"
