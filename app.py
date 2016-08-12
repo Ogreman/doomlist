@@ -312,7 +312,7 @@ def process():
 @app.route('/slack/process/covers', methods=['POST'])
 @slack_check
 @admin_only
-def process():
+def covers():
     form_data = flask.request.form
     response = None if 'silence' in form_data else form_data.get('response_url', BOT_URL)
     deferred_process_all_album_covers.delay(response)
