@@ -346,7 +346,7 @@ def link():
 def random_album():
     form_data = flask.request.form
     try:
-        _, _, _, url = models.get_random_album()
+        _, _, _, url, img = models.get_random_album()
     except models.DatabaseError:
         return db_error_message, 200
     except TypeError:

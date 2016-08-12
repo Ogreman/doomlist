@@ -438,7 +438,7 @@ def search_albums(query):
         cur = conn.cursor()
         term = '%' + query + '%'
         cur.execute(
-            "SELECT id, name, artist, url FROM albums where LOWER(name) LIKE %s OR LOWER(artist) LIKE %s", 
+            "SELECT id, name, artist, url, img FROM albums where LOWER(name) LIKE %s OR LOWER(artist) LIKE %s", 
             (term, term)
         )
         return cur.fetchall()
@@ -453,7 +453,7 @@ def get_random_album():
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT id, name, artist, url FROM albums ORDER BY RANDOM() LIMIT 1")
+        cur.execute("SELECT id, name, artist, url, img FROM albums ORDER BY RANDOM() LIMIT 1")
         return cur.fetchone()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
