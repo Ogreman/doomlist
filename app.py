@@ -40,6 +40,16 @@ db_error_message = '{name} error - check with admin'.format(name=LIST_NAME)
 not_found_message = 'Album not found in the {name}'.format(name=LIST_NAME)
 
 
+def get_and_set_album_details(album_id):
+    details = models.get_album_details(album_id)
+    app.cache.set('alb-' + album_id, details, 60 * 15)
+    return details
+
+
+def get_cached_album_details(album_id):
+    return app.cache.get('alb-' + album_id) or get_and_set_album_details(album_id)
+
+
 def admin_only(func):
     """
     Decorator for locking down slack endpoints to admins
@@ -177,7 +187,7 @@ def deferred_process_album_details(album_id):
 @delayed.queue_func
 def deferred_process_album_cover(album_id):
     try:
-        _, _, _, album_url, _ = models.get_album_details(album_id)
+        _, _, _, album_url, _ = get_cached_album_details(album_id)
         album_cover_url = scrapers.scrape_album_cover_url_from_url(album_url)
         models.add_img_to_album(album_id, album_cover_url)
     except models.DatabaseError as e:
@@ -324,7 +334,7 @@ def link():
     if not album_id:
         return 'Provide an album ID', 200
     try:
-        _, _, _, url, _ = models.get_album_details(album_id)
+        _, _, _, url, _ = get_cached_album_details(album_id)
     except models.DatabaseError:
         return db_error_message, 200
     except TypeError:
@@ -511,7 +521,7 @@ def album(album_id):
             'text': 'Success',
             'album': dict(zip(
                 ('id', 'name', 'artist', 'url', 'img'),
-                models.get_album_details(album_id),
+                get_cached_album_details(album_id),
             ))
         }))
     except (models.DatabaseError, TypeError):
