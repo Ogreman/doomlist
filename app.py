@@ -123,7 +123,7 @@ def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
 
 
 @delayed.queue_func
-def deferred_consume(text, scrape_function, callback, response_url=BOT_URL):
+def deferred_consume(text, scrape_function, callback, response_url=BOT_URL, channel=''):
     try:
         album_id = scrape_function(text)
     except scrapers.NotFoundError:
@@ -139,7 +139,7 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL):
                     print "[db]: %s" % e
                 else:
                     message = 'Added album to list: ' + str(album_id)
-                    deferred_process_album_details.delay(str(album_id))
+                    deferred_process_album_details.delay(str(album_id), channel)
             else:
                 message = 'Album already in list: ' + str(album_id)
         except models.DatabaseError as e:
@@ -170,10 +170,10 @@ def deferred_process_all_album_details(response_url=BOT_URL):
 
 
 @delayed.queue_func
-def deferred_process_album_details(album_id):
+def deferred_process_album_details(album_id, channel=''):
     try:
         album, artist, url = scrapers.scrape_album_details_from_id(album_id)
-        models.add_to_albums(album_id, artist, album, url)
+        models.add_to_albums(album_id, artist, album, url, channel)
         deferred_process_album_cover.delay(album_id)
     except models.DatabaseError as e:
         print "[db]: failed to add album details"
@@ -230,6 +230,7 @@ def consume():
         scrapers.scrape_bandcamp_album_ids_from_url,
         models.add_to_list,
         response_url=BOT_URL_TEMPLATE.format(channel=channel),
+        channel=channel
     )
     return '', 200
 
@@ -248,6 +249,7 @@ def consume_all():
                 scrapers.scrape_bandcamp_album_ids_from_url,
                 models.add_to_list,
                 response_url=response_url,
+                channel=channel
             )
         elif 'youtube' in url or 'youtu.be' in url:
             requests.post(response_url, data="YouTube scraper not yet implemented")

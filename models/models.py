@@ -68,7 +68,8 @@ def create_albums_table():
         artist varchar DEFAULT '',
         name varchar DEFAULT '',
         url varchar DEFAULT '',
-        img varchar DEFAULT ''
+        img varchar DEFAULT '',
+        channel varchar DEFAULT ''
         );"""
     try:
         conn = get_connection()
@@ -157,19 +158,20 @@ def add_to_list(album_id):
         conn.close()
 
 
-def add_to_albums(album_id, artist, name, url, img=''):
+def add_to_albums(album_id, artist, name, url, img='', channel=''):
     sql = """
         INSERT INTO albums (
         id, 
         artist, 
         name, 
         url, 
-        img
-        ) VALUES (%s, %s, %s, %s, %s);"""
+        img,
+        channel
+        ) VALUES (%s, %s, %s, %s, %s, %s);"""
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute(sql, (album_id, artist, name, url, img))
+        cur.execute(sql, (album_id, artist, name, url, img, channel))
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
