@@ -144,24 +144,17 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL):
 
 @delayed.queue_func
 def deferred_process_all_album_details(response_url=BOT_URL):
-    def get_album_details_from_ids():
-        for album_id in models.check_for_new_albums():
-            try:
-                album, artist, url = scrapers.scrape_album_details_from_id(album_id)
-                yield (album_id, artist, album, url, '')
-            except (TypeError, ValueError):
-                continue
     try:
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
-        album_details = list(get_album_details_from_ids())
-        models.add_many_to_albums(album_details)
+        for album_id in models.check_for_new_albums():
+            deferred_process_album_details.delay(album_id)
     except models.DatabaseError as e:
-        print "[db]: failed to add album details"
+        print "[db]: failed to check for new album details"
         print "[db]: %s" % e
         message = 'Failed to process all album details...'
     else:
-        message = 'Processed all album details: %d found.' % (len(album_details), )
+        message = 'Processed all album details'
     if response_url:
         requests.post(response_url, data=json.dumps({'text': message}))
 
@@ -177,6 +170,8 @@ def deferred_process_album_details(album_id):
         print "[db]: %s" % e
     except (TypeError, ValueError):
         pass
+    else:
+        print "[scraper]: processed album details for " + str(album_id)
 
 
 @delayed.queue_func
