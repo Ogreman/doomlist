@@ -15,8 +15,10 @@ from models import models
 
 from flask.ext.cacheify import init_cacheify
 
+from unipath import Path
+TEMPLATE_DIR = Path(__file__).ancestor(1).child("templates")
 
-app = flask.Flask(__name__)
+app = flask.Flask(__name__, template_folder=TEMPLATE_DIR)
 app.config.from_object(os.environ['APP_SETTINGS'])
 app.cache = init_cacheify(app)
 
@@ -627,6 +629,18 @@ def auth():
     response = requests.get(url)
     print "[auth]: " + str(response.json())
     return response.content, 200
+
+
+@app.route('/', methods=['GET'])
+def embedded_random():
+    try:
+        album_id, name, artist, album_url, _ = models.get_random_album()
+    except models.DatabaseError:
+        return db_error_message, 200
+    except TypeError:
+        return not_found_message, 200
+    else:
+        return flask.render_template('index.html', list_name=LIST_NAME, album_id=album_id, name=name, artist=artist, album_url=album_url)
 
 
 if __name__ == "__main__":
