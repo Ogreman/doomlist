@@ -499,7 +499,7 @@ def button():
 
 @app.route('/api/list', methods=['GET'])
 @app.cache.cached(timeout=60 * 60)
-def list_albums():
+def api_list_albums():
     try:
         response = flask.Response(json.dumps(models.get_list()))
     except models.DatabaseError:
@@ -510,7 +510,7 @@ def list_albums():
 
 @app.route('/api/list/count', methods=['GET'])
 @app.cache.cached(timeout=60)
-def id_count():
+def api_id_count():
     try:
         response = flask.Response(json.dumps({'count': models.get_list_count()}))
     except models.DatabaseError:
@@ -520,7 +520,7 @@ def id_count():
 
 
 @app.route('/api/albums', methods=['GET'])
-def list_album_details():
+def api_list_album_details():
     channel = flask.request.args.get('channel')
     if channel:
         get_func = functools.partial(models.get_albums_by_channel, channel)
@@ -552,7 +552,7 @@ def list_album_details():
 
 @app.route('/api/albums/count', methods=['GET'])
 @app.cache.cached(timeout=60)
-def count_albums():
+def api_count_albums():
     try:
         response = flask.Response(json.dumps({'count': models.get_albums_count()}))
     except models.DatabaseError:
@@ -563,7 +563,7 @@ def count_albums():
 
 @app.route('/api/albums/dump', methods=['GET'])
 @app.cache.cached(timeout=60 * 30)
-def dump_album_details():
+def api_dump_album_details():
     csv_file = StringIO.StringIO()
     csv_writer = csv.writer(csv_file)
     csv_writer.writerow(['id', 'album', 'artist', 'url'])
@@ -574,7 +574,7 @@ def dump_album_details():
 
 
 @app.route('/api/album/<album_id>', methods=['GET'])
-def album(album_id):
+def api_album(album_id):
     try:
         response = flask.Response(json.dumps({
             'text': 'Success',
@@ -590,13 +590,13 @@ def album(album_id):
 
 
 @app.route('/api/bc/<album_id>', methods=['GET'])
-def bc(album_id):
+def api_bc(album_id):
     return flask.redirect(BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
 
 
 @app.route('/api/votes', methods=['GET'])
 @app.cache.cached(timeout=60 * 5)
-def all_votes():
+def api_all_votes():
     try:
         results = [
             dict(zip(('id', 'artist', 'album', 'votes'), details))
@@ -613,7 +613,7 @@ def all_votes():
 
 
 @app.route('/api/votes/<album_id>', methods=['GET'])
-def votes(album_id):
+def api_votes(album_id):
     try:
         response = flask.Response(json.dumps({
             'text': 'Success', 
@@ -626,7 +626,7 @@ def votes(album_id):
 
 
 @app.route('/api/vote', methods=['POST'])
-def vote():
+def api_vote():
     form_data = flask.request.form
     try:
         album_id = form_data['album_id']
@@ -643,7 +643,7 @@ def vote():
 
 @app.route('/api/top', methods=['GET'])
 @app.cache.cached(timeout=60 * 5)
-def top():
+def api_top():
     try:
         results = [
             dict(zip(('id', 'artist', 'album', 'votes'), details))
@@ -660,7 +660,7 @@ def top():
 
 
 @app.route('/api/logs', methods=['GET'])
-def list_logs():
+def api_list_logs():
     try:
         response = flask.Response(json.dumps(models.get_logs()))
     except models.DatabaseError:
@@ -687,6 +687,18 @@ def embedded_random():
         return not_found_message, 200
     else:
         return flask.render_template('index.html', list_name=LIST_NAME, album_id=album_id, name=name, artist=artist, album_url=album_url)
+
+
+@app.route('/api', methods=['GET'])
+def all_endpoints():
+    rules = [ 
+        (list(rule.methods), rule.rule) 
+        for rule in app.url_map.iter_rules() 
+        if rule.endpoint.startswith('api')
+    ]
+    response = flask.Response(json.dumps({'api': rules}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response, 200
 
 
 if __name__ == "__main__":
