@@ -380,6 +380,24 @@ def get_albums_by_channel(channel):
         conn.close()
 
 
+def get_albums_unavailable():
+    sql = """
+        SELECT id, name, artist, url
+        FROM albums 
+        WHERE available = false;
+    """
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(sql)
+        return cur.fetchall()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
 def get_albums_count():
     try:
         conn = get_connection()
