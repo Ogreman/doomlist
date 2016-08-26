@@ -225,7 +225,7 @@ def deferred_process_all_album_covers(response_url=BOT_URL):
 def deferred_check_album_url(album_id):
     try:
         _, _, _, album_url, _, available = get_cached_album_details(album_id)
-        response = requests.get(album_url)
+        response = requests.head(album_url)
         if response.ok and not available:
             models.update_album_availability(album_id, True)
         elif response.status_code > 400 and available:
@@ -255,7 +255,6 @@ def deferred_check_all_album_urls(response_url=BOT_URL):
         message = 'Finished checking all album URLs'
     if response_url:
         requests.post(response_url, data=json.dumps({'text': message}))
-
 
 
 @app.route('/slack/consume', methods=['POST'])

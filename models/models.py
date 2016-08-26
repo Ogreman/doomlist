@@ -70,7 +70,7 @@ def create_albums_table():
         url varchar DEFAULT '',
         img varchar DEFAULT '',
         channel varchar DEFAULT '',
-        available boolean DEFAULT 0
+        available boolean DEFAULT true
         );"""
     try:
         conn = get_connection()
@@ -167,12 +167,13 @@ def add_to_albums(album_id, artist, name, url, img='', channel=''):
         name, 
         url, 
         img,
-        channel
-        ) VALUES (%s, %s, %s, %s, %s, %s);"""
+        channel, 
+        available
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s);"""
     try:
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute(sql, (album_id, artist, name, url, img, channel))
+        cur.execute(sql, (album_id, artist, name, url, img, channel, True))
         conn.commit()
     except (psycopg2.ProgrammingError, psycopg2.InternalError):
         raise DatabaseError
@@ -524,7 +525,8 @@ def search_albums(query):
         SELECT id, name, artist, url, img 
         FROM albums 
         WHERE LOWER(name) LIKE %s 
-        OR LOWER(artist) LIKE %s;
+        OR LOWER(artist) LIKE %s
+        AND available = true;
         """
     try:
         conn = get_connection()
