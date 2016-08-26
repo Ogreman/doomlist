@@ -69,7 +69,8 @@ def create_albums_table():
         name varchar DEFAULT '',
         url varchar DEFAULT '',
         img varchar DEFAULT '',
-        channel varchar DEFAULT ''
+        channel varchar DEFAULT '',
+        available boolean DEFAULT 0
         );"""
     try:
         conn = get_connection()
@@ -251,6 +252,24 @@ def add_img_to_album(album_id, album_img):
         conn.close()
 
 
+def update_album_availability(album_id, status):
+    try:
+        sql = """
+            UPDATE albums
+            SET available = %s
+            WHERE id = %s;
+            """
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(sql, (bool(status), album_id))
+        conn.commit()
+    except (psycopg2.ProgrammingError, psycopg2.InternalError):
+        raise DatabaseError
+    finally:
+        cur.close()
+        conn.close()
+
+
 def get_list():
     try:
         conn = get_connection()
@@ -375,7 +394,7 @@ def get_albums_count():
         
 def get_album_details(album_id):
     sql = """
-        SELECT id, name, artist, url, img 
+        SELECT id, name, artist, url, img, available
         FROM albums 
         WHERE id = %s;
         """
@@ -393,7 +412,7 @@ def get_album_details(album_id):
 
 def get_album_details_from_ids(album_ids):
     sql = """
-        SELECT id, artist, name, url, img
+        SELECT id, artist, name, url, img, available
         FROM albums 
         WHERE id IN %s;
         """
@@ -524,6 +543,7 @@ def get_random_album():
     sql = """
         SELECT id, name, artist, url, img 
         FROM albums 
+        WHERE available = true
         ORDER BY RANDOM() 
         LIMIT 1;
         """

@@ -189,7 +189,7 @@ def deferred_process_album_details(album_id, channel=''):
 @delayed.queue_func
 def deferred_process_album_cover(album_id):
     try:
-        _, _, _, album_url, _ = get_cached_album_details(album_id)
+        _, _, _, album_url, _, _ = get_cached_album_details(album_id)
         album_cover_url = scrapers.scrape_album_cover_url_from_url(album_url)
         models.add_img_to_album(album_id, album_cover_url)
     except models.DatabaseError as e:
@@ -219,6 +219,43 @@ def deferred_process_all_album_covers(response_url=BOT_URL):
         message = 'Processed all album covers'
     if response_url:
         requests.post(response_url, data=json.dumps({'text': message}))
+
+
+@delayed.queue_func
+def deferred_check_album_url(album_id):
+    try:
+        _, _, _, album_url, _, available = get_cached_album_details(album_id)
+        response = requests.get(album_url)
+        if response.ok and not available:
+            models.update_album_availability(album_id, True)
+        elif response.status_code > 400 and available:
+            models.update_album_availability(album_id, False)
+            print "[scraper]: " + str(album_id) + " no longer available"
+    except models.DatabaseError as e:
+        print "[db]: failed to update album after check"
+        print "[db]: %s" % e
+    except (TypeError, ValueError):
+        pass
+    else:
+        print "[scraper]: checked availability for " + str(album_id)
+
+
+@delayed.queue_func
+def deferred_check_all_album_urls(response_url=BOT_URL):
+    try:
+        if response_url:
+            requests.post(response_url, data=json.dumps({'text': 'Check started...'}))
+        for album_id, _, _, _, _ in models.get_albums():
+            deferred_check_album_url.delay(album_id)
+    except models.DatabaseError as e:
+        print "[db]: failed to check for new album details"
+        print "[db]: %s" % e
+        message = 'Failed to check all album urls...'
+    else:
+        message = 'Finished checking all album URLs'
+    if response_url:
+        requests.post(response_url, data=json.dumps({'text': message}))
+
 
 
 @app.route('/slack/consume', methods=['POST'])
@@ -310,6 +347,16 @@ def scrape():
     return 'Scrape request sent', 200
 
 
+@app.route('/slack/check', methods=['POST'])
+@slack_check
+@admin_only
+def check_urls():
+    form_data = flask.request.form
+    response = None if 'silence' in form_data else form_data.get('response_url', BOT_URL)
+    deferred_check_all_album_urls.delay(response)
+    return 'Check request sent', 200
+
+
 @app.route('/slack/process', methods=['POST'])
 @slack_check
 @admin_only
@@ -338,7 +385,7 @@ def link():
     if not album_id:
         return 'Provide an album ID', 200
     try:
-        _, _, _, url, _ = get_cached_album_details(album_id)
+        _, _, _, url, _, _ = get_cached_album_details(album_id)
     except models.DatabaseError:
         return db_error_message, 200
     except TypeError:
@@ -533,7 +580,7 @@ def album(album_id):
         response = flask.Response(json.dumps({
             'text': 'Success',
             'album': dict(zip(
-                ('id', 'name', 'artist', 'url', 'img'),
+                ('id', 'name', 'artist', 'url', 'img', 'available'),
                 get_cached_album_details(album_id),
             ))
         }))
