@@ -297,7 +297,7 @@ def get_albums():
     with closing(get_connection()) as conn:
         try:
             cur = conn.cursor()
-            cur.execute("SELECT id, name, artist, url, img FROM albums;")
+            cur.execute("SELECT id, name, artist, url, img, channel FROM albums;")
             return cur.fetchall()
         except (psycopg2.ProgrammingError, psycopg2.InternalError):
             raise DatabaseError
@@ -305,7 +305,7 @@ def get_albums():
 
 def get_albums_by_channel(channel):
     sql = """
-        SELECT id, name, artist, url, img
+        SELECT id, name, artist, url, img, channel
         FROM albums 
         WHERE channel = %s;
     """
@@ -345,7 +345,7 @@ def get_albums_count():
         
 def get_album_details(album_id):
     sql = """
-        SELECT id, name, artist, url, img, available
+        SELECT id, name, artist, url, img, available, channel
         FROM albums 
         WHERE id = %s;
         """
@@ -360,7 +360,7 @@ def get_album_details(album_id):
 
 def get_album_details_from_ids(album_ids):
     sql = """
-        SELECT id, artist, name, url, img, available
+        SELECT id, artist, name, url, img, available, channel
         FROM albums 
         WHERE id IN %s;
         """

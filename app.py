@@ -189,7 +189,7 @@ def deferred_process_album_details(album_id, channel=''):
 @delayed.queue_func
 def deferred_process_album_cover(album_id):
     try:
-        _, _, _, album_url, _, _ = get_cached_album_details(album_id)
+        _, _, _, album_url, _, _, _ = get_cached_album_details(album_id)
         album_cover_url = scrapers.scrape_album_cover_url_from_url(album_url)
         models.add_img_to_album(album_id, album_cover_url)
     except models.DatabaseError as e:
@@ -224,7 +224,7 @@ def deferred_process_all_album_covers(response_url=BOT_URL):
 @delayed.queue_func
 def deferred_check_album_url(album_id):
     try:
-        _, _, _, album_url, _, available = get_cached_album_details(album_id)
+        _, _, _, album_url, _, available, _ = get_cached_album_details(album_id)
         response = requests.head(album_url)
         if response.ok and not available:
             models.update_album_availability(album_id, True)
@@ -245,7 +245,7 @@ def deferred_check_all_album_urls(response_url=BOT_URL):
     try:
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Check started...'}))
-        for album_id, _, _, _, _ in models.get_albums():
+        for album_id in models.get_album_ids():
             deferred_check_album_url.delay(album_id)
     except models.DatabaseError as e:
         print "[db]: failed to check for new album details"
@@ -384,7 +384,7 @@ def link():
     if not album_id:
         return 'Provide an album ID', 200
     try:
-        _, _, _, url, _, _ = get_cached_album_details(album_id)
+        _, _, _, url, _, _, _ = get_cached_album_details(album_id)
     except models.DatabaseError:
         return db_error_message, 200
     except TypeError:
@@ -538,9 +538,10 @@ def api_list_album_details():
                         'album': album,
                         'url': url,
                         'img': img if img else '',
+                        'channel': channel,
                     }
                 }
-                for album_id, album, artist, url, img in get_func()
+                for album_id, album, artist, url, img, channel in get_func()
             ]
             app.cache.set(key, details, 60 * 30)
         response = flask.Response(json.dumps(details))
@@ -566,9 +567,9 @@ def api_count_albums():
 def api_dump_album_details():
     csv_file = StringIO.StringIO()
     csv_writer = csv.writer(csv_file)
-    csv_writer.writerow(['id', 'album', 'artist', 'url'])
-    for album_id, album, artist, url in models.get_albums():
-        csv_writer.writerow([album_id, album, artist, url])
+    csv_writer.writerow(['id', 'album', 'artist', 'url', 'img', 'channel'])
+    for album_id, album, artist, url, img, channel in models.get_albums():
+        csv_writer.writerow([album_id, album, artist, url, img, channel])
     csv_file.seek(0)
     return flask.send_file(csv_file, attachment_filename="albums.csv", as_attachment=True)
 
@@ -579,7 +580,7 @@ def api_album(album_id):
         response = flask.Response(json.dumps({
             'text': 'Success',
             'album': dict(zip(
-                ('id', 'name', 'artist', 'url', 'img', 'available'),
+                ('id', 'name', 'artist', 'url', 'img', 'available', 'channel'),
                 get_cached_album_details(album_id),
             ))
         }))
@@ -641,7 +642,7 @@ def api_vote():
     return response
 
 
-@app.route('/api/top', methods=['GET'])
+@app.route('/api/votes/top', methods=['GET'])
 @app.cache.cached(timeout=60 * 5)
 def api_top():
     try:
