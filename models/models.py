@@ -65,7 +65,8 @@ def create_albums_table():
         url varchar DEFAULT '',
         img varchar DEFAULT '',
         channel varchar DEFAULT '',
-        available boolean DEFAULT true
+        available boolean DEFAULT true, 
+        added timestamp DEFAULT now()
         );"""
     with closing(get_connection()) as conn:
         try:
@@ -297,7 +298,7 @@ def get_albums():
     with closing(get_connection()) as conn:
         try:
             cur = conn.cursor()
-            cur.execute("SELECT id, name, artist, url, img, channel FROM albums;")
+            cur.execute("SELECT id, name, artist, url, img, channel, added FROM albums;")
             return cur.fetchall()
         except (psycopg2.ProgrammingError, psycopg2.InternalError):
             raise DatabaseError
@@ -305,7 +306,7 @@ def get_albums():
 
 def get_albums_by_channel(channel):
     sql = """
-        SELECT id, name, artist, url, img, channel
+        SELECT id, name, artist, url, img, channel, added
         FROM albums 
         WHERE channel = %s;
     """
@@ -320,7 +321,7 @@ def get_albums_by_channel(channel):
 
 def get_albums_unavailable():
     sql = """
-        SELECT id, name, artist, url
+        SELECT id, name, artist, url, added
         FROM albums 
         WHERE available = false;
     """
@@ -345,7 +346,7 @@ def get_albums_count():
         
 def get_album_details(album_id):
     sql = """
-        SELECT id, name, artist, url, img, available, channel
+        SELECT id, name, artist, url, img, available, channel, added
         FROM albums 
         WHERE id = %s;
         """
@@ -360,7 +361,7 @@ def get_album_details(album_id):
 
 def get_album_details_from_ids(album_ids):
     sql = """
-        SELECT id, artist, name, url, img, available, channel
+        SELECT id, artist, name, url, img, available, channel, added
         FROM albums 
         WHERE id IN %s;
         """

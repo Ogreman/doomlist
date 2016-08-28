@@ -189,7 +189,7 @@ def deferred_process_album_details(album_id, channel=''):
 @delayed.queue_func
 def deferred_process_album_cover(album_id):
     try:
-        _, _, _, album_url, _, _, _ = get_cached_album_details(album_id)
+        _, _, _, album_url, _, _, _, _ = get_cached_album_details(album_id)
         album_cover_url = scrapers.scrape_album_cover_url_from_url(album_url)
         models.add_img_to_album(album_id, album_cover_url)
     except models.DatabaseError as e:
@@ -224,7 +224,7 @@ def deferred_process_all_album_covers(response_url=BOT_URL):
 @delayed.queue_func
 def deferred_check_album_url(album_id):
     try:
-        _, _, _, album_url, _, available, _ = get_cached_album_details(album_id)
+        _, _, _, album_url, _, available, _, _ = get_cached_album_details(album_id)
         response = requests.head(album_url)
         if response.ok and not available:
             models.update_album_availability(album_id, True)
@@ -384,7 +384,7 @@ def link():
     if not album_id:
         return 'Provide an album ID', 200
     try:
-        _, _, _, url, _, _, _ = get_cached_album_details(album_id)
+        _, _, _, url, _, _, _, _ = get_cached_album_details(album_id)
     except models.DatabaseError:
         return db_error_message, 200
     except TypeError:
@@ -539,9 +539,10 @@ def api_list_album_details():
                         'url': url,
                         'img': img if img else '',
                         'channel': channel,
+                        'added': added,
                     }
                 }
-                for album_id, album, artist, url, img, channel in get_func()
+                for album_id, album, artist, url, img, channel, added in get_func()
             ]
             app.cache.set(key, details, 60 * 30)
         response = flask.Response(json.dumps(details))
@@ -580,7 +581,7 @@ def api_album(album_id):
         response = flask.Response(json.dumps({
             'text': 'Success',
             'album': dict(zip(
-                ('id', 'name', 'artist', 'url', 'img', 'available', 'channel'),
+                ('id', 'name', 'artist', 'url', 'img', 'available', 'channel', 'added'),
                 get_cached_album_details(album_id),
             ))
         }))
