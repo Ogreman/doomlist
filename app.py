@@ -539,7 +539,7 @@ def api_list_album_details():
                         'url': url,
                         'img': img if img else '',
                         'channel': channel,
-                        'added': added,
+                        'added': added.isoformat(),
                     }
                 }
                 for album_id, album, artist, url, img, channel, added in get_func()
@@ -568,9 +568,9 @@ def api_count_albums():
 def api_dump_album_details():
     csv_file = StringIO.StringIO()
     csv_writer = csv.writer(csv_file)
-    csv_writer.writerow(['id', 'album', 'artist', 'url', 'img', 'channel'])
-    for album_id, album, artist, url, img, channel in models.get_albums():
-        csv_writer.writerow([album_id, album, artist, url, img, channel])
+    csv_writer.writerow(['id', 'album', 'artist', 'url', 'img', 'channel', 'added'])
+    for album_id, album, artist, url, img, channel, added in models.get_albums():
+        csv_writer.writerow([album_id, album, artist, url, img, channel, added.isoformat()])
     csv_file.seek(0)
     return flask.send_file(csv_file, attachment_filename="albums.csv", as_attachment=True)
 
@@ -578,11 +578,12 @@ def api_dump_album_details():
 @app.route('/api/album/<album_id>', methods=['GET'])
 def api_album(album_id):
     try:
+        album_id, album, artist, url, img, available, channel, added = get_cached_album_details(album_id)
         response = flask.Response(json.dumps({
             'text': 'Success',
             'album': dict(zip(
                 ('id', 'name', 'artist', 'url', 'img', 'available', 'channel', 'added'),
-                get_cached_album_details(album_id),
+                (album_id, album, artist, url, img, available, channel, added.isoformat()),
             ))
         }))
     except (models.DatabaseError, TypeError):
