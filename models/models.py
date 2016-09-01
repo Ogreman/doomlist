@@ -92,6 +92,38 @@ def create_albums_index():
             raise DatabaseError
 
 
+def create_tags_table():
+    sql = """
+        CREATE TABLE tags (
+        tag varchar PRIMARY KEY
+        );"""
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(sql)
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError):
+            raise DatabaseError
+
+
+def create_album_tags_table():
+    sql = """
+        CREATE TABLE album_tags (
+        album varchar REFERENCES albums (id), 
+        tag varchar REFERENCES tags (tag),
+
+        CONSTRAINT id_tag UNIQUE (album, tag)
+        );"""
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(sql)
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            print e
+            raise DatabaseError
+
+
 def create_votes_table():
     sql = """
         CREATE TABLE votes (
@@ -157,6 +189,26 @@ def add_to_albums(album_id, artist, name, url, img='', channel=''):
             raise DatabaseError
 
 
+def add_to_tags(tag):
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute('INSERT INTO tags (tag) VALUES (%s)', (tag,))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError):
+            raise DatabaseError
+
+
+def tag_album(album_id, tag):
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute('INSERT INTO album_tags (album, tag) VALUES (%s, %s)', (album_id, tag))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError):
+            raise DatabaseError
+    
+
 def de_dup():
     duplicates = [
         (album_id, )
@@ -211,6 +263,21 @@ def add_img_to_album(album_id, album_img):
                 """
             cur = conn.cursor()
             cur.execute(sql, (album_img, album_id))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError):
+            raise DatabaseError
+
+
+def add_added_to_album(album_id, dt):
+    with closing(get_connection()) as conn:
+        try:
+            sql = """
+                UPDATE albums
+                SET added = %s
+                WHERE id = %s;
+                """
+            cur = conn.cursor()
+            cur.execute(sql, (dt, album_id))
             conn.commit()
         except (psycopg2.ProgrammingError, psycopg2.InternalError):
             raise DatabaseError
@@ -392,7 +459,17 @@ def get_logs():
             return [item[0] for item in cur.fetchall()]
         except (psycopg2.ProgrammingError, psycopg2.InternalError):
             raise DatabaseError
-        
+
+
+def get_tags():
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT tag FROM tags;")
+            return [item[0] for item in cur.fetchall()]
+        except (psycopg2.ProgrammingError, psycopg2.InternalError):
+            raise DatabaseError
+
 
 def delete_from_list(album_id):
     with closing(get_connection()) as conn:
@@ -450,13 +527,18 @@ def search_albums(query):
         FROM albums 
         WHERE LOWER(name) LIKE %s 
         OR LOWER(artist) LIKE %s
+        OR id IN (
+            SELECT album
+            FROM album_tags
+            WHERE tag LIKE %s
+        )
         AND available = true;
         """
     with closing(get_connection()) as conn:
         try:
             cur = conn.cursor()
             term = '%' + query + '%'
-            cur.execute(sql, (term, term))
+            cur.execute(sql, (term, term, term))
             return cur.fetchall()
         except (psycopg2.ProgrammingError, psycopg2.InternalError):
             raise DatabaseError

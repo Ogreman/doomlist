@@ -35,6 +35,7 @@ BOT_URL = BOT_URL_TEMPLATE.format(channel=DEFAULT_CHANNEL)
 ADMIN_IDS = app.config['ADMIN_IDS']
 APP_TOKENS = app.config['APP_TOKENS']
 URL_REGEX = "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
+HASHTAG_REGEX = "#(?:[a-zA-Z]|[0-9]|[-_.+])+"
 BANDCAMP_URL_TEMPLATE = "https://bandcamp.com/EmbeddedPlayer/album={album_id}/size=large/artwork=small"
 SLACK_AUTH_URL = "https://slack.com/api/oauth.access?client_id={client_id}&client_secret={client_secret}&code={code}"
 
@@ -125,7 +126,7 @@ def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
 
 
 @delayed.queue_func
-def deferred_consume(text, scrape_function, callback, response_url=BOT_URL, channel=''):
+def deferred_consume(text, scrape_function, callback, response_url=BOT_URL, channel='', tags=None):
     try:
         album_id = scrape_function(text)
     except scrapers.NotFoundError:
@@ -144,6 +145,8 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL, chan
                     deferred_process_album_details.delay(str(album_id), channel)
             else:
                 message = 'Album already in list: ' + str(album_id)
+            if tags:
+                deferred_process_tags.delay(str(album_id), tags)
         except models.DatabaseError as e:
             print "[db]: failed to check existing items"
             print "[db]: %s" % e
@@ -152,6 +155,21 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL, chan
             response_url,
             data=message
         )
+
+
+@delayed.queue_func
+def deferred_process_tags(album_id, tags):
+    for tag in tags:
+        tag = tag[1:] if tag.startswith('#') else tag
+        try:
+            if tag not in models.get_tags():
+                models.add_to_tags(tag)
+            models.tag_album(album_id, tag)
+        except models.DatabaseError as e:
+            print "[db]: failed to add tag '%s' to album %s" % (tag, album_id)
+            print "[db]: %s" % e
+        else:
+            print "Tagged %s with '%s'" % (album_id, tag)
 
 
 @delayed.queue_func
@@ -280,6 +298,7 @@ def consume_all():
     channel = form_data.get('channel_name', 'chat')
     response_url = BOT_URL_TEMPLATE.format(channel=channel)
     contents = form_data.get('text', '')
+    tags = re.findall(HASHTAG_REGEX, contents)
     for url in re.findall(URL_REGEX, contents):
         if 'bandcamp' in url:
             deferred_consume.delay(
@@ -287,7 +306,8 @@ def consume_all():
                 scrapers.scrape_bandcamp_album_ids_from_url,
                 models.add_to_list,
                 response_url=response_url,
-                channel=channel
+                channel=channel,
+                tags=tags
             )
         elif 'youtube' in url or 'youtu.be' in url:
             requests.post(response_url, data="YouTube scraper not yet implemented")
