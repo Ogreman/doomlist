@@ -119,8 +119,7 @@ def create_album_tags_table():
             cur = conn.cursor()
             cur.execute(sql)
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
-            print e
+        except (psycopg2.ProgrammingError, psycopg2.InternalError):
             raise DatabaseError
 
 
@@ -471,6 +470,21 @@ def get_tags():
             raise DatabaseError
 
 
+def get_album_tags(album_id):
+    sql = """
+        SELECT tag 
+        FROM album_tags 
+        WHERE album = %s;
+        """
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, (album_id,))
+            return [item[0] for item in cur.fetchall()]
+        except (psycopg2.ProgrammingError, psycopg2.InternalError):
+            raise DatabaseError
+
+
 def delete_from_list(album_id):
     with closing(get_connection()) as conn:
         try:
@@ -523,7 +537,7 @@ def _reset_votes():
 
 def search_albums(query):
     sql = """
-        SELECT id, name, artist, url, img 
+        SELECT id, name, artist, url, img
         FROM albums 
         WHERE LOWER(name) LIKE %s 
         OR LOWER(artist) LIKE %s

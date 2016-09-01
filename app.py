@@ -456,6 +456,11 @@ def build_search_response(albums):
                         "title": "Album ID",
                         "value": album[0],
                         "short": 'false',
+                    },
+                    {
+                        "title": "Tags",
+                        "value": ", ".join(models.get_album_tags(album[0])),
+                        "short": 'false',
                     }
                 ],
                 "actions": [
