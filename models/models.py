@@ -577,7 +577,27 @@ def search_albums_by_tag(query):
             return cur.fetchall()
         except (psycopg2.ProgrammingError, psycopg2.InternalError):
             raise DatabaseError
-        
+
+
+def get_albums_by_tag(tag):
+    sql = """
+        SELECT id, name, artist, url, img, channel, added
+        FROM albums 
+        WHERE id IN (
+            SELECT album
+            FROM album_tags
+            WHERE tag = %s
+        )
+        AND available = true;
+        """
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, (tag, ))
+            return cur.fetchall()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError):
+            raise DatabaseError
+
 
 def get_random_album():
     sql = """

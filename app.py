@@ -636,6 +636,51 @@ def api_album(album_id):
     return response
 
 
+@app.route('/api/tags', methods=['GET'])
+def api_tags():
+    try:
+        response = flask.Response(json.dumps({'text': 'Success',
+            'tags': [tag for tag in models.get_tags()]}))
+    except models.DatabaseError:
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
+# @app.route('/api/tags/count', methods=['GET'])
+# def api_tags():
+#     try:
+#         response = flask.Response(json.dumps({'text': 'Success',
+#             'tags': [tag for tag in models.get_tags()]}))
+#     except models.DatabaseError:
+#         response = flask.Response(json.dumps({'text': 'Failed'}))
+#     response.headers['Access-Control-Allow-Origin'] = '*'
+#     return response
+
+
+@app.route('/api/tags/<tag>', methods=['GET'])
+def api_album_by_tag(tag):
+    try:
+        details = [
+            {
+                album_id: {
+                    'artist': artist,
+                    'album': album,
+                    'url': url,
+                    'img': img if img else '',
+                    'channel': channel,
+                    'added': added.isoformat(),
+                }
+            }
+            for album_id, album, artist, url, img, channel, added in models.get_albums_by_tag(tag)
+        ]
+        response = flask.Response(json.dumps(details))
+    except models.DatabaseError:
+        response = flask.Response(json.dumps({'text': 'Failed'}))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
+
+
 @app.route('/api/bc/<album_id>', methods=['GET'])
 def api_bc(album_id):
     return flask.redirect(BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
