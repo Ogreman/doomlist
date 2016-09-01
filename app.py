@@ -492,6 +492,25 @@ def search():
     return '', 200
 
 
+@app.route('/slack/tags', methods=['POST'])
+@slack_check
+def search_tags():
+    form_data = flask.request.form
+    query = form_data.get('text')
+    if query:
+        response = app.cache.get('t-' + query)
+        if not response:
+            try:
+                albums = models.search_albums_by_tag(query)
+            except models.DatabaseError:
+                return 'Failed to perform search', 200
+            else:
+                response = build_search_response(albums)
+                app.cache.set('t-' + query, response, 60 * 15)
+        return flask.Response(json.dumps(response), mimetype='application/json')
+    return '', 200
+
+
 @app.route('/slack/search/button', methods=['POST'])
 def button():
     try:
