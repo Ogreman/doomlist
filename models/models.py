@@ -361,20 +361,55 @@ def get_top_votes(count=5):
 
 
 def get_albums():
+    sql = """
+        SELECT id, name, artist, url, img, channel, added
+        FROM albums
+    """
     with closing(get_connection()) as conn:
         try:
             cur = conn.cursor()
-            cur.execute("SELECT id, name, artist, url, img, channel, added FROM albums;")
+            cur.execute(sql)
             return cur.fetchall()
         except (psycopg2.ProgrammingError, psycopg2.InternalError):
             raise DatabaseError
 
 
-def get_albums_by_channel(channel):
+def get_albums_by_channel_(channel):
     sql = """
         SELECT id, name, artist, url, img, channel, added
-        FROM albums 
-        WHERE channel = %s;
+        FROM albums
+        WHERE channel = %s
+    """
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, (channel,))
+            return cur.fetchall()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError):
+            raise DatabaseError
+
+
+def get_albums_with_tags():
+    sql = """
+        SELECT id, name, artist, url, img, channel, added, album_tags.tag
+        FROM albums
+        LEFT JOIN album_tags on albums.id = album_tags.album;
+    """
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(sql)
+            return cur.fetchall()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError):
+            raise DatabaseError
+
+
+def get_albums_by_channel_with_tags(channel):
+    sql = """
+        SELECT id, name, artist, url, img, channel, added, album_tags.tag
+        FROM albums
+        WHERE channel = %s
+        LEFT JOIN album_tags on albums.id = album_tags.album;
     """
     with closing(get_connection()) as conn:
         try:

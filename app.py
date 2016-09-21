@@ -1,6 +1,7 @@
 import re
 import os
 import json
+import collections
 import datetime
 import requests
 import flask
@@ -567,27 +568,34 @@ def api_id_count():
 def api_list_album_details():
     channel = flask.request.args.get('channel')
     if channel:
-        get_func = functools.partial(models.get_albums_by_channel, channel)
+        get_func = functools.partial(models.get_albums_by_channel_with_tags, channel)
         key = "api-albums-" + channel
     else:
-        get_func = models.get_albums
+        get_func = models.get_albums_with_tags
         key = "api-albums"
     try:
         details = app.cache.get(key)
         if not details:
-            details = [
-                {
-                    album_id: {
-                        'artist': artist,
-                        'album': album,
-                        'url': url,
-                        'img': img if img else '',
-                        'channel': channel,
-                        'added': added.isoformat(),
-                    }
-                }
-                for album_id, album, artist, url, img, channel, added in get_func()
-            ]
+            details = collections.defaultdict(lambda: {
+                'artist': '',
+                'album': '',
+                'url': '',
+                'img': '',
+                'channel': '',
+                'added': '',
+                'tags': []
+            })
+            for album_id, album, artist, url, img, channel, added, tag in get_func():
+                if album_id not in details:
+                    details[album_id]['artist'] = artist
+                    details[album_id]['album'] = album
+                    details[album_id]['url'] = url
+                    details[album_id]['img'] = img if img else ''
+                    details[album_id]['channel'] = channel
+                    details[album_id]['added'] = added.isoformat()
+                if tag:
+                    details[album_id]['tags'].append(tag)
+            details = [{key: d} for key, d in details.items()]
             app.cache.set(key, details, 60 * 30)
         response = flask.Response(json.dumps(details))
     except models.DatabaseError:
