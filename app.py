@@ -439,43 +439,54 @@ def random_album():
         return flask.Response(json.dumps(response), mimetype='application/json')
 
 
-def build_search_response(albums):
-    return {
-        "text": "Your search returned {} results".format(len(albums)),
-        "attachments": [
+def build_search_response(details):
+    attachments = []
+    for album_id, d in details.items():
+        tag_actions = [
             {
-                "fallback": "{} by {}".format(album[1], album[2]),
-                "color": "#36a64f",
-                "pretext": "{} by {}".format(album[1], album[2]),
-                "author_name": album[2],
-                "image_url": album[4],
-                "title": album[1],
-                "title_link": album[3],
-                "callback_id": "album_results_" + album[0],
-                "fields": [
-                    {
-                        "title": "Album ID",
-                        "value": album[0],
-                        "short": 'false',
-                    },
-                    {
-                        "title": "Tags",
-                        "value": ", ".join(models.get_album_tags(album[0])),
-                        "short": 'false',
-                    }
-                ],
-                "actions": [
-                    {
-                        "name": "album",
-                        "text": "Post",
-                        "type": "button",
-                        "value": album[3],
-                    }
-                ],
-                "footer": LIST_NAME,
+                "name": "tag",
+                "text": "#" + str(tag),
+                "type": "button",
+                "value": str(tag),
             }
-            for album in albums
+            for i, tag in enumerate(d['tags'])
         ]
+        attachment = {
+            "fallback": "{} by {}".format(d['album'], d['artist']),
+            "color": "#36a64f",
+            "pretext": "{} by {}".format(d['album'], d['artist']),
+            "author_name": d['artist'],
+            "image_url": d['img'],
+            "title": d['album'],
+            "title_link": d['url'],
+            "callback_id": "album_results_" + album_id,
+            "fields": [
+                {
+                    "title": "Album ID",
+                    "value": album_id,
+                    "short": 'false',
+                },
+                {
+                        "title": "Tags",
+                        "value": ", ".join(d['tags']),
+                        "short": 'false',
+                },
+            ],
+            "actions": [
+                {
+                    "name": "album",
+                    "text": "Post",
+                    "type": "button",
+                    "value": d['url'],
+                }
+            ] + tag_actions,
+            "footer": LIST_NAME,
+        }
+        attachments.append(attachment)
+
+    return {
+        "text": "Your search returned {} results".format(len(details)),
+        "attachments": attachments,
     }
 
 
@@ -487,12 +498,13 @@ def search():
     if query:
         response = app.cache.get('q-' + query)
         if not response:
+            func = functools.partial(models.search_albums, query)
             try:
-                albums = models.search_albums(query)
+                details = build_album_details(func)
             except models.DatabaseError:
                 return 'Failed to perform search', 200
             else:
-                response = build_search_response(albums)
+                response = build_search_response(details)
                 app.cache.set('q-' + query, response, 60 * 15)
         return flask.Response(json.dumps(response), mimetype='application/json')
     return '', 200
@@ -506,12 +518,13 @@ def search_tags():
     if query:
         response = app.cache.get('t-' + query)
         if not response:
+            func = functools.partial(models.search_albums_by_tag, query)
             try:
-                albums = models.search_albums_by_tag(query)
+                details = build_album_details(func)
             except models.DatabaseError:
                 return 'Failed to perform search', 200
             else:
-                response = build_search_response(albums)
+                response = build_search_response(details)
                 app.cache.set('t-' + query, response, 60 * 15)
         return flask.Response(json.dumps(response), mimetype='application/json')
     return '', 200
@@ -526,9 +539,31 @@ def button():
     else:
         if form_data.get('token') in APP_TOKENS:
             try:
-                url = form_data["actions"][0]["value"]
-                user = form_data["user"]["name"]
-                message = "{user} posted {url} from the {name}".format(user=user, url=url, name=LIST_NAME)
+                action = form_data['actions'][0]
+                if 'tag' in action['name']:
+                    query = action['value']
+                    response = app.cache.get('t-' + query)
+                    if not response:
+                        func = functools.partial(models.search_albums_by_tag, query)
+                        try:
+                            details = build_album_details(func)
+                        except models.DatabaseError:
+                            return 'Failed to perform search', 200
+                        else:
+                            response = build_search_response(details)
+                            app.cache.set('t-' + query, response, 60 * 15)
+                    result = {
+                        "response_type": "ephemeral",
+                        "text": "Your #" + query + " results",
+                        "replace_original": "false",
+                        "unfurl_links": "true",
+                        "attachments": response['attachments'],
+                    }
+                    return flask.Response(json.dumps(result), mimetype='application/json')
+                elif 'album' in action['name']:
+                    url = action["value"]
+                    user = form_data["user"]["name"]
+                    message = "{user} posted {url} from the {name}".format(user=user, url=url, name=LIST_NAME)
             except KeyError:
                 return db_error_message, 200
             else:
@@ -564,6 +599,29 @@ def api_id_count():
     return response
 
 
+def build_album_details(func):
+    details = collections.defaultdict(lambda: {
+        'artist': '',
+        'album': '',
+        'url': '',
+        'img': '',
+        'channel': '',
+        'added': '',
+        'tags': []
+    })
+    for album_id, album, artist, url, img, channel, added, tag in func():
+        if album_id not in details:
+            details[album_id]['artist'] = artist
+            details[album_id]['album'] = album
+            details[album_id]['url'] = url
+            details[album_id]['img'] = img if img else ''
+            details[album_id]['channel'] = channel
+            details[album_id]['added'] = added.isoformat()
+        if tag:
+            details[album_id]['tags'].append(tag)
+    return details
+
+
 @app.route('/api/albums', methods=['GET'])
 def api_list_album_details():
     channel = flask.request.args.get('channel')
@@ -576,25 +634,7 @@ def api_list_album_details():
     try:
         details = app.cache.get(key)
         if not details:
-            details = collections.defaultdict(lambda: {
-                'artist': '',
-                'album': '',
-                'url': '',
-                'img': '',
-                'channel': '',
-                'added': '',
-                'tags': []
-            })
-            for album_id, album, artist, url, img, channel, added, tag in get_func():
-                if album_id not in details:
-                    details[album_id]['artist'] = artist
-                    details[album_id]['album'] = album
-                    details[album_id]['url'] = url
-                    details[album_id]['img'] = img if img else ''
-                    details[album_id]['channel'] = channel
-                    details[album_id]['added'] = added.isoformat()
-                if tag:
-                    details[album_id]['tags'].append(tag)
+            details = build_album_details(get_func)
             details = [{key: d} for key, d in details.items()]
             app.cache.set(key, details, 60 * 30)
         response = flask.Response(json.dumps(details))
@@ -668,20 +708,14 @@ def api_tags():
 
 @app.route('/api/tags/<tag>', methods=['GET'])
 def api_album_by_tag(tag):
+    get_func = functools.partial(models.get_albums_by_tag, tag)
+    key = "api-tags-" + tag
     try:
-        details = [
-            {
-                album_id: {
-                    'artist': artist,
-                    'album': album,
-                    'url': url,
-                    'img': img if img else '',
-                    'channel': channel,
-                    'added': added.isoformat(),
-                }
-            }
-            for album_id, album, artist, url, img, channel, added in models.get_albums_by_tag(tag)
-        ]
+        details = app.cache.get(key)
+        if not details:
+            details = build_album_details(get_func)
+            details = [{key: d} for key, d in details.items()]
+            app.cache.set(key, details, 60 * 30)
         response = flask.Response(json.dumps(details))
     except models.DatabaseError:
         response = flask.Response(json.dumps({'text': 'Failed'}))

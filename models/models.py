@@ -572,8 +572,9 @@ def _reset_votes():
 
 def search_albums(query):
     sql = """
-        SELECT id, name, artist, url, img
+        SELECT id, name, artist, url, img, channel, added, album_tags.tag
         FROM albums 
+        LEFT JOIN album_tags on albums.id = album_tags.album
         WHERE LOWER(name) LIKE %s 
         OR LOWER(artist) LIKE %s
         OR id IN (
@@ -595,8 +596,9 @@ def search_albums(query):
 
 def search_albums_by_tag(query):
     sql = """
-        SELECT id, name, artist, url, img 
+        SELECT id, name, artist, url, img, channel, added, album_tags.tag
         FROM albums 
+        LEFT JOIN album_tags on albums.id = album_tags.album
         WHERE id IN (
             SELECT album
             FROM album_tags
@@ -616,8 +618,9 @@ def search_albums_by_tag(query):
 
 def get_albums_by_tag(tag):
     sql = """
-        SELECT id, name, artist, url, img, channel, added
+        SELECT id, name, artist, url, img, channel, added, album_tags.tag
         FROM albums 
+        LEFT JOIN album_tags on albums.id = album_tags.album
         WHERE id IN (
             SELECT album
             FROM album_tags
