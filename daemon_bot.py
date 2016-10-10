@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import time
 import redis
 import pickle
 
@@ -31,6 +32,8 @@ def queue_daemon(queue, rv_ttl=500):
                 redis_connection.set(key, pickle.dumps(rv))
                 redis_connection.expire(key, rv_ttl)
                 print "[daemon]: stored return value at %s" % key
+        print "[daemon]: sleeping for a bit..."
+        time.sleep(0.25)
 
 
 queue_daemon("deferred_queue")
