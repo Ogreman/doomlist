@@ -1,3 +1,6 @@
+import os
+import requests
+
 from delayed import delayed
 
 
