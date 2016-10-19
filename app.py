@@ -62,6 +62,7 @@ def admin_only(func):
     def wraps(*args, **kwargs):
         if flask.request.form.get('user_id', '') in ADMIN_IDS or app.config['DEBUG']:
             return func(*args, **kwargs)
+        print '[access]: failed admin-only test'
         return '', 403
     return wraps
 
@@ -74,6 +75,7 @@ def not_bots(func):
     def wraps(*args, **kwargs):
         if 'bot_id' not in flask.request.form:
             return func(*args, **kwargs)
+        print '[access]: failed not-bot test'
         return '', 200
     return wraps
 
@@ -86,6 +88,7 @@ def slack_check(func):
     def wraps(*args, **kwargs):
         if flask.request.form.get('token', '') in APP_TOKENS or app.config['DEBUG']:
             return func(*args, **kwargs)
+        print '[access]: failed slack-check test'
         return '', 403
     return wraps
 
