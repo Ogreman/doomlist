@@ -279,6 +279,26 @@ def deferred_check_all_album_urls(response_url=BOT_URL):
         requests.post(response_url, data=json.dumps({'text': message}))
 
 
+@app.route('/slack/spoiler', methods=['POST'])
+@slack_check
+def spoiler():
+    form_data = flask.request.form
+    channel = form_data.get('channel_name', 'chat')
+    user = form_data['user_name']
+    text = form_data['text']
+    url = form_data.get('response_url', BOT_URL_TEMPLATE.format(channel=channel))
+    requests.post(url, data=json.dumps({
+        'text': user + ' posted a spoiler...',
+        'attachments': [
+            {
+                'text': '\n\n\n\n\n\n\n' + text,
+                'color': 'danger',
+            },
+        ],
+        'response_type': 'in_channel'}))
+    return '', 200
+
+
 @app.route('/slack/consume', methods=['POST'])
 @slack_check
 @not_bots
