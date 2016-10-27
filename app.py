@@ -293,6 +293,8 @@ def spoiler():
             {
                 'text': '\n\n\n\n\n\n\n' + text,
                 'color': 'danger',
+                'unfurl_links': 'false',
+                'unfurl_media': 'false',
             },
         ],
         'response_type': 'in_channel'}))
