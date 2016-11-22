@@ -1,6 +1,6 @@
 # Albumlist Slack App
 
-This is a Slack app that scrapes and compiles lists of (bandcamp) albums that have been shared by a Slack team.
+This is a Slack app that scrapes and compiles lists of ([bandcamp](https://www.bandcamp.com)) albums that have been shared by a Slack team.
 
 ## Deploy to Heroku
 
