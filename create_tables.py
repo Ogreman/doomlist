@@ -8,5 +8,7 @@ if __name__ == '__main__':
         models.create_albums_table()
         models.create_albums_index()
         models.create_votes_table()
+        models.create_tags_table()
+        models.create_album_tags_table()
     except models.DatabaseError as e:
         print "[db]: ERROR - " + str(e)

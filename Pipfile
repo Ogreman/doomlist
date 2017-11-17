@@ -1,0 +1,24 @@
+[[source]]
+
+name = "pypi"
+verify_ssl = true
+url = "https://pypi.python.org/simple"
+
+
+[requires]
+
+python_version = "2.7"
+
+
+[packages]
+
+flask = "*"
+flask-cache = "*"
+flask-heroku-cacheify = "*"
+gunicorn = "*"
+"psycopg2" = "==2.6.1"
+redis = "==2.10.5"
+requests = "*"
+slacker = "==0.9.0"
+lxml = "==2.3.5"
+unipath = "==1.0"

@@ -14,7 +14,7 @@ from scrapers import scrapers
 from delayed import delayed
 from models import models
 
-from flask.ext.cacheify import init_cacheify
+from flask_cacheify import init_cacheify
 
 from unipath import Path
 TEMPLATE_DIR = Path(__file__).ancestor(1).child("templates")
