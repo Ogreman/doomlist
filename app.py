@@ -191,6 +191,21 @@ def deferred_process_all_album_details(response_url=BOT_URL):
 
 
 @delayed.queue_func
+def deferred_delete(album_id, response_url=BOT_URL):
+    try:
+        models.delete_from_list_and_albums(album_id.strip())
+    except models.DatabaseError as e:
+        print '[db]: failed to delete album details'
+        print '[db]: %s' % e
+        message = 'Failed to delete album details for ' + str(album_id)
+    else:
+        print '[db]: deleted album details for ' + str(album_id)
+        message = 'Removed album from list: ' + str(album_id)
+    if response_url:
+        requests.post(response_url, data=json.dumps({'text': message}))
+
+
+@delayed.queue_func
 def deferred_process_album_details(album_id, channel=''):
     try:
         album, artist, url = scrapers.scrape_album_details_from_id(album_id)
@@ -328,13 +343,10 @@ def album_count():
 def delete():
     form_data = flask.request.form
     album_id = form_data.get('text')
+    channel = form_data.get('channel_name', 'chat')
     if album_id:
-        try:
-            models.delete_from_list(album_id.strip())
-        except models.DatabaseError:
-            return 'Failed to delete album', 200
-        else:
-            return 'Deleted album', 200
+        response_url = BOT_URL_TEMPLATE.format(channel=channel)
+        deferred_delete.delay(album_id, response_url)
     return '', 200
 
 

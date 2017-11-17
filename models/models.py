@@ -540,6 +540,17 @@ def delete_from_albums(album_id):
             raise DatabaseError
 
 
+def delete_from_list_and_albums(album_id):
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM albums where id = %s;", (album_id,))
+            cur.execute("DELETE FROM list where album = %s;", (album_id,))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError):
+            raise DatabaseError
+
+
 def _reset_list():
     with closing(get_connection()) as conn:
         try:
