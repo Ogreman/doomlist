@@ -196,6 +196,13 @@ def deferred_process_all_album_details(response_url=BOT_URL):
 
 
 @delayed.queue_func
+def deferred_clear_cache(response_url=BOT_URL):
+    app.cache.clear()
+    if response_url:
+        requests.post(response_url, data=json.dumps({'text': 'Cache cleared'}))
+
+
+@delayed.queue_func
 def deferred_delete(album_id, response_url=BOT_URL):
     try:
         models.delete_from_list_and_albums(album_id)
@@ -370,6 +377,16 @@ def add():
         else:
             return 'Added new album', 200
     return '', 200
+
+
+@app.route('/slack/clear', methods=['POST'])
+@slack_check
+@admin_only
+def clear_cache():
+    form_data = flask.request.form
+    response = None if 'silence' in form_data else form_data.get('response_url', BOT_URL)
+    deferred_clear_cache.delay(response)
+    return 'Clear cache request sent', 200
 
 
 @app.route('/slack/scrape', methods=['POST'])
