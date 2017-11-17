@@ -8,16 +8,16 @@ import flask
 import slacker
 import csv
 import functools
-import StringIO
+import io
 
 from scrapers import scrapers
 from delayed import delayed
 from models import models
 
 from flask_cacheify import init_cacheify
+from pathlib import Path
 
-from unipath import Path
-TEMPLATE_DIR = Path(__file__).ancestor(1).child("templates")
+TEMPLATE_DIR = Path(__file__).parent.joinpath('templates')
 
 app = flask.Flask(__name__, template_folder=TEMPLATE_DIR)
 app.config.from_object(os.environ['APP_SETTINGS'])
@@ -31,14 +31,14 @@ SLACK_TEAM = app.config['SLACK_TEAM']
 BOT_URL_TEMPLATE = app.config['BOT_URL_TEMPLATE']
 DEFAULT_CHANNEL = app.config['DEFAULT_CHANNEL']
 SLACKBOT_TOKEN = app.config['SLACKBOT_TOKEN']
-BOT_URL_TEMPLATE = BOT_URL_TEMPLATE.format(team=SLACK_TEAM, token=SLACKBOT_TOKEN, channel="{channel}")
+BOT_URL_TEMPLATE = BOT_URL_TEMPLATE.format(team=SLACK_TEAM, token=SLACKBOT_TOKEN, channel='{channel}')
 BOT_URL = BOT_URL_TEMPLATE.format(channel=DEFAULT_CHANNEL)
 ADMIN_IDS = app.config['ADMIN_IDS']
 APP_TOKENS = app.config['APP_TOKENS']
-URL_REGEX = "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+"
-HASHTAG_REGEX = "#(?:[a-zA-Z]|[0-9]|[-_.+])+"
-BANDCAMP_URL_TEMPLATE = "https://bandcamp.com/EmbeddedPlayer/album={album_id}/size=large/artwork=small"
-SLACK_AUTH_URL = "https://slack.com/api/oauth.access?client_id={client_id}&client_secret={client_secret}&code={code}"
+URL_REGEX = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+HASHTAG_REGEX = '#(?:[a-zA-Z]|[0-9]|[-_.+])+'
+BANDCAMP_URL_TEMPLATE = 'https://bandcamp.com/EmbeddedPlayer/album={album_id}/size=large/artwork=small'
+SLACK_AUTH_URL = 'https://slack.com/api/oauth.access?client_id={client_id}&client_secret={client_secret}&code={code}'
 
 db_error_message = '{name} error - check with admin'.format(name=LIST_NAME)
 not_found_message = 'Album not found in the {name}'.format(name=LIST_NAME)
@@ -67,7 +67,7 @@ def admin_only(func):
     def wraps(*args, **kwargs):
         if flask.request.form.get('user_id', '') in ADMIN_IDS or app.config['DEBUG']:
             return func(*args, **kwargs)
-        print '[access]: failed admin-only test'
+        print('[access]: failed admin-only test')
         return '', 403
     return wraps
 
@@ -80,7 +80,7 @@ def not_bots(func):
     def wraps(*args, **kwargs):
         if 'bot_id' not in flask.request.form:
             return func(*args, **kwargs)
-        print '[access]: failed not-bot test'
+        print('[access]: failed not-bot test')
         return '', 200
     return wraps
 
@@ -93,7 +93,7 @@ def slack_check(func):
     def wraps(*args, **kwargs):
         if flask.request.form.get('token', '') in APP_TOKENS or app.config['DEBUG']:
             return func(*args, **kwargs)
-        print '[access]: failed slack-check test'
+        print('[access]: failed slack-check test')
         return '', 403
     return wraps
 
@@ -119,8 +119,8 @@ def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
                     callback(album_ids)
             except models.DatabaseError as e:
                 message = 'Failed to update list'
-                print "[db]: failed to perform %s" % callback.func_name
-                print "[db]: %s" % e
+                print(f'[db]: failed to perform {callback.func_name}')
+                print(f'[db]: {e}')
             else:
                 message = 'Finished checking for new albums: %d found.' % (len(album_ids), )
         else:
@@ -147,8 +147,8 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL, chan
                     callback(album_id)
                 except models.DatabaseError as e:
                     message = 'Failed to update list'
-                    print "[db]: failed to perform %s" % callback.func_name
-                    print "[db]: %s" % e
+                    print(f'[db]: failed to perform {callback.func_name}')
+                    print(f'[db]: {e}')
                 else:
                     message = 'Added album to list: ' + str(album_id)
                     deferred_process_album_details.delay(str(album_id), channel)
@@ -157,13 +157,10 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL, chan
             if tags:
                 deferred_process_tags.delay(str(album_id), tags)
         except models.DatabaseError as e:
-            print "[db]: failed to check existing items"
-            print "[db]: %s" % e
+            print('[db]: failed to check existing items')
+            print(f'[db]: {e}')
     if response_url and message is not None:
-        requests.post(
-            response_url,
-            data=message
-        )
+        requests.post(response_url, data=message)
 
 
 @delayed.queue_func
@@ -175,10 +172,10 @@ def deferred_process_tags(album_id, tags):
                 models.add_to_tags(tag)
             models.tag_album(album_id, tag)
         except models.DatabaseError as e:
-            print "[db]: failed to add tag '%s' to album %s" % (tag, album_id)
-            print "[db]: %s" % e
+            print(f'[db]: failed to add tag "{tag}" to album {album_id}')
+            print(f'[db]: {e}')
         else:
-            print "Tagged %s with '%s'" % (album_id, tag)
+            print(f'Tagged {album_id} with "{tag}"')
 
 
 @delayed.queue_func
@@ -189,8 +186,8 @@ def deferred_process_all_album_details(response_url=BOT_URL):
         for album_id in models.check_for_new_albums():
             deferred_process_album_details.delay(album_id)
     except models.DatabaseError as e:
-        print "[db]: failed to check for new album details"
-        print "[db]: %s" % e
+        print('[db]: failed to check for new album details')
+        print(f'[db]: {e}')
         message = 'Failed to process all album details...'
     else:
         message = 'Processed all album details'
@@ -211,12 +208,12 @@ def deferred_delete(album_id, response_url=BOT_URL):
         models.delete_from_list_and_albums(album_id)
         app.cache.delete('alb-' + str(album_id))
     except models.DatabaseError as e:
-        print '[db]: failed to delete album details'
-        print '[db]: %s' % e
-        message = 'Failed to delete album details for ' + str(album_id)
+        print('[db]: failed to delete album details')
+        print(f'[db]: {e}')
+        message = f'Failed to delete album details for {album_id}'
     else:
-        print '[db]: deleted album details for ' + str(album_id)
-        message = 'Removed album from list: ' + str(album_id)
+        print(f'[db]: deleted album details for {album_id}')
+        message = f'Removed album from list: {album_id}'
     if response_url:
         requests.post(response_url, data=message)
 
@@ -228,12 +225,12 @@ def deferred_process_album_details(album_id, channel=''):
         models.add_to_albums(album_id, artist, album, url, channel=channel)
         deferred_process_album_cover.delay(album_id)
     except models.DatabaseError as e:
-        print "[db]: failed to add album details"
-        print "[db]: %s" % e
+        print('[db]: failed to add album details')
+        print(f'[db]: {e}')
     except (TypeError, ValueError):
         pass
     else:
-        print "[scraper]: processed album details for " + str(album_id)
+        print(f'[scraper]: processed album details for {album_id}')
 
 
 @delayed.queue_func
@@ -243,15 +240,15 @@ def deferred_process_album_cover(album_id):
         album_cover_url = scrapers.scrape_album_cover_url_from_url(album_url)
         models.add_img_to_album(album_id, album_cover_url)
     except models.DatabaseError as e:
-        print "[db]: failed to add album cover"
-        print "[db]: %s" % e
+        print('[db]: failed to add album cover')
+        print(f'[db]: {e}')
     except scrapers.NotFoundError as e:
-        print "[scraper]: failed to find album art"
-        print "[scraper]: %s" % e
+        print('[scraper]: failed to find album art')
+        print(f'[scraper]: {e}')
     except (TypeError, ValueError):
         pass
     else:
-        print "[scraper]: processed cover for " + str(album_id)
+        print(f'[scraper]: processed cover for {album_id}')
 
 
 @delayed.queue_func
@@ -262,8 +259,8 @@ def deferred_process_all_album_covers(response_url=BOT_URL):
         for album_id in [alb[0] for alb in models.get_albums() if not alb[4]]:
             deferred_process_album_cover.delay(album_id)
     except models.DatabaseError as e:
-        print "[db]: failed to get all album details"
-        print "[db]: %s" % e
+        print('[db]: failed to get all album details')
+        print(f'[db]: {e}')
         message = 'Failed to process all album details...'
     else:
         message = 'Processed all album covers'
@@ -280,14 +277,14 @@ def deferred_check_album_url(album_id):
             models.update_album_availability(album_id, True)
         elif response.status_code > 400 and available:
             models.update_album_availability(album_id, False)
-            print "[scraper]: " + str(album_id) + " no longer available"
+            print(f'[scraper]: {album_id} no longer available')
     except models.DatabaseError as e:
-        print "[db]: failed to update album after check"
-        print "[db]: %s" % e
+        print('[db]: failed to update album after check')
+        print(f'[db]: {e}')
     except (TypeError, ValueError):
         pass
     else:
-        print "[scraper]: checked availability for " + str(album_id)
+        print(f'[scraper]: checked availability for {album_id}')
 
 
 @delayed.queue_func
@@ -298,8 +295,8 @@ def deferred_check_all_album_urls(response_url=BOT_URL):
         for album_id in models.get_album_ids():
             deferred_check_album_url.delay(album_id)
     except models.DatabaseError as e:
-        print "[db]: failed to check for new album details"
-        print "[db]: %s" % e
+        print('[db]: failed to check for new album details')
+        print(f'[db]: {e}')
         message = 'Failed to check all album urls...'
     else:
         message = 'Finished checking all album URLs'
@@ -364,9 +361,9 @@ def consume_all():
                 tags=tags
             )
         elif 'youtube' in url or 'youtu.be' in url:
-            requests.post(response_url, data="YouTube scraper not yet implemented")
+            requests.post(response_url, data='YouTube scraper not yet implemented')
         elif 'soundcloud' in url:
-            requests.post(response_url, data="Soundcloud scraper not yet implemented")
+            requests.post(response_url, data='Soundcloud scraper not yet implemented')
     return '', 200
 
 
@@ -473,9 +470,9 @@ def link():
         return not_found_message, 200
     else:
         response = {
-            "response_type": "in_channel",
-            "text": url,
-            "unfurl_links": "true",
+            'response_type': 'in_channel',
+            'text': url,
+            'unfurl_links': 'true',
         }
         return flask.Response(json.dumps(response), mimetype='application/json')
 
@@ -493,9 +490,9 @@ def random_album():
     else:
         response_type = 'in_channel' if 'post' in form_data.get('text', '') else 'ephemeral'
         response = {
-            "response_type": response_type,
-            "text": url,
-            "unfurl_links": "true",
+            'response_type': response_type,
+            'text': url,
+            'unfurl_links': 'true',
         }
         return flask.Response(json.dumps(response), mimetype='application/json')
 
@@ -505,49 +502,49 @@ def build_search_response(details):
     for album_id, d in details.items():
         tag_actions = [
             {
-                "name": "tag",
-                "text": "#" + str(tag),
-                "type": "button",
-                "value": str(tag),
+                'name': 'tag',
+                'text': f'#{tag}',
+                'type': 'button',
+                'value': str(tag),
             }
             for i, tag in enumerate(d['tags'])
         ]
         attachment = {
-            "fallback": "{} by {}".format(d['album'], d['artist']),
-            "color": "#36a64f",
-            "pretext": "{} by {}".format(d['album'], d['artist']),
-            "author_name": d['artist'],
-            "image_url": d['img'],
-            "title": d['album'],
-            "title_link": d['url'],
-            "callback_id": "album_results_" + album_id,
-            "fields": [
+            'fallback': f'{d["album"]} by {d["artist"]}',
+            'color': '#36a64f',
+            'pretext': f'{d["album"]} by {d["artist"]}',
+            'author_name': d['artist'],
+            'image_url': d['img'],
+            'title': d['album'],
+            'title_link': d['url'],
+            'callback_id': f'album_results_{album_id}',
+            'fields': [
                 {
-                    "title": "Album ID",
-                    "value": album_id,
-                    "short": 'false',
+                    'title': 'Album ID',
+                    'value': album_id,
+                    'short': 'false',
                 },
                 {
-                        "title": "Tags",
-                        "value": ", ".join(d['tags']),
-                        "short": 'false',
+                        'title': 'Tags',
+                        'value': ', '.join(d['tags']),
+                        'short': 'false',
                 },
             ],
-            "actions": [
+            'actions': [
                 {
-                    "name": "album",
-                    "text": "Post",
-                    "type": "button",
-                    "value": d['url'],
+                    'name': 'album',
+                    'text': 'Post',
+                    'type': 'button',
+                    'value': d['url'],
                 }
             ] + tag_actions,
-            "footer": LIST_NAME,
+            'footer': LIST_NAME,
         }
         attachments.append(attachment)
 
     return {
-        "text": "Your search returned {} results".format(len(details)),
-        "attachments": attachments,
+        'text': f'Your search returned {len(details)} results',
+        'attachments': attachments,
     }
 
 
@@ -557,7 +554,7 @@ def search():
     form_data = flask.request.form
     query = form_data.get('text')
     if query:
-        response = app.cache.get('q-' + query)
+        response = app.cache.get(f'q-{query}')
         if not response:
             func = functools.partial(models.search_albums, query)
             try:
@@ -566,7 +563,7 @@ def search():
                 return 'Failed to perform search', 200
             else:
                 response = build_search_response(details)
-                app.cache.set('q-' + query, response, 60 * 15)
+                app.cache.set(f'q-{query}', response, 60 * 15)
         return flask.Response(json.dumps(response), mimetype='application/json')
     return '', 200
 
@@ -577,7 +574,7 @@ def search_tags():
     form_data = flask.request.form
     query = form_data.get('text')
     if query:
-        response = app.cache.get('t-' + query)
+        response = app.cache.get(f't-{query}')
         if not response:
             func = functools.partial(models.search_albums_by_tag, query)
             try:
@@ -586,7 +583,7 @@ def search_tags():
                 return 'Failed to perform search', 200
             else:
                 response = build_search_response(details)
-                app.cache.set('t-' + query, response, 60 * 15)
+                app.cache.set(f't-{query}', response, 60 * 15)
         return flask.Response(json.dumps(response), mimetype='application/json')
     return '', 200
 
@@ -603,7 +600,7 @@ def button():
                 action = form_data['actions'][0]
                 if 'tag' in action['name']:
                     query = action['value']
-                    response = app.cache.get('t-' + query)
+                    response = app.cache.get(f't-{query}')
                     if not response:
                         func = functools.partial(models.search_albums_by_tag, query)
                         try:
@@ -612,27 +609,27 @@ def button():
                             return 'Failed to perform search', 200
                         else:
                             response = build_search_response(details)
-                            app.cache.set('t-' + query, response, 60 * 15)
+                            app.cache.set(f't-{query}', response, 60 * 15)
                     result = {
-                        "response_type": "ephemeral",
-                        "text": "Your #" + query + " results",
-                        "replace_original": "false",
-                        "unfurl_links": "true",
-                        "attachments": response['attachments'],
+                        'response_type': 'ephemeral',
+                        'text': f'Your #{query} results',
+                        'replace_original': 'false',
+                        'unfurl_links': 'true',
+                        'attachments': response['attachments'],
                     }
                     return flask.Response(json.dumps(result), mimetype='application/json')
                 elif 'album' in action['name']:
-                    url = action["value"]
-                    user = form_data["user"]["name"]
-                    message = "{user} posted {url} from the {name}".format(user=user, url=url, name=LIST_NAME)
+                    url = action['value']
+                    user = form_data['user']['name']
+                    message = f'{user} posted {url} from the {LIST_NAME}'
             except KeyError:
                 return db_error_message, 200
             else:
                 response = {
-                    "response_type": "in_channel",
-                    "text": message,
-                    "replace_original": False,
-                    "unfurl_links": "true",
+                    'response_type': 'in_channel',
+                    'text': message,
+                    'replace_original': False,
+                    'unfurl_links': 'true',
                 }
                 return flask.Response(json.dumps(response), mimetype='application/json')
     return '', 200
@@ -688,10 +685,10 @@ def api_list_album_details():
     channel = flask.request.args.get('channel')
     if channel:
         get_func = functools.partial(models.get_albums_by_channel_with_tags, channel)
-        key = "api-albums-" + channel
+        key = f'api-albums-{channel}'
     else:
         get_func = models.get_albums_with_tags
-        key = "api-albums"
+        key = 'api-albums'
     try:
         details = app.cache.get(key)
         if not details:
@@ -719,7 +716,7 @@ def api_count_albums():
 @app.route('/api/albums/dump', methods=['GET'])
 @app.cache.cached(timeout=60 * 30)
 def api_dump_album_details():
-    csv_file = StringIO.StringIO()
+    csv_file = io.StringIO()
     csv_writer = csv.writer(csv_file)
     csv_writer.writerow(['id', 'album', 'artist', 'url', 'img', 'channel', 'added'])
     for album_id, album, artist, url, img, channel, added in models.get_albums():
@@ -770,7 +767,7 @@ def api_tags():
 @app.route('/api/tags/<tag>', methods=['GET'])
 def api_album_by_tag(tag):
     get_func = functools.partial(models.get_albums_by_tag, tag)
-    key = "api-tags-" + tag
+    key = 'api-tags-' + tag
     try:
         details = app.cache.get(key)
         if not details:
@@ -868,7 +865,7 @@ def auth():
     code = flask.request.args.get('code')
     url = SLACK_AUTH_URL.format(code=code, client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
     response = requests.get(url)
-    print "[auth]: " + str(response.json())
+    print(f'[auth]: {response.json()}')
     return response.content, 200
 
 
@@ -896,7 +893,7 @@ def all_endpoints():
     return response, 200
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.cache.clear()
     app.run(debug=app.config.get('DEBUG', True))
 

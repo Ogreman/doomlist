@@ -6,7 +6,7 @@ from config import Config
 from pickle import loads, dumps
 
 
-redis_connection = redis.from_url(os.environ["REDIS_URL"])
+redis_connection = redis.from_url(os.environ['REDIS_URL'])
 
 
 class DelayedResult(object):
@@ -26,12 +26,9 @@ class DelayedResult(object):
 def queue_func(f):
     def delay(*args, **kwargs):
         qkey = Config.REDIS_QUEUE_KEY
-        key = '%s:result:%s' % (qkey, str(uuid.uuid4()))
+        key = f'{qkey}:result:{uuid.uuid4()}'
         s = dumps((f, key, args, kwargs))
         redis_connection.rpush(qkey, s)
         return DelayedResult(key)
     f.delay = delay
     return f
-
-
-
