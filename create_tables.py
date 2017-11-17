@@ -11,4 +11,4 @@ if __name__ == '__main__':
         models.create_tags_table()
         models.create_album_tags_table()
     except models.DatabaseError as e:
-        print "[db]: ERROR - " + str(e)
+        print(f'[db]: ERROR - {e}')

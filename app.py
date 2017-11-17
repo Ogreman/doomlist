@@ -119,7 +119,7 @@ def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
                     callback(album_ids)
             except models.DatabaseError as e:
                 message = 'Failed to update list'
-                print(f'[db]: failed to perform {callback.func_name}')
+                print(f'[db]: failed to perform {callback.__name__}')
                 print(f'[db]: {e}')
             else:
                 message = 'Finished checking for new albums: %d found.' % (len(album_ids), )
@@ -147,7 +147,7 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL, chan
                     callback(album_id)
                 except models.DatabaseError as e:
                     message = 'Failed to update list'
-                    print(f'[db]: failed to perform {callback.func_name}')
+                    print(f'[db]: failed to perform {callback.__name__}')
                     print(f'[db]: {e}')
                 else:
                     message = 'Added album to list: ' + str(album_id)
