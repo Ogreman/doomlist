@@ -67,6 +67,7 @@ def admin_only(func):
     def wraps(*args, **kwargs):
         if flask.request.form.get('user_id', '') in ADMIN_IDS or app.config['DEBUG']:
             return func(*args, **kwargs)
+        print '[access]: failed admin-only test'
         return '', 403
     return wraps
 
@@ -79,6 +80,7 @@ def not_bots(func):
     def wraps(*args, **kwargs):
         if 'bot_id' not in flask.request.form:
             return func(*args, **kwargs)
+        print '[access]: failed not-bot test'
         return '', 200
     return wraps
 
@@ -91,6 +93,7 @@ def slack_check(func):
     def wraps(*args, **kwargs):
         if flask.request.form.get('token', '') in APP_TOKENS or app.config['DEBUG']:
             return func(*args, **kwargs)
+        print '[access]: failed slack-check test'
         return '', 403
     return wraps
 
@@ -302,6 +305,28 @@ def deferred_check_all_album_urls(response_url=BOT_URL):
         message = 'Finished checking all album URLs'
     if response_url:
         requests.post(response_url, data=json.dumps({'text': message}))
+
+
+@app.route('/slack/spoiler', methods=['POST'])
+@slack_check
+def spoiler():
+    form_data = flask.request.form
+    channel = form_data.get('channel_name', 'chat')
+    user = form_data['user_name']
+    text = form_data['text']
+    url = form_data.get('response_url', BOT_URL_TEMPLATE.format(channel=channel))
+    requests.post(url, data=json.dumps({
+        'text': user + ' posted a spoiler...',
+        'attachments': [
+            {
+                'text': '\n\n\n\n\n\n\n' + text,
+                'color': 'danger',
+                'unfurl_links': 'false',
+                'unfurl_media': 'false',
+            },
+        ],
+        'response_type': 'in_channel'}))
+    return '', 200
 
 
 @app.route('/slack/consume', methods=['POST'])
