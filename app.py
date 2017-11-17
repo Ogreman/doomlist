@@ -45,8 +45,13 @@ not_found_message = 'Album not found in the {name}'.format(name=LIST_NAME)
 
 
 def get_and_set_album_details(album_id):
-    details = models.get_album_details(album_id)
-    app.cache.set('alb-' + album_id, details, 60 * 15)
+    try:
+        details = models.get_album_details(album_id)
+    except models.DatabaseError as e:
+        app.cache.delete('alb-' + album_id)
+        raise e
+    else:
+        app.cache.set('alb-' + album_id, details, 60 * 15)
     return details
 
 
@@ -193,7 +198,8 @@ def deferred_process_all_album_details(response_url=BOT_URL):
 @delayed.queue_func
 def deferred_delete(album_id, response_url=BOT_URL):
     try:
-        models.delete_from_list_and_albums(album_id.strip())
+        models.delete_from_list_and_albums(album_id)
+        app.cache.delete('alb-' + str(album_id))
     except models.DatabaseError as e:
         print '[db]: failed to delete album details'
         print '[db]: %s' % e
@@ -340,13 +346,14 @@ def album_count():
 
 @app.route('/slack/delete', methods=['POST'])
 @slack_check
+@admin_only
 def delete():
     form_data = flask.request.form
     album_id = form_data.get('text')
     channel = form_data.get('channel_name', 'chat')
     if album_id:
         response_url = BOT_URL_TEMPLATE.format(channel=channel)
-        deferred_delete.delay(album_id, response_url)
+        deferred_delete.delay(album_id.strip(), response_url)
     return '', 200
 
 
