@@ -15,7 +15,7 @@ def queue_daemon(queue, rv_ttl=500):
         print('[daemon]: received!')
         try:
             func, key, args, kwargs = pickle.loads(msg[1])
-        except Exception, e:
+        except Exception as e:
             try:
                 print(f'[daemon]: failed to unpickle {e}')
             except (TypeError, IndexError):
@@ -25,7 +25,7 @@ def queue_daemon(queue, rv_ttl=500):
                 print(f'[daemon]: calling {func.func_name}')
                 rv = func(*args, **kwargs)
                 print('[daemon]: complete!')
-            except Exception, e:
+            except Exception as e:
                 print(f'[daemon]: {e}')
                 rv = e
             if rv is not None:

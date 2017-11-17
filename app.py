@@ -206,7 +206,7 @@ def deferred_clear_cache(response_url=BOT_URL):
 def deferred_delete(album_id, response_url=BOT_URL):
     try:
         models.delete_from_list_and_albums(album_id)
-        app.cache.delete('alb-' + str(album_id))
+        app.cache.delete(f'alb-{album_id}')
     except models.DatabaseError as e:
         print('[db]: failed to delete album details')
         print(f'[db]: {e}')
