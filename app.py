@@ -202,7 +202,7 @@ def deferred_delete(album_id, response_url=BOT_URL):
         print '[db]: deleted album details for ' + str(album_id)
         message = 'Removed album from list: ' + str(album_id)
     if response_url:
-        requests.post(response_url, data=json.dumps({'text': message}))
+        requests.post(response_url, data=message)
 
 
 @delayed.queue_func
