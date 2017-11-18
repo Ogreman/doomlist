@@ -10,9 +10,9 @@ import csv
 import functools
 import io
 
-from scrapers import scrapers
-from delayed import delayed
-from models import models
+from doomlist.scrapers import scrapers
+from doomlist.delayed import delayed
+from doomlist.models import models
 
 from flask_cacheify import init_cacheify
 from pathlib import Path
@@ -959,9 +959,3 @@ def all_endpoints():
     ]
     response = flask.Response(json.dumps({'api': rules}))
     return response, 200
-
-
-if __name__ == '__main__':
-    app.cache.clear()
-    app.run(debug=app.config.get('DEBUG', True))
-
