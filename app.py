@@ -98,6 +98,19 @@ def slack_check(func):
     return wraps
 
 
+def allow_all(func):
+    """
+    Decorator for adding * to 'Access-Control-Allow-Origin'
+    """
+    @functools.wraps(func)
+    def wraps(*args, **kwargs):
+        response = func(*args, **kwargs)
+        if hasattr(response, 'headers'):
+            response.headers['Access-Control-Allow-Origin'] = '*'
+        return response
+    return wraps
+
+
 @delayed.queue_func
 def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
     try:
@@ -653,6 +666,7 @@ def button():
 
 @app.route('/api/list', methods=['GET'])
 @app.cache.cached(timeout=60 * 60)
+@allow_all
 def api_list_albums():
     try:
         response = flask.Response(json.dumps(models.get_list()))
@@ -660,12 +674,12 @@ def api_list_albums():
         print('[db]: failed to get list')
         print(f'[db]: {e}')
         response = flask.Response(json.dumps({'text': 'failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
 
 @app.route('/api/list/count', methods=['GET'])
 @app.cache.cached(timeout=60)
+@allow_all
 def api_id_count():
     try:
         response = flask.Response(json.dumps({'count': models.get_list_count()}))
@@ -673,7 +687,6 @@ def api_id_count():
         print('[db]: failed to get list count')
         print(f'[db]: {e}')
         response = flask.Response(json.dumps({'text': 'failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
 
@@ -701,6 +714,7 @@ def build_album_details(func):
 
 
 @app.route('/api/albums', methods=['GET'])
+@allow_all
 def api_list_album_details():
     channel = flask.request.args.get('channel')
     if channel:
@@ -720,12 +734,12 @@ def api_list_album_details():
         print('[db]: failed to get albums')
         print(f'[db]: {e}')
         response = flask.Response(json.dumps({'text': 'failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
 
 @app.route('/api/albums/count', methods=['GET'])
 @app.cache.cached(timeout=60)
+@allow_all
 def api_count_albums():
     try:
         response = flask.Response(json.dumps({'count': models.get_albums_count()}))
@@ -733,7 +747,6 @@ def api_count_albums():
         print('[db]: failed to get albums count')
         print(f'[db]: {e}')
         response = flask.Response(json.dumps({'text': 'failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
 
@@ -750,6 +763,7 @@ def api_dump_album_details():
 
 
 @app.route('/api/album/<album_id>', methods=['GET'])
+@allow_all
 def api_album(album_id):
     try:
         album_id, album, artist, url, img, available, channel, added = get_cached_album_details(album_id)
@@ -766,11 +780,11 @@ def api_album(album_id):
         print(f'[db]: failed to get album: {album_id}')
         print(f'[db]: {e}')
         response = flask.Response(json.dumps({'text': 'failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
 
 @app.route('/api/tags', methods=['GET'])
+@allow_all
 def api_tags():
     try:
         response = flask.Response(json.dumps({'text': 'success',
@@ -779,7 +793,6 @@ def api_tags():
         print('[db]: failed to get tags')
         print(f'[db]: {e}')
         response = flask.Response(json.dumps({'text': 'failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
 
@@ -795,6 +808,7 @@ def api_tags():
 
 
 @app.route('/api/tags/<tag>', methods=['GET'])
+@allow_all
 def api_album_by_tag(tag):
     get_func = functools.partial(models.get_albums_by_tag, tag)
     key = 'api-tags-' + tag
@@ -809,13 +823,33 @@ def api_album_by_tag(tag):
         print(f'[db]: failed to get tag: {tag}')
         print(f'[db]: {e}')
         response = flask.Response(json.dumps({'text': 'failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
 
 @app.route('/api/bc/<album_id>', methods=['GET'])
 def api_bc(album_id):
     return flask.redirect(BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
+
+
+@app.route('/api/random', methods=['GET'])
+@allow_all
+def api_random():
+    try:
+        album_id, name, artist, album_url, img = models.get_random_album()
+        response = flask.Response(json.dumps({
+            'text': 'success',
+            'album': dict(zip(
+                ('id', 'name', 'artist', 'url', 'img'),
+                (album_id, name, artist, album_url, img),
+            ))
+        }))
+    except TypeError:
+        response = flask.Response(json.dumps({'text': 'not found'}))
+    except models.DatabaseError as e:
+        print(f'[db]: failed to get album: {album_id}')
+        print(f'[db]: {e}')
+        response = flask.Response(json.dumps({'text': 'failed'}))
+    return response
 
 
 # @app.route('/api/votes', methods=['GET'])
@@ -908,14 +942,15 @@ def embedded_random():
     except models.DatabaseError as e:
         print('[db]: failed to get random album')
         print(f'[db]: {e}')
-        return db_error_message, 200
+        return db_error_message, 500
     except TypeError:
-        return not_found_message, 200
+        return not_found_message, 404
     else:
         return flask.render_template('index.html', list_name=LIST_NAME, album_id=album_id, name=name, artist=artist, album_url=album_url)
 
 
 @app.route('/api', methods=['GET'])
+@allow_all
 def all_endpoints():
     rules = [ 
         (list(rule.methods), rule.rule) 
@@ -923,7 +958,6 @@ def all_endpoints():
         if rule.endpoint.startswith('api')
     ]
     response = flask.Response(json.dumps({'api': rules}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
     return response, 200
 
 
