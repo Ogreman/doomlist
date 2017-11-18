@@ -1,4 +1,4 @@
-from models import models
+from doomlist.models import models
 
 
 if __name__ == '__main__':
