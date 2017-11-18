@@ -18,8 +18,8 @@ def get_connection():
             host=db_url.hostname,
             port=db_url.port
         )
-    except psycopg2.OperationalError:
-        raise DatabaseError
+    except psycopg2.OperationalError as e:
+        raise DatabaseError(e)
 
 
 class DatabaseError(Exception): 
@@ -32,18 +32,18 @@ def add_column(table, col, col_type):
             cur = conn.cursor()
             cur.execute(f'ALTER TABLE {table} ADD {col} {col_type}')
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
-def create_logs_table():
-    with closing(get_connection()) as conn:
-        try:
-            cur = conn.cursor()
-            cur.execute('CREATE TABLE logs (id serial PRIMARY KEY, message varchar);')
-            conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+# def create_logs_table():
+#     with closing(get_connection()) as conn:
+#         try:
+#             cur = conn.cursor()
+#             cur.execute('CREATE TABLE logs (id serial PRIMARY KEY, message varchar);')
+#             conn.commit()
+#         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+#             raise DatabaseError(e)
 
 
 def create_list_table():
@@ -52,8 +52,8 @@ def create_list_table():
             cur = conn.cursor()
             cur.execute('CREATE TABLE list (id serial PRIMARY KEY, album varchar);')
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def create_albums_table():
@@ -73,8 +73,8 @@ def create_albums_table():
             cur = conn.cursor()
             cur.execute(sql)
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def create_albums_index():
@@ -88,8 +88,8 @@ def create_albums_index():
             cur = conn.cursor()
             cur.execute(sql)
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def create_tags_table():
@@ -102,8 +102,8 @@ def create_tags_table():
             cur = conn.cursor()
             cur.execute(sql)
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def create_album_tags_table():
@@ -119,43 +119,43 @@ def create_album_tags_table():
             cur = conn.cursor()
             cur.execute(sql)
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
-def create_votes_table():
-    sql = """
-        CREATE TABLE votes (
-        id serial PRIMARY KEY, 
-        album varchar
-        );"""
-    with closing(get_connection()) as conn:
-        try:
-            cur = conn.cursor()
-            cur.execute(sql)
-            conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+# def create_votes_table():
+#     sql = """
+#         CREATE TABLE votes (
+#         id serial PRIMARY KEY, 
+#         album varchar
+#         );"""
+#     with closing(get_connection()) as conn:
+#         try:
+#             cur = conn.cursor()
+#             cur.execute(sql)
+#             conn.commit()
+#         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+#             raise DatabaseError(e)
 
 
-def add_to_votes(album_id):
-    with closing(get_connection()) as conn:
-        try:
-            cur = conn.cursor()
-            cur.execute('INSERT INTO votes (album) VALUES (%s)', (album_id,))
-            conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+# def add_to_votes(album_id):
+#     with closing(get_connection()) as conn:
+#         try:
+#             cur = conn.cursor()
+#             cur.execute('INSERT INTO votes (album) VALUES (%s)', (album_id,))
+#             conn.commit()
+#         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+#             raise DatabaseError(e)
 
 
-def add_to_logs(message):
-    with closing(get_connection()) as conn:
-        try:
-            cur = conn.cursor()
-            cur.execute('INSERT INTO logs (message) VALUES (%s)', (message,))
-            conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+# def add_to_logs(message):
+#     with closing(get_connection()) as conn:
+#         try:
+#             cur = conn.cursor()
+#             cur.execute('INSERT INTO logs (message) VALUES (%s)', (message,))
+#             conn.commit()
+#         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+#             raise DatabaseError
 
 
 def add_to_list(album_id):
@@ -164,8 +164,8 @@ def add_to_list(album_id):
             cur = conn.cursor()
             cur.execute('INSERT INTO list (album) VALUES (%s)', (album_id,))
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def add_to_albums(album_id, artist, name, url, img='', channel=''):
@@ -184,8 +184,8 @@ def add_to_albums(album_id, artist, name, url, img='', channel=''):
             cur = conn.cursor()
             cur.execute(sql, (album_id, artist, name, url, img, channel, True))
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def add_to_tags(tag):
@@ -194,8 +194,8 @@ def add_to_tags(tag):
             cur = conn.cursor()
             cur.execute('INSERT INTO tags (tag) VALUES (%s)', (tag,))
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def tag_album(album_id, tag):
@@ -204,8 +204,8 @@ def tag_album(album_id, tag):
             cur = conn.cursor()
             cur.execute('INSERT INTO album_tags (album, tag) VALUES (%s, %s)', (album_id, tag))
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
     
 
 def de_dup():
@@ -220,8 +220,8 @@ def de_dup():
             cur.executemany('DELETE FROM list where album = %s;', duplicates)
             cur.executemany('INSERT INTO list (album) VALUES (%s)', duplicates)
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def add_many_to_list(album_ids):
@@ -230,8 +230,8 @@ def add_many_to_list(album_ids):
             cur = conn.cursor()
             cur.executemany('INSERT INTO list (album) VALUES (%s)', album_ids)
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def add_many_to_albums(albums):
@@ -248,8 +248,8 @@ def add_many_to_albums(albums):
             cur = conn.cursor()
             cur.executemany(sql, albums)
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def add_img_to_album(album_id, album_img):
@@ -263,8 +263,8 @@ def add_img_to_album(album_id, album_img):
             cur = conn.cursor()
             cur.execute(sql, (album_img, album_id))
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def add_added_to_album(album_id, dt):
@@ -278,8 +278,8 @@ def add_added_to_album(album_id, dt):
             cur = conn.cursor()
             cur.execute(sql, (dt, album_id))
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def update_album_availability(album_id, status):
@@ -293,8 +293,8 @@ def update_album_availability(album_id, status):
             cur = conn.cursor()
             cur.execute(sql, (bool(status), album_id))
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def get_list():
@@ -303,8 +303,8 @@ def get_list():
             cur = conn.cursor()
             cur.execute('SELECT album FROM list;')
             return [item[0] for item in cur.fetchall()]
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def get_list_count():
@@ -313,51 +313,51 @@ def get_list_count():
             cur = conn.cursor()
             cur.execute('SELECT album FROM list;')
             return cur.rowcount
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
-def get_votes_count(album_id):
-    with closing(get_connection()) as conn:
-        try:
-            cur = conn.cursor()
-            cur.execute('SELECT * FROM votes WHERE album = %s;', (album_id,))
-            return cur.rowcount
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+# def get_votes_count(album_id):
+#     with closing(get_connection()) as conn:
+#         try:
+#             cur = conn.cursor()
+#             cur.execute('SELECT * FROM votes WHERE album = %s;', (album_id,))
+#             return cur.rowcount
+#         except (psycopg2.ProgrammingError, psycopg2.InternalError):
+#             raise DatabaseError
 
 
-def get_votes():
-    sql = """
-        SELECT votes.album, artist, name, count(DISTINCT votes.id) 
-        FROM votes 
-        JOIN albums on votes.album = albums.id 
-        GROUP BY votes.album, albums.artist, albums.name 
-        """
-    with closing(get_connection()) as conn:
-        try:
-            cur = conn.cursor()
-            cur.execute(sql)
-            return cur.fetchall()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+# def get_votes():
+#     sql = """
+#         SELECT votes.album, artist, name, count(DISTINCT votes.id) 
+#         FROM votes 
+#         JOIN albums on votes.album = albums.id 
+#         GROUP BY votes.album, albums.artist, albums.name 
+#         """
+#     with closing(get_connection()) as conn:
+#         try:
+#             cur = conn.cursor()
+#             cur.execute(sql)
+#             return cur.fetchall()
+#         except (psycopg2.ProgrammingError, psycopg2.InternalError):
+#             raise DatabaseError
 
 
-def get_top_votes(count=5):
-    sql = """
-        SELECT votes.album, artist, name, count(DISTINCT votes.id) 
-        FROM votes 
-        JOIN albums on votes.album = albums.id 
-        GROUP BY votes.album, albums.artist, albums.name 
-        ORDER BY count(DISTINCT votes.id) DESC;
-        """
-    with closing(get_connection()) as conn:
-        try:
-            cur = conn.cursor()
-            cur.execute(sql)
-            return cur.fetchmany(count)
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+# def get_top_votes(count=5):
+#     sql = """
+#         SELECT votes.album, artist, name, count(DISTINCT votes.id) 
+#         FROM votes 
+#         JOIN albums on votes.album = albums.id 
+#         GROUP BY votes.album, albums.artist, albums.name 
+#         ORDER BY count(DISTINCT votes.id) DESC;
+#         """
+#     with closing(get_connection()) as conn:
+#         try:
+#             cur = conn.cursor()
+#             cur.execute(sql)
+#             return cur.fetchmany(count)
+#         except (psycopg2.ProgrammingError, psycopg2.InternalError):
+#             raise DatabaseError
 
 
 def get_albums():
@@ -370,11 +370,11 @@ def get_albums():
             cur = conn.cursor()
             cur.execute(sql)
             return cur.fetchall()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
-def get_albums_by_channel_(channel):
+def get_albums_by_channel(channel):
     sql = """
         SELECT id, name, artist, url, img, channel, added
         FROM albums
@@ -385,8 +385,8 @@ def get_albums_by_channel_(channel):
             cur = conn.cursor()
             cur.execute(sql, (channel,))
             return cur.fetchall()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def get_albums_with_tags():
@@ -400,8 +400,8 @@ def get_albums_with_tags():
             cur = conn.cursor()
             cur.execute(sql)
             return cur.fetchall()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def get_albums_by_channel_with_tags(channel):
@@ -416,8 +416,8 @@ def get_albums_by_channel_with_tags(channel):
             cur = conn.cursor()
             cur.execute(sql, (channel,))
             return cur.fetchall()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def get_albums_unavailable():
@@ -431,8 +431,8 @@ def get_albums_unavailable():
             cur = conn.cursor()
             cur.execute(sql)
             return cur.fetchall()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def get_albums_count():
@@ -441,8 +441,8 @@ def get_albums_count():
             cur = conn.cursor()
             cur.execute('SELECT id FROM albums;')
             return cur.rowcount
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
         
 def get_album_details(album_id):
@@ -456,8 +456,8 @@ def get_album_details(album_id):
             cur = conn.cursor()
             cur.execute(sql, (album_id, ))
             return cur.fetchone()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
     
 
 def get_album_details_from_ids(album_ids):
@@ -471,8 +471,8 @@ def get_album_details_from_ids(album_ids):
             cur = conn.cursor()
             cur.execute(sql, (album_ids, ))
             return cur.fetchall()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def get_album_ids():
@@ -481,18 +481,18 @@ def get_album_ids():
             cur = conn.cursor()
             cur.execute('SELECT id FROM albums;')
             return [c[0] for c in cur.fetchall()]
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
     
 
-def get_logs():
-    with closing(get_connection()) as conn:
-        try:
-            cur = conn.cursor()
-            cur.execute('SELECT message FROM logs;')
-            return [item[0] for item in cur.fetchall()]
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+# def get_logs():
+#     with closing(get_connection()) as conn:
+#         try:
+#             cur = conn.cursor()
+#             cur.execute('SELECT message FROM logs;')
+#             return [item[0] for item in cur.fetchall()]
+#         except (psycopg2.ProgrammingError, psycopg2.InternalError):
+#             raise DatabaseError
 
 
 def get_tags():
@@ -501,8 +501,8 @@ def get_tags():
             cur = conn.cursor()
             cur.execute('SELECT tag FROM tags;')
             return [item[0] for item in cur.fetchall()]
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def get_album_tags(album_id):
@@ -516,8 +516,8 @@ def get_album_tags(album_id):
             cur = conn.cursor()
             cur.execute(sql, (album_id,))
             return [item[0] for item in cur.fetchall()]
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def delete_from_list(album_id):
@@ -526,8 +526,8 @@ def delete_from_list(album_id):
             cur = conn.cursor()
             cur.execute('DELETE FROM list where album = %s;', (album_id,))
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
     
 
 def delete_from_albums(album_id):
@@ -536,8 +536,8 @@ def delete_from_albums(album_id):
             cur = conn.cursor()
             cur.execute('DELETE FROM albums where id = %s;', (album_id,))
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def delete_from_list_and_albums(album_id):
@@ -547,8 +547,8 @@ def delete_from_list_and_albums(album_id):
             cur.execute('DELETE FROM albums where id = %s;', (album_id,))
             cur.execute('DELETE FROM list where album = %s;', (album_id,))
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def _reset_list():
@@ -557,8 +557,8 @@ def _reset_list():
             cur = conn.cursor()
             cur.execute('DELETE FROM list')
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
     
 
 def _reset_albums():
@@ -567,18 +567,18 @@ def _reset_albums():
             cur = conn.cursor()
             cur.execute('DELETE FROM albums')
             conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
-def _reset_votes():
-    with closing(get_connection()) as conn:
-        try:
-            cur = conn.cursor()
-            cur.execute('DELETE FROM votes')
-            conn.commit()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+# def _reset_votes():
+#     with closing(get_connection()) as conn:
+#         try:
+#             cur = conn.cursor()
+#             cur.execute('DELETE FROM votes')
+#             conn.commit()
+#         except (psycopg2.ProgrammingError, psycopg2.InternalError):
+#             raise DatabaseError
 
 
 def search_albums(query):
@@ -601,8 +601,8 @@ def search_albums(query):
             term = f'%{query}%'
             cur.execute(sql, (term, term, term))
             return cur.fetchall()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def search_albums_by_tag(query):
@@ -623,8 +623,8 @@ def search_albums_by_tag(query):
             term = f'%{query}%'
             cur.execute(sql, (term, ))
             return cur.fetchall()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def get_albums_by_tag(tag):
@@ -644,8 +644,8 @@ def get_albums_by_tag(tag):
             cur = conn.cursor()
             cur.execute(sql, (tag, ))
             return cur.fetchall()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def get_random_album():
@@ -661,8 +661,8 @@ def get_random_album():
             cur = conn.cursor()
             cur.execute(sql)
             return cur.fetchone()
-        except (psycopg2.ProgrammingError, psycopg2.InternalError):
-            raise DatabaseError
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
 
 
 def check_for_new_list_ids(results):

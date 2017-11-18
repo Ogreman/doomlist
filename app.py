@@ -118,13 +118,13 @@ def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
                 if album_ids:
                     callback(album_ids)
             except models.DatabaseError as e:
-                message = 'Failed to update list'
+                message = 'failed to update list'
                 print(f'[db]: failed to perform {callback.__name__}')
                 print(f'[db]: {e}')
             else:
                 message = 'Finished checking for new albums: %d found.' % (len(album_ids), )
         else:
-            message = 'Failed to get channel history'
+            message = 'failed to get channel history'
     if response_url:
         requests.post(
             response_url,
@@ -146,7 +146,7 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL, chan
                 try:    
                     callback(album_id)
                 except models.DatabaseError as e:
-                    message = 'Failed to update list'
+                    message = 'failed to update list'
                     print(f'[db]: failed to perform {callback.__name__}')
                     print(f'[db]: {e}')
                 else:
@@ -188,7 +188,7 @@ def deferred_process_all_album_details(response_url=BOT_URL):
     except models.DatabaseError as e:
         print('[db]: failed to check for new album details')
         print(f'[db]: {e}')
-        message = 'Failed to process all album details...'
+        message = 'failed to process all album details...'
     else:
         message = 'Processed all album details'
     if response_url:
@@ -210,7 +210,7 @@ def deferred_delete(album_id, response_url=BOT_URL):
     except models.DatabaseError as e:
         print('[db]: failed to delete album details')
         print(f'[db]: {e}')
-        message = f'Failed to delete album details for {album_id}'
+        message = f'failed to delete album details for {album_id}'
     else:
         print(f'[db]: deleted album details for {album_id}')
         message = f'Removed album from list: {album_id}'
@@ -261,7 +261,7 @@ def deferred_process_all_album_covers(response_url=BOT_URL):
     except models.DatabaseError as e:
         print('[db]: failed to get all album details')
         print(f'[db]: {e}')
-        message = 'Failed to process all album details...'
+        message = 'failed to process all album details...'
     else:
         message = 'Processed all album covers'
     if response_url:
@@ -297,7 +297,7 @@ def deferred_check_all_album_urls(response_url=BOT_URL):
     except models.DatabaseError as e:
         print('[db]: failed to check for new album details')
         print(f'[db]: {e}')
-        message = 'Failed to check all album urls...'
+        message = 'failed to check all album urls...'
     else:
         message = 'Finished checking all album URLs'
     if response_url:
@@ -394,8 +394,10 @@ def add():
     if album_id:
         try:
             models.add_to_list(album_id.strip())
-        except models.DatabaseError:
-            return 'Failed to add new album', 200
+        except models.DatabaseError as e:
+            print('[db]: failed to add new album')
+            print(f'[db]: {e}')
+            return 'failed to add new album', 200
         else:
             return 'Added new album', 200
     return '', 200
@@ -464,9 +466,12 @@ def link():
         return 'Provide an album ID', 200
     try:
         _, _, _, url, _, _, _, _ = get_cached_album_details(album_id)
-    except models.DatabaseError:
+    except models.DatabaseError as e:
+        print('[db]: failed to get random album')
+        print(f'[db]: {e}')
         return db_error_message, 200
-    except TypeError:
+    except TypeError as e:
+        print(f'[slack]: no album found for link: {e}')
         return not_found_message, 200
     else:
         response = {
@@ -483,9 +488,12 @@ def random_album():
     form_data = flask.request.form
     try:
         _, _, _, url, img = models.get_random_album()
-    except models.DatabaseError:
+    except models.DatabaseError as e:
+        print('[db]: failed to get random album')
+        print(f'[db]: {e}')
         return db_error_message, 200
-    except TypeError:
+    except TypeError as e:
+        print(f'[slack]: no album found for random: {e}')
         return not_found_message, 200
     else:
         response_type = 'in_channel' if 'post' in form_data.get('text', '') else 'ephemeral'
@@ -559,8 +567,10 @@ def search():
             func = functools.partial(models.search_albums, query)
             try:
                 details = build_album_details(func)
-            except models.DatabaseError:
-                return 'Failed to perform search', 200
+            except models.DatabaseError as e:
+                print('[db]: failed to build album details')
+                print(f'[db]: {e}')
+                return 'failed to perform search', 200
             else:
                 response = build_search_response(details)
                 app.cache.set(f'q-{query}', response, 60 * 15)
@@ -579,8 +589,10 @@ def search_tags():
             func = functools.partial(models.search_albums_by_tag, query)
             try:
                 details = build_album_details(func)
-            except models.DatabaseError:
-                return 'Failed to perform search', 200
+            except models.DatabaseError as e:
+                print('[db]: failed to build album details')
+                print(f'[db]: {e}')
+                return 'failed to perform search', 200
             else:
                 response = build_search_response(details)
                 app.cache.set(f't-{query}', response, 60 * 15)
@@ -593,45 +605,49 @@ def button():
     try:
         form_data = json.loads(flask.request.form['payload'])
     except KeyError:
+        print('[slack]: payload missing from button')
         return '', 200
-    else:
-        if form_data.get('token') in APP_TOKENS:
-            try:
-                action = form_data['actions'][0]
-                if 'tag' in action['name']:
-                    query = action['value']
-                    response = app.cache.get(f't-{query}')
-                    if not response:
-                        func = functools.partial(models.search_albums_by_tag, query)
-                        try:
-                            details = build_album_details(func)
-                        except models.DatabaseError:
-                            return 'Failed to perform search', 200
-                        else:
-                            response = build_search_response(details)
-                            app.cache.set(f't-{query}', response, 60 * 15)
-                    result = {
-                        'response_type': 'ephemeral',
-                        'text': f'Your #{query} results',
-                        'replace_original': 'false',
-                        'unfurl_links': 'true',
-                        'attachments': response['attachments'],
-                    }
-                    return flask.Response(json.dumps(result), mimetype='application/json')
-                elif 'album' in action['name']:
-                    url = action['value']
-                    user = form_data['user']['name']
-                    message = f'{user} posted {url} from the {LIST_NAME}'
-            except KeyError:
-                return db_error_message, 200
-            else:
-                response = {
-                    'response_type': 'in_channel',
-                    'text': message,
-                    'replace_original': False,
-                    'unfurl_links': 'true',
-                }
-                return flask.Response(json.dumps(response), mimetype='application/json')
+    if form_data.get('token') not in APP_TOKENS:
+        print('[access]: button failed slack test')
+        return '', 200
+    try:
+        action = form_data['actions'][0]
+        if 'tag' in action['name']:
+            query = action['value']
+            search_response = app.cache.get(f't-{query}')
+            if not search_response:
+                func = functools.partial(models.search_albums_by_tag, query)
+                try:
+                    details = build_album_details(func)
+                except models.DatabaseError as e:
+                    print('[db]: failed to build album details')
+                    print(f'[db]: {e}')
+                    return 'failed to perform search', 200
+                else:
+                    search_response = build_search_response(details)
+                    app.cache.set(f't-{query}', search_response, 60 * 15)
+            response = {
+                'response_type': 'ephemeral',
+                'text': f'Your #{query} results',
+                'replace_original': 'false',
+                'unfurl_links': 'true',
+                'attachments': search_response['attachments'],
+            }
+            return flask.Response(json.dumps(response), mimetype='application/json')
+        elif 'album' in action['name']:
+            url = action['value']
+            user = form_data['user']['name']
+            message = f'{user} posted {url} from the {LIST_NAME}'
+            response = {
+                'response_type': 'in_channel',
+                'text': message,
+                'replace_original': False,
+                'unfurl_links': 'true',
+            }
+            return flask.Response(json.dumps(response), mimetype='application/json')
+    except KeyError as e:
+        print(f'[slack]: failed to build results: {e}')
+        return db_error_message, 200
     return '', 200
 
 
@@ -640,8 +656,10 @@ def button():
 def api_list_albums():
     try:
         response = flask.Response(json.dumps(models.get_list()))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))
+    except models.DatabaseError as e:
+        print('[db]: failed to get list')
+        print(f'[db]: {e}')
+        response = flask.Response(json.dumps({'text': 'failed'}))
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
@@ -651,8 +669,10 @@ def api_list_albums():
 def api_id_count():
     try:
         response = flask.Response(json.dumps({'count': models.get_list_count()}))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))
+    except models.DatabaseError as e:
+        print('[db]: failed to get list count')
+        print(f'[db]: {e}')
+        response = flask.Response(json.dumps({'text': 'failed'}))
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
@@ -696,8 +716,10 @@ def api_list_album_details():
             details = [{key: d} for key, d in details.items()]
             app.cache.set(key, details, 60 * 30)
         response = flask.Response(json.dumps(details))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))
+    except models.DatabaseError as e:
+        print('[db]: failed to get albums')
+        print(f'[db]: {e}')
+        response = flask.Response(json.dumps({'text': 'failed'}))
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
@@ -707,8 +729,10 @@ def api_list_album_details():
 def api_count_albums():
     try:
         response = flask.Response(json.dumps({'count': models.get_albums_count()}))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))
+    except models.DatabaseError as e:
+        print('[db]: failed to get albums count')
+        print(f'[db]: {e}')
+        response = flask.Response(json.dumps({'text': 'failed'}))
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
@@ -730,14 +754,18 @@ def api_album(album_id):
     try:
         album_id, album, artist, url, img, available, channel, added = get_cached_album_details(album_id)
         response = flask.Response(json.dumps({
-            'text': 'Success',
+            'text': 'success',
             'album': dict(zip(
                 ('id', 'name', 'artist', 'url', 'img', 'available', 'channel', 'added'),
                 (album_id, album, artist, url, img, available, channel, added.isoformat()),
             ))
         }))
-    except (models.DatabaseError, TypeError):
-        response = flask.Response(json.dumps({'text': 'Failed'}))
+    except TypeError:
+        response = flask.Response(json.dumps({'text': 'not found'}))
+    except models.DatabaseError as e:
+        print(f'[db]: failed to get album: {album_id}')
+        print(f'[db]: {e}')
+        response = flask.Response(json.dumps({'text': 'failed'}))
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
@@ -745,10 +773,12 @@ def api_album(album_id):
 @app.route('/api/tags', methods=['GET'])
 def api_tags():
     try:
-        response = flask.Response(json.dumps({'text': 'Success',
+        response = flask.Response(json.dumps({'text': 'success',
             'tags': [tag for tag in models.get_tags()]}))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))
+    except models.DatabaseError as e:
+        print('[db]: failed to get tags')
+        print(f'[db]: {e}')
+        response = flask.Response(json.dumps({'text': 'failed'}))
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
@@ -756,10 +786,10 @@ def api_tags():
 # @app.route('/api/tags/count', methods=['GET'])
 # def api_tags():
 #     try:
-#         response = flask.Response(json.dumps({'text': 'Success',
+#         response = flask.Response(json.dumps({'text': 'success',
 #             'tags': [tag for tag in models.get_tags()]}))
 #     except models.DatabaseError:
-#         response = flask.Response(json.dumps({'text': 'Failed'}))
+#         response = flask.Response(json.dumps({'text': 'failed'}))
 #     response.headers['Access-Control-Allow-Origin'] = '*'
 #     return response
 
@@ -775,8 +805,10 @@ def api_album_by_tag(tag):
             details = [{key: d} for key, d in details.items()]
             app.cache.set(key, details, 60 * 30)
         response = flask.Response(json.dumps(details))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))
+    except models.DatabaseError as e:
+        print(f'[db]: failed to get tag: {tag}')
+        print(f'[db]: {e}')
+        response = flask.Response(json.dumps({'text': 'failed'}))
     response.headers['Access-Control-Allow-Origin'] = '*'
     return response
 
@@ -786,78 +818,78 @@ def api_bc(album_id):
     return flask.redirect(BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
 
 
-@app.route('/api/votes', methods=['GET'])
-@app.cache.cached(timeout=60 * 5)
-def api_all_votes():
-    try:
-        results = [
-            dict(zip(('id', 'artist', 'album', 'votes'), details))
-            for details in models.get_votes()
-        ]
-        response = flask.Response(json.dumps({
-            'text': 'Success', 
-            'value': results,
-        }))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
+# @app.route('/api/votes', methods=['GET'])
+# @app.cache.cached(timeout=60 * 5)
+# def api_all_votes():
+#     try:
+#         results = [
+#             dict(zip(('id', 'artist', 'album', 'votes'), details))
+#             for details in models.get_votes()
+#         ]
+#         response = flask.Response(json.dumps({
+#             'text': 'success', 
+#             'value': results,
+#         }))
+#     except models.DatabaseError:
+#         response = flask.Response(json.dumps({'text': 'failed'}))
+#     response.headers['Access-Control-Allow-Origin'] = '*'
+#     return response
 
 
-@app.route('/api/votes/<album_id>', methods=['GET'])
-def api_votes(album_id):
-    try:
-        response = flask.Response(json.dumps({
-            'text': 'Success', 
-            'value': models.get_votes_count(album_id),
-        }))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
+# @app.route('/api/votes/<album_id>', methods=['GET'])
+# def api_votes(album_id):
+#     try:
+#         response = flask.Response(json.dumps({
+#             'text': 'success', 
+#             'value': models.get_votes_count(album_id),
+#         }))
+#     except models.DatabaseError:
+#         response = flask.Response(json.dumps({'text': 'failed'}))
+#     response.headers['Access-Control-Allow-Origin'] = '*'
+#     return response
 
 
-@app.route('/api/vote', methods=['POST'])
-def api_vote():
-    form_data = flask.request.form
-    try:
-        album_id = form_data['album_id']
-        models.add_to_votes(album_id)
-        response = flask.Response(json.dumps({
-            'text': 'Success', 
-            'value': models.get_votes_count(album_id),
-        }))
-    except (models.DatabaseError, KeyError):
-        response = flask.Response(json.dumps({'text': 'Failed'}))
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
+# @app.route('/api/vote', methods=['POST'])
+# def api_vote():
+#     form_data = flask.request.form
+#     try:
+#         album_id = form_data['album_id']
+#         models.add_to_votes(album_id)
+#         response = flask.Response(json.dumps({
+#             'text': 'success', 
+#             'value': models.get_votes_count(album_id),
+#         }))
+#     except (models.DatabaseError, KeyError):
+#         response = flask.Response(json.dumps({'text': 'failed'}))
+#     response.headers['Access-Control-Allow-Origin'] = '*'
+#     return response
 
 
-@app.route('/api/votes/top', methods=['GET'])
-@app.cache.cached(timeout=60 * 5)
-def api_top():
-    try:
-        results = [
-            dict(zip(('id', 'artist', 'album', 'votes'), details))
-            for details in models.get_top_votes()
-        ]
-        response = flask.Response(json.dumps({
-            'text': 'Success', 
-            'value': results,
-        }))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))   
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    return response
+# @app.route('/api/votes/top', methods=['GET'])
+# @app.cache.cached(timeout=60 * 5)
+# def api_top():
+#     try:
+#         results = [
+#             dict(zip(('id', 'artist', 'album', 'votes'), details))
+#             for details in models.get_top_votes()
+#         ]
+#         response = flask.Response(json.dumps({
+#             'text': 'success', 
+#             'value': results,
+#         }))
+#     except models.DatabaseError:
+#         response = flask.Response(json.dumps({'text': 'failed'}))   
+#     response.headers['Access-Control-Allow-Origin'] = '*'
+#     return response
 
 
-@app.route('/api/logs', methods=['GET'])
-def api_list_logs():
-    try:
-        response = flask.Response(json.dumps(models.get_logs()))
-    except models.DatabaseError:
-        response = flask.Response(json.dumps({'text': 'Failed'}))
-    return response
+# @app.route('/api/logs', methods=['GET'])
+# def api_list_logs():
+#     try:
+#         response = flask.Response(json.dumps(models.get_logs()))
+#     except models.DatabaseError:
+#         response = flask.Response(json.dumps({'text': 'failed'}))
+#     return response
 
 
 @app.route('/slack/auth', methods=['GET'])
@@ -873,7 +905,9 @@ def auth():
 def embedded_random():
     try:
         album_id, name, artist, album_url, _ = models.get_random_album()
-    except models.DatabaseError:
+    except models.DatabaseError as e:
+        print('[db]: failed to get random album')
+        print(f'[db]: {e}')
         return db_error_message, 200
     except TypeError:
         return not_found_message, 200
