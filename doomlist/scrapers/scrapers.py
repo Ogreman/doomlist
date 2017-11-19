@@ -57,15 +57,14 @@ def scrape_bandcamp_album_ids_from_url(url):
 
 
 def scrape_album_cover_url_from_url(url):
-    if 'http' in url and 'bandcamp.com' in url:
-        response = requests.get(url)
-        if response.ok:
-            html = lxh.fromstring(response.text)
-            try:
-                img = html.cssselect('div#tralbumArt')[0].cssselect('img')[0]
-                return img.attrib['src']
-            except (IndexError, KeyError):
-                raise NotFoundError
+    response = requests.get(url)
+    if response.ok:
+        html = lxh.fromstring(response.text)
+        try:
+            img = html.cssselect('div#tralbumArt')[0].cssselect('img')[0]
+            return img.attrib['src']
+        except (IndexError, KeyError):
+            raise NotFoundError
     raise NotFoundError
 
 
