@@ -1,7 +1,7 @@
 import os
 import requests
 
-from delayed import delayed
+from doomlist.delayed import delayed
 
 
 message = 'Today\'s album of the day from the Doomlist is: {url}'
