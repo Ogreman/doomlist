@@ -408,8 +408,8 @@ def get_albums_by_channel_with_tags(channel):
     sql = """
         SELECT id, name, artist, url, img, channel, added, album_tags.tag
         FROM albums
-        WHERE channel = %s
-        LEFT JOIN album_tags on albums.id = album_tags.album;
+        LEFT JOIN album_tags on albums.id = album_tags.album
+        WHERE channel = %s;
     """
     with closing(get_connection()) as conn:
         try:
