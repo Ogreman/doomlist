@@ -68,6 +68,17 @@ def scrape_album_cover_url_from_url(url):
     raise NotFoundError
 
 
+def scrape_tags_from_url(url):
+    response = requests.get(url)
+    if response.ok:
+        html = lxh.fromstring(response.text)
+        try:
+            return [element.text for element in html.cssselect('a.tag')]
+        except AttributeError:
+            pass
+    return []
+
+
 def scrape_bandcamp_album_ids_from_messages(messages, do_requests=True):
     for message in messages:
         if message.get('type') == 'message':

@@ -165,10 +165,10 @@ def deferred_consume(text, scrape_function, callback, response_url=BOT_URL, chan
                     print(f'[db]: failed to perform {callback.__name__}')
                     print(f'[db]: {e}')
                 else:
-                    message = 'Added album to list: ' + str(album_id)
+                    message = f'Added album to list: {album_id}'
                     deferred_process_album_details.delay(str(album_id), channel)
             else:
-                message = 'Album already in list: ' + str(album_id)
+                message = f'Album already in list: {album_id}'
             if tags:
                 deferred_process_tags.delay(str(album_id), tags)
         except DatabaseError as e:
@@ -190,7 +190,7 @@ def deferred_process_tags(album_id, tags):
             print(f'[db]: failed to add tag "{tag}" to album {album_id}')
             print(f'[db]: {e}')
         else:
-            print(f'Tagged {album_id} with "{tag}"')
+            print(f'[scraper]: tagged {album_id} with "{tag}"')
 
 
 @delayed.queue_func
@@ -239,6 +239,7 @@ def deferred_process_album_details(album_id, channel=''):
         album, artist, url = scrapers.scrape_album_details_from_id(album_id)
         albums_model.add_to_albums(album_id, artist, album, url, channel=channel)
         deferred_process_album_cover.delay(album_id)
+        deferred_process_album_tags.delay(album_id)
     except DatabaseError as e:
         print(f'[db]: failed to add album details for {album_id}')
         print(f'[db]: {e}')
@@ -267,6 +268,25 @@ def deferred_process_album_cover(album_id):
 
 
 @delayed.queue_func
+def deferred_process_album_tags(album_id):
+    try:
+        _, _, _, album_url, _, _, _, _ = get_cached_album_details(album_id)
+        tags = scrapers.scrape_tags_from_url(album_url)
+        if tags:
+            deferred_process_tags.delay(album_id, tags)
+    except DatabaseError as e:
+        print(f'[db]: failed to add album cover for {album_id}')
+        print(f'[db]: {e}')
+    except scrapers.NotFoundError as e:
+        print(f'[scraper]: failed to find album art for {album_id}')
+        print(f'[scraper]: {e}')
+    except (TypeError, ValueError):
+        pass
+    else:
+        print(f'[scraper]: processed tags for {album_id}')
+
+
+@delayed.queue_func
 def deferred_process_all_album_covers(response_url=BOT_URL):
     try:
         if response_url:
@@ -279,6 +299,23 @@ def deferred_process_all_album_covers(response_url=BOT_URL):
         message = 'failed to process all album details...'
     else:
         message = 'Processed all album covers'
+    if response_url:
+        requests.post(response_url, data=json.dumps({'text': message}))
+
+
+@delayed.queue_func
+def deferred_process_all_album_tags(response_url=BOT_URL):
+    try:
+        if response_url:
+            requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
+        for album_id in [alb[0] for alb in albums_model.get_albums()]:
+            deferred_process_album_tags.delay(album_id)
+    except DatabaseError as e:
+        print('[db]: failed to get all album details')
+        print(f'[db]: {e}')
+        message = 'failed to process all album details...'
+    else:
+        message = 'Processed all album tags'
     if response_url:
         requests.post(response_url, data=json.dumps({'text': message}))
 
@@ -465,10 +502,20 @@ def process():
 @app.route('/slack/process/covers', methods=['POST'])
 @slack_check
 @admin_only
-def covers():
+def process_covers():
     form_data = flask.request.form
     response = None if 'silence' in form_data else form_data.get('response_url', BOT_URL)
     deferred_process_all_album_covers.delay(response)
+    return 'Process request sent', 200
+
+
+@app.route('/slack/process/tags', methods=['POST'])
+@slack_check
+@admin_only
+def process_tags():
+    form_data = flask.request.form
+    response = None if 'silence' in form_data else form_data.get('response_url', BOT_URL)
+    deferred_process_all_album_tags.delay(response)
     return 'Process request sent', 200
 
 

@@ -77,6 +77,8 @@ def tag_album(album_id, tag):
             cur = conn.cursor()
             cur.execute('INSERT INTO album_tags (album, tag) VALUES (%s, %s)', (album_id, tag))
             conn.commit()
+        except psycopg2.IntegrityError:
+            raise DatabaseError(f'album {album_id} already tagged with {tag}')
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
     
