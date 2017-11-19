@@ -275,11 +275,8 @@ def deferred_process_album_tags(album_id):
         if tags:
             deferred_process_tags.delay(album_id, tags)
     except DatabaseError as e:
-        print(f'[db]: failed to add album cover for {album_id}')
+        print(f'[db]: failed to get album details for {album_id}')
         print(f'[db]: {e}')
-    except scrapers.NotFoundError as e:
-        print(f'[scraper]: failed to find album art for {album_id}')
-        print(f'[scraper]: {e}')
     except (TypeError, ValueError):
         pass
     else:
