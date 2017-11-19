@@ -757,7 +757,7 @@ def api_dump_album_details():
     csv_writer = csv.writer(csv_file)
     csv_writer.writerow(['id', 'album', 'artist', 'url', 'img', 'available', 'channel', 'added'])
     for album_id, album, artist, url, img, available, channel, added in models.get_albums():
-        csv_writer.writerow([album_id, album, artist, url, img, available, channel, added.isoformat()])
+        csv_writer.writerow([album_id, album, artist, url, img, str(available), channel, added.isoformat()])
     csv_file.seek(0)
     return flask.send_file(csv_file, attachment_filename="albums.csv", as_attachment=True)
 
