@@ -362,7 +362,7 @@ def get_list_count():
 
 def get_albums():
     sql = """
-        SELECT id, name, artist, url, img, channel, added
+        SELECT id, name, artist, url, img, available, channel, added
         FROM albums
     """
     with closing(get_connection()) as conn:
