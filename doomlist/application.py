@@ -753,13 +753,19 @@ def api_count_albums():
 @app.route('/api/albums/dump', methods=['GET'])
 @app.cache.cached(timeout=60 * 30)
 def api_dump_album_details():
-    csv_file = io.StringIO()
-    csv_writer = csv.writer(csv_file)
+    # need StringIO for csv.writer
+    proxy = io.StringIO()
+    csv_writer = csv.writer(proxy)
     csv_writer.writerow(['id', 'album', 'artist', 'url', 'img', 'available', 'channel', 'added'])
     for album_id, album, artist, url, img, available, channel, added in models.get_albums():
-        csv_writer.writerow([album_id, album, artist, url, img, str(available), channel, added.isoformat()])
-    csv_file.seek(0)
-    return flask.send_file(csv_file, attachment_filename="albums.csv", as_attachment=True)
+        csv_writer.writerow([album_id, album, artist, url, img, available, channel, added.isoformat()])
+    # and BytesIO for flask.send_file
+    mem = io.BytesIO()
+    mem.write(proxy.getvalue().encode('utf-8'))
+    mem.seek(0)
+    proxy.close()
+    # see: https://stackoverflow.com/a/45111660
+    return flask.send_file(mem, as_attachment=True, attachment_filename="albums.csv", mimetype='text/csv')
 
 
 @app.route('/api/album/<album_id>', methods=['GET'])
