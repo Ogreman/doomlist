@@ -221,7 +221,7 @@ def deferred_delete(album_id, response_url=BOT_URL):
         models.delete_from_list_and_albums(album_id)
         app.cache.delete(f'alb-{album_id}')
     except models.DatabaseError as e:
-        print('[db]: failed to delete album details')
+        print(f'[db]: failed to delete album details for {album_id}')
         print(f'[db]: {e}')
         message = f'failed to delete album details for {album_id}'
     else:
@@ -238,7 +238,7 @@ def deferred_process_album_details(album_id, channel=''):
         models.add_to_albums(album_id, artist, album, url, channel=channel)
         deferred_process_album_cover.delay(album_id)
     except models.DatabaseError as e:
-        print('[db]: failed to add album details')
+        print(f'[db]: failed to add album details for {album_id}')
         print(f'[db]: {e}')
     except (TypeError, ValueError):
         pass
@@ -253,10 +253,10 @@ def deferred_process_album_cover(album_id):
         album_cover_url = scrapers.scrape_album_cover_url_from_url(album_url)
         models.add_img_to_album(album_id, album_cover_url)
     except models.DatabaseError as e:
-        print('[db]: failed to add album cover')
+        print(f'[db]: failed to add album cover for {album_id}')
         print(f'[db]: {e}')
     except scrapers.NotFoundError as e:
-        print('[scraper]: failed to find album art')
+        print(f'[scraper]: failed to find album art for {album_id}')
         print(f'[scraper]: {e}')
     except (TypeError, ValueError):
         pass
