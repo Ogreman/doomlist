@@ -420,6 +420,21 @@ def get_albums_by_channel_with_tags(channel):
             raise DatabaseError(e)
 
 
+def get_albums_available():
+    sql = """
+        SELECT id, name, artist, url, added
+        FROM albums
+        WHERE available = true;
+    """
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(sql)
+            return cur.fetchall()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
 def get_albums_unavailable():
     sql = """
         SELECT id, name, artist, url, added

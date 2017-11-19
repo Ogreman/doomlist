@@ -817,7 +817,7 @@ def api_tags():
 @allow_all
 def api_album_by_tag(tag):
     get_func = functools.partial(models.get_albums_by_tag, tag)
-    key = 'api-tags-' + tag
+    key = f'api-tags-{tag}'
     try:
         details = app.cache.get(key)
         if not details:
@@ -853,6 +853,23 @@ def api_random():
         response = flask.Response(json.dumps({'text': 'not found'}))
     except models.DatabaseError as e:
         print(f'[db]: failed to get album: {album_id}')
+        print(f'[db]: {e}')
+        response = flask.Response(json.dumps({'text': 'failed'}))
+    return response
+
+
+@app.route('/api/albums/available/urls', methods=['GET'])
+@allow_all
+def available_urls():
+    try:
+        key = 'api-albums-available-urls'
+        details = app.cache.get(key)
+        if not details:
+            details = [album[3] for album in models.get_albums_available()]
+            app.cache.set(key, details, 60 * 30)
+        response = flask.Response(json.dumps(details))
+    except models.DatabaseError as e:
+        print('[db]: failed to get album urls')
         print(f'[db]: {e}')
         response = flask.Response(json.dumps({'text': 'failed'}))
     return response
