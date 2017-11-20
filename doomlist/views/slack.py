@@ -18,12 +18,17 @@ slack_blueprint = flask.Blueprint(name='slack',
                                url_prefix='/slack')
 
 
-@slack_blueprint.before_request
-def before_request():
-    print('[web]: slack request')
-    if flask.request.form.get('token', '') not in slack_blueprint.config['APP_TOKENS']:
+def slack_check(func):
+    """
+    Decorator for locking down slack endpoints to registered apps only
+    """
+    @functools.wraps(func)
+    def wraps(*args, **kwargs):
+        if flask.request.form.get('token', '') in slack_blueprint.config['APP_TOKENS'] or slack_blueprint.config['DEBUG']:
+            return func(*args, **kwargs)
         print('[access]: failed slack-check test')
-        flask.abort(403)
+        return abort(403)
+    return wraps
 
 
 def admin_only(func):
@@ -53,6 +58,7 @@ def not_bots(func):
 
 
 @slack_blueprint.route('/spoiler', methods=['POST'])
+@slack_check
 def spoiler():
     form_data = flask.request.form
     channel = form_data.get('channel_name', 'chat')
@@ -75,6 +81,7 @@ def spoiler():
 
 
 @slack_blueprint.route('/consume', methods=['POST'])
+@slack_check
 @not_bots
 def consume():
     form_data = flask.request.form
@@ -91,6 +98,7 @@ def consume():
 
 
 @slack_blueprint.route('/consume/all', methods=['POST'])
+@slack_check
 def consume_all():
     form_data = flask.request.form
     channel = form_data.get('channel_name', 'chat')
@@ -115,11 +123,13 @@ def consume_all():
 
 
 @slack_blueprint.route('/count', methods=['POST'])
+@slack_check
 def album_count():
     return str(albums_model.get_albums_count()), 200
 
 
 @slack_blueprint.route('/delete', methods=['POST'])
+@slack_check
 @admin_only
 def delete():
     form_data = flask.request.form
@@ -132,6 +142,7 @@ def delete():
 
 
 @slack_blueprint.route('/add', methods=['POST'])
+@slack_check
 def add():
     form_data = flask.request.form
     album_id = form_data.get('text')
@@ -148,6 +159,7 @@ def add():
 
 
 @slack_blueprint.route('/clear', methods=['POST'])
+@slack_check
 @admin_only
 def clear_cache():
     form_data = flask.request.form
@@ -159,6 +171,7 @@ def clear_cache():
 
 
 @slack_blueprint.route('/scrape', methods=['POST'])
+@slack_check
 @admin_only
 def scrape():
     form_data = flask.request.form
@@ -174,6 +187,7 @@ def scrape():
 
 
 @slack_blueprint.route('/check', methods=['POST'])
+@slack_check
 @admin_only
 def check_urls():
     form_data = flask.request.form
@@ -185,6 +199,7 @@ def check_urls():
 
 
 @slack_blueprint.route('/process', methods=['POST'])
+@slack_check
 @admin_only
 def process():
     form_data = flask.request.form
@@ -196,6 +211,7 @@ def process():
 
 
 @slack_blueprint.route('/process/covers', methods=['POST'])
+@slack_check
 @admin_only
 def process_covers():
     form_data = flask.request.form
@@ -207,6 +223,7 @@ def process_covers():
 
 
 @slack_blueprint.route('/process/tags', methods=['POST'])
+@slack_check
 @admin_only
 def process_tags():
     form_data = flask.request.form
@@ -218,6 +235,7 @@ def process_tags():
 
 
 @slack_blueprint.route('/link', methods=['POST'])
+@slack_check
 def link():
     form_data = flask.request.form
     album_id = form_data.get('text')
@@ -242,6 +260,7 @@ def link():
 
 
 @slack_blueprint.route('/random', methods=['POST'])
+@slack_check
 def random_album():
     form_data = flask.request.form
     try:
@@ -315,6 +334,7 @@ def build_search_response(details):
 
 
 @slack_blueprint.route('/search', methods=['POST'])
+@slack_check
 def search():
     form_data = flask.request.form
     query = form_data.get('text')
@@ -336,6 +356,7 @@ def search():
 
 
 @slack_blueprint.route('/tags', methods=['POST'])
+@slack_check
 def search_tags():
     form_data = flask.request.form
     query = form_data.get('text')
@@ -357,6 +378,7 @@ def search_tags():
 
 
 @slack_blueprint.route('/search/button', methods=['POST'])
+@slack_check
 def button():
     try:
         form_data = json.loads(flask.request.form['payload'])
@@ -405,6 +427,7 @@ def button():
 
 
 @slack_blueprint.route('/auth', methods=['GET'])
+@slack_check
 def auth():
     code = flask.request.args.get('code')
     client_id = slack_blueprint.config['SLACK_CLIENT_ID']
