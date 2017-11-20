@@ -27,7 +27,7 @@ def slack_check(func):
         if flask.request.form.get('token', '') in slack_blueprint.config['APP_TOKENS'] or slack_blueprint.config['DEBUG']:
             return func(*args, **kwargs)
         print('[access]: failed slack-check test')
-        return abort(403)
+        flask.abort(403)
     return wraps
 
 
