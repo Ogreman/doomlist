@@ -125,6 +125,16 @@ def get_albums_count():
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
+
+def get_albums_unavailable_count():
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute('SELECT id FROM albums WHERE available = false;')
+            return cur.rowcount
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
         
 def get_album_details(album_id):
     sql = """

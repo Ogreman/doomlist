@@ -912,6 +912,18 @@ def available_urls():
         return flask.jsonify({'text': 'failed'}), 500
 
 
+@app.route('/api/albums/unavailable/count', methods=['GET'])
+@app.cache.cached(timeout=60 * 5)
+@allow_all
+def unavailable_count():
+    try:
+        return flask.jsonify({'count': albums_model.get_albums_unavailable_count()}), 200
+    except DatabaseError as e:
+        print('[db]: failed to get unavailable albums count')
+        print(f'[db]: {e}')
+        return flask.jsonify({'text': 'failed'}), 500
+
+
 # @app.route('/api/votes', methods=['GET'])
 # @app.cache.cached(timeout=60 * 5)
 # def api_all_votes():
