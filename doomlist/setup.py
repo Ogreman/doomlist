@@ -39,10 +39,6 @@ def create_app():
     app = flask.Flask(__name__, template_folder=TEMPLATE_DIR)
     app.config.from_object(os.environ['APP_SETTINGS'])
 
-    add_blueprints(app)
-
-    app.cache = init_cacheify(app)
-
     LIST_NAME = app.config['LIST_NAME']
     API_TOKEN = app.config['SLACK_API_TOKEN']
     CLIENT_ID = app.config['SLACK_CLIENT_ID']
@@ -53,6 +49,12 @@ def create_app():
     SLACKBOT_TOKEN = app.config['SLACKBOT_TOKEN']
     ADMIN_IDS = app.config['ADMIN_IDS']
     APP_TOKENS = app.config['APP_TOKENS']
+
+    app.config['BOT_URL_TEMPLATE'] = BOT_URL_TEMPLATE.format(team=SLACK_TEAM, token=SLACKBOT_TOKEN, channel='{channel}')
+
+    add_blueprints(app)
+
+    app.cache = init_cacheify(app)
 
     app.db_error_message = '{name} error - check with admin'.format(name=LIST_NAME)
     app.not_found_message = 'Album not found in the {name}'.format(name=LIST_NAME)
