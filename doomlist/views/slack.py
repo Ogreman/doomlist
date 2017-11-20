@@ -378,13 +378,15 @@ def search_tags():
 
 
 @slack_blueprint.route('/search/button', methods=['POST'])
-@slack_check
 def button():
     try:
         form_data = json.loads(flask.request.form['payload'])
     except KeyError:
         print('[slack]: payload missing from button')
         return '', 401
+    if form_data.get('token') not in slack_blueprint.config['APP_TOKENS']:
+        print('[access]: button failed slack test')
+        return '', 403
     try:
         action = form_data['actions'][0]
         if 'tag' in action['name']:
