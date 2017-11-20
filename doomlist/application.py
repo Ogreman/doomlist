@@ -714,12 +714,11 @@ def button():
 @allow_all
 def api_list_albums():
     try:
-        response = flask.Response(json.dumps(list_model.get_list()))
+        return flask.jsonify(list_model.get_list()), 200
     except DatabaseError as e:
         print('[db]: failed to get list')
         print(f'[db]: {e}')
-        response = flask.Response(json.dumps({'text': 'failed'}))
-    return response
+        return flask.jsonify({'text': 'failed'}), 500
 
 
 @app.route('/api/list/count', methods=['GET'])
@@ -727,12 +726,11 @@ def api_list_albums():
 @allow_all
 def api_id_count():
     try:
-        response = flask.Response(json.dumps({'count': list_model.get_list_count()}))
+        return flask.jsonify({'count': list_model.get_list_count()}), 200
     except DatabaseError as e:
         print('[db]: failed to get list count')
         print(f'[db]: {e}')
-        response = flask.Response(json.dumps({'text': 'failed'}))
-    return response
+        return flask.jsonify({'text': 'failed'}), 500
 
 
 def build_album_details(func):
@@ -774,12 +772,11 @@ def api_list_album_details():
             details = build_album_details(get_func)
             details = [{key: d} for key, d in details.items()]
             app.cache.set(key, details, 60 * 30)
-        response = flask.Response(json.dumps(details))
+        return flask.jsonify(details), 200
     except DatabaseError as e:
         print('[db]: failed to get albums')
         print(f'[db]: {e}')
-        response = flask.Response(json.dumps({'text': 'failed'}))
-    return response
+        return flask.jsonify({'text': 'failed'}), 500
 
 
 @app.route('/api/albums/count', methods=['GET'])
@@ -787,12 +784,11 @@ def api_list_album_details():
 @allow_all
 def api_count_albums():
     try:
-        response = flask.Response(json.dumps({'count': albums_model.get_albums_count()}))
+        return flask.jsonify({'count': albums_model.get_albums_count()}), 200
     except DatabaseError as e:
         print('[db]: failed to get albums count')
         print(f'[db]: {e}')
-        response = flask.Response(json.dumps({'text': 'failed'}))
-    return response
+        return flask.jsonify({'text': 'failed'}), 500
 
 
 @app.route('/api/albums/dump', methods=['GET'])
@@ -818,33 +814,31 @@ def api_dump_album_details():
 def api_album(album_id):
     try:
         album_id, album, artist, url, img, available, channel, added = get_cached_album_details(album_id)
-        response = flask.Response(json.dumps({
+        response = {
             'text': 'success',
             'album': dict(zip(
                 ('id', 'name', 'artist', 'url', 'img', 'available', 'channel', 'added'),
                 (album_id, album, artist, url, img, available, channel, added.isoformat()),
             ))
-        }))
+        }
+        return flask.jsonify(response), 200
     except TypeError:
-        response = flask.Response(json.dumps({'text': 'not found'}))
+        return flask.jsonify({'text': 'not found'}), 404
     except DatabaseError as e:
         print(f'[db]: failed to get album: {album_id}')
         print(f'[db]: {e}')
-        response = flask.Response(json.dumps({'text': 'failed'}))
-    return response
+        return flask.jsonify({'text': 'failed'}), 500
 
 
 @app.route('/api/tags', methods=['GET'])
 @allow_all
 def api_tags():
     try:
-        response = flask.Response(json.dumps({'text': 'success',
-            'tags': [tag for tag in tags_model.get_tags()]}))
+        return flask.jsonify({'text': 'success', 'tags': [tag for tag in tags_model.get_tags()]}), 200
     except DatabaseError as e:
         print('[db]: failed to get tags')
         print(f'[db]: {e}')
-        response = flask.Response(json.dumps({'text': 'failed'}))
-    return response
+        return flask.jsonify({'text': 'failed'}), 500
 
 
 # @app.route('/api/tags/count', methods=['GET'])
@@ -869,12 +863,11 @@ def api_album_by_tag(tag):
             details = build_album_details(get_func)
             details = [{key: d} for key, d in details.items()]
             app.cache.set(key, details, 60 * 30)
-        response = flask.Response(json.dumps(details))
+        return flask.jsonify(details), 200
     except DatabaseError as e:
         print(f'[db]: failed to get tag: {tag}')
         print(f'[db]: {e}')
-        response = flask.Response(json.dumps({'text': 'failed'}))
-    return response
+        return flask.jsonify({'text': 'failed'}), 500
 
 
 @app.route('/api/bc/<album_id>', methods=['GET'])
@@ -887,20 +880,20 @@ def api_bc(album_id):
 def api_random():
     try:
         album_id, name, artist, album_url, img = albums_model.get_random_album()
-        response = flask.Response(json.dumps({
+        response = {
             'text': 'success',
             'album': dict(zip(
                 ('id', 'name', 'artist', 'url', 'img'),
                 (album_id, name, artist, album_url, img),
             ))
-        }))
+        }
+        return flask.jsonify(response), 200
     except TypeError:
-        response = flask.Response(json.dumps({'text': 'not found'}))
+        return flask.jsonify({'text': 'not found'}), 404
     except DatabaseError as e:
         print(f'[db]: failed to get album: {album_id}')
         print(f'[db]: {e}')
-        response = flask.Response(json.dumps({'text': 'failed'}))
-    return response
+        return flask.jsonify({'text': 'failed'}), 500
 
 
 @app.route('/api/albums/available/urls', methods=['GET'])
@@ -912,12 +905,11 @@ def available_urls():
         if not details:
             details = [album[3] for album in albums_model.get_albums_available()]
             app.cache.set(key, details, 60 * 30)
-        response = flask.Response(json.dumps(details))
+        return flask.jsonify(details), 200
     except DatabaseError as e:
         print('[db]: failed to get album urls')
         print(f'[db]: {e}')
-        response = flask.Response(json.dumps({'text': 'failed'}))
-    return response
+        return flask.jsonify({'text': 'failed'}), 500
 
 
 # @app.route('/api/votes', methods=['GET'])
@@ -1025,5 +1017,4 @@ def all_endpoints():
         for rule in app.url_map.iter_rules() 
         if rule.endpoint.startswith('api')
     ]
-    response = flask.Response(json.dumps({'api': rules}))
-    return response, 200
+    return flask.jsonify({'api': rules}), 200
