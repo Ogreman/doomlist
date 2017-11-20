@@ -51,6 +51,7 @@ def create_app():
     APP_TOKENS = app.config['APP_TOKENS']
 
     app.config['BOT_URL_TEMPLATE'] = BOT_URL_TEMPLATE.format(team=SLACK_TEAM, token=SLACKBOT_TOKEN, channel='{channel}')
+    app.config['DEFAULT_BOT_URL'] = app.config['BOT_URL_TEMPLATE'].format(channel=DEFAULT_CHANNEL)
 
     add_blueprints(app)
 

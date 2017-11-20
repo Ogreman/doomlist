@@ -1,5 +1,4 @@
 import flask
-import functools
 import json
 import requests
 import slacker
@@ -11,21 +10,11 @@ from doomlist.scrapers import NotFoundError
 from doomlist.scrapers import bandcamp, links
 
 
-def replace_response_url(func):
-    @functools.wraps(func)
-    def wraps(*args, **kwargs):
-        from application import application
-        if 'response_url' not in kwargs:
-            default_channel = application.config['DEFAULT_CHANNEL']
-            kwargs['response_url'] = application.config['BOT_URL_TEMPLATE'].format(channel=default_channel)
-        return func(*args, **kwargs)
-    return wraps
-
-
 @delayed.queue_func
-@replace_response_url
 def deferred_scrape(scrape_function, callback, response_url='DEFAULT_BOT_URL'):
     from application import application
+    if response_url == 'DEFAULT_BOT_URL':
+        response_url = application.config['DEFAULT_BOT_URL']
     try:
         slack = slacker.Slacker(application.config['API_TOKEN'])
         if response_url:
@@ -63,8 +52,10 @@ def deferred_scrape(scrape_function, callback, response_url='DEFAULT_BOT_URL'):
 
 
 @delayed.queue_func
-@replace_response_url
 def deferred_consume(text, scrape_function, callback, response_url='DEFAULT_BOT_URL', channel='', tags=None):
+    from application import application
+    if response_url == 'DEFAULT_BOT_URL':
+        response_url = application.config['DEFAULT_BOT_URL']
     try:
         album_id = scrape_function(text)
     except NotFoundError:
@@ -108,8 +99,10 @@ def deferred_process_tags(album_id, tags):
 
 
 @delayed.queue_func
-@replace_response_url
 def deferred_process_all_album_details(response_url='DEFAULT_BOT_URL'):
+    from application import application
+    if response_url == 'DEFAULT_BOT_URL':
+        response_url = application.config['DEFAULT_BOT_URL']
     try:
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
@@ -126,20 +119,22 @@ def deferred_process_all_album_details(response_url='DEFAULT_BOT_URL'):
 
 
 @delayed.queue_func
-@replace_response_url
 def deferred_clear_cache(response_url='DEFAULT_BOT_URL'):
     from application import application
+    if response_url == 'DEFAULT_BOT_URL':
+        response_url = application.config['DEFAULT_BOT_URL']
     application.cache.clear()
     if response_url:
         requests.post(response_url, data=json.dumps({'text': 'Cache cleared'}))
 
 
 @delayed.queue_func
-@replace_response_url
 def deferred_delete(album_id, response_url='DEFAULT_BOT_URL'):
+    from application import application
+    if response_url == 'DEFAULT_BOT_URL':
+        response_url = application.config['DEFAULT_BOT_URL']
     try:
         albums_model.delete_from_list_and_albums(album_id)
-        from application import application
         application.cache.delete(f'alb-{album_id}')
     except DatabaseError as e:
         print(f'[db]: failed to delete album details for {album_id}')
@@ -203,8 +198,10 @@ def deferred_process_album_tags(album_id):
 
 
 @delayed.queue_func
-@replace_response_url
 def deferred_process_all_album_covers(response_url='DEFAULT_BOT_URL'):
+    from application import application
+    if response_url == 'DEFAULT_BOT_URL':
+        response_url = application.config['DEFAULT_BOT_URL']
     try:
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
@@ -221,8 +218,10 @@ def deferred_process_all_album_covers(response_url='DEFAULT_BOT_URL'):
 
 
 @delayed.queue_func
-@replace_response_url
 def deferred_process_all_album_tags(response_url='DEFAULT_BOT_URL'):
+    from application import application
+    if response_url == 'DEFAULT_BOT_URL':
+        response_url = application.config['DEFAULT_BOT_URL']
     try:
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
@@ -258,8 +257,10 @@ def deferred_check_album_url(album_id):
 
 
 @delayed.queue_func
-@replace_response_url
 def deferred_check_all_album_urls(response_url='DEFAULT_BOT_URL'):
+    from application import application
+    if response_url == 'DEFAULT_BOT_URL':
+        response_url = application.config['DEFAULT_BOT_URL']
     try:
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Check started...'}))
