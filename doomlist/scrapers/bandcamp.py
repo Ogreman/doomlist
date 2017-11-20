@@ -2,30 +2,7 @@ import requests
 import json
 import lxml.html as lxh
 
-
-class NotFoundError(Exception):
-    pass
-
-
-def scrape_links_from_attachments(messages):
-    for message in messages:
-        if message.get('type') == 'message':
-            for attachment in message.get('attachments', []):
-                try:
-                    yield attachment['from_url']
-                except KeyError:
-                    continue
-
-
-def scrape_links_from_text(messages):
-    for message in messages:
-        if message.get('type') == 'message':
-            text = message.get('text', '')  
-            try:
-                if 'http' in text:
-                    yield text
-            except TypeError:
-                pass
+from doomlist.scrapers import NotFoundError
 
 
 def scrape_bandcamp_album_ids_from_attachments(message):
@@ -56,7 +33,7 @@ def scrape_bandcamp_album_ids_from_url(url):
     raise NotFoundError
 
 
-def scrape_album_cover_url_from_url(url):
+def scrape_bandcamp_album_cover_url_from_url(url):
     response = requests.get(url)
     if response.ok:
         html = lxh.fromstring(response.text)
@@ -68,7 +45,7 @@ def scrape_album_cover_url_from_url(url):
     raise NotFoundError
 
 
-def scrape_tags_from_url(url):
+def scrape_bandcamp_tags_from_url(url):
     response = requests.get(url)
     if response.ok:
         html = lxh.fromstring(response.text)
@@ -92,7 +69,7 @@ def scrape_bandcamp_album_ids_from_messages(messages, do_requests=True):
                     continue
 
 
-def scrape_album_details_from_id(album_id):
+def scrape_bandcamp_album_details_from_id(album_id):
     variable_text = 'var playerdata = '
     response = requests.get('https://bandcamp.com/EmbeddedPlayer/v=2/album=%s' % album_id)
     if response.ok:
@@ -106,5 +83,3 @@ def scrape_album_details_from_id(album_id):
                 return data['album_title'], data['artist'], data['linkback']
             except (KeyError, TypeError, ValueError):
                 pass
-    return None 
-

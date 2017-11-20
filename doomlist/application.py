@@ -10,7 +10,7 @@ import csv
 import functools
 import io
 
-from doomlist.scrapers import scrapers
+from doomlist.scrapers import NotFoundError, links, bandcamp
 from doomlist.delayed import delayed
 from doomlist.models import DatabaseError
 from doomlist.models import albums as albums_model, tags as tags_model, list as list_model
@@ -153,7 +153,7 @@ def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
 def deferred_consume(text, scrape_function, callback, response_url=BOT_URL, channel='', tags=None):
     try:
         album_id = scrape_function(text)
-    except scrapers.NotFoundError:
+    except NotFoundError:
         message = None
     else:
         try:
@@ -236,7 +236,7 @@ def deferred_delete(album_id, response_url=BOT_URL):
 @delayed.queue_func
 def deferred_process_album_details(album_id, channel=''):
     try:
-        album, artist, url = scrapers.scrape_album_details_from_id(album_id)
+        album, artist, url = bandcamp.scrape_bandcamp_album_details_from_id(album_id)
         albums_model.add_to_albums(album_id, artist, album, url, channel=channel)
         deferred_process_album_cover.delay(album_id)
         deferred_process_album_tags.delay(album_id)
@@ -253,12 +253,12 @@ def deferred_process_album_details(album_id, channel=''):
 def deferred_process_album_cover(album_id):
     try:
         _, _, _, album_url, _, _, _, _ = get_cached_album_details(album_id)
-        album_cover_url = scrapers.scrape_album_cover_url_from_url(album_url)
+        album_cover_url = bandcamp.scrape_bandcamp_album_cover_url_from_url(album_url)
         albums_model.add_img_to_album(album_id, album_cover_url)
     except DatabaseError as e:
         print(f'[db]: failed to add album cover for {album_id}')
         print(f'[db]: {e}')
-    except scrapers.NotFoundError as e:
+    except NotFoundError as e:
         print(f'[scraper]: failed to find album art for {album_id}')
         print(f'[scraper]: {e}')
     except (TypeError, ValueError):
@@ -271,7 +271,7 @@ def deferred_process_album_cover(album_id):
 def deferred_process_album_tags(album_id):
     try:
         _, _, _, album_url, _, _, _, _ = get_cached_album_details(album_id)
-        tags = scrapers.scrape_tags_from_url(album_url)
+        tags = bandcamp.scrape_bandcamp_tags_from_url(album_url)
         if tags:
             deferred_process_tags.delay(album_id, tags)
     except DatabaseError as e:
@@ -383,7 +383,7 @@ def consume():
     channel = form_data.get('channel_name', 'chat')
     deferred_consume.delay(
         form_data.get('text', ''),
-        scrapers.scrape_bandcamp_album_ids_from_url,
+        bandcamp.scrape_bandcamp_album_ids_from_url,
         list_model.add_to_list,
         response_url=BOT_URL_TEMPLATE.format(channel=channel),
         channel=channel
@@ -403,7 +403,7 @@ def consume_all():
         if 'bandcamp' in url:
             deferred_consume.delay(
                 url,
-                scrapers.scrape_bandcamp_album_ids_from_url,
+                bandcamp.scrape_bandcamp_album_ids_from_url,
                 list_model.add_to_list,
                 response_url=response_url,
                 channel=channel,
@@ -469,7 +469,7 @@ def scrape():
     form_data = flask.request.form
     response = None if 'silence' in form_data else form_data.get('response_url', BOT_URL)
     deferred_scrape.delay(
-        scrapers.scrape_bandcamp_album_ids_from_messages,
+        bandcamp.scrape_bandcamp_album_ids_from_messages,
         list_model.add_many_to_list,
         response
     )
