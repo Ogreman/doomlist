@@ -1,3 +1,4 @@
+import flask
 import functools
 import json
 import requests
@@ -13,9 +14,10 @@ from doomlist.scrapers import bandcamp, links
 def replace_response_url(func):
     @functools.wraps(func)
     def wraps(*args, **kwargs):
-        if kwargs['response_url'] == 'DEFAULT_BOT_URL':
-            default_channel = flask.current_app.config['DEFAULT_CHANNEL']
-            kwargs['response_url'] = flask.current_app.config['BOT_URL_TEMPLATE'].format(channel=default_channel)
+        from application import application
+        if 'response_url' not in kwargs:
+            default_channel = application.config['DEFAULT_CHANNEL']
+            kwargs['response_url'] = application.config['BOT_URL_TEMPLATE'].format(channel=default_channel)
         return func(*args, **kwargs)
     return wraps
 
@@ -23,8 +25,9 @@ def replace_response_url(func):
 @delayed.queue_func
 @replace_response_url
 def deferred_scrape(scrape_function, callback, response_url='DEFAULT_BOT_URL'):
+    from application import application
     try:
-        slack = slacker.Slacker(flask.current_app.config['API_TOKEN'])
+        slack = slacker.Slacker(application.config['API_TOKEN'])
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Getting channel history...'}))
         response = slack.channels.history(os.environ['SLACK_CHANNEL_ID'])
@@ -125,7 +128,8 @@ def deferred_process_all_album_details(response_url='DEFAULT_BOT_URL'):
 @delayed.queue_func
 @replace_response_url
 def deferred_clear_cache(response_url='DEFAULT_BOT_URL'):
-    flask.current_app.cache.clear()
+    from application import application
+    application.cache.clear()
     if response_url:
         requests.post(response_url, data=json.dumps({'text': 'Cache cleared'}))
 
@@ -135,7 +139,8 @@ def deferred_clear_cache(response_url='DEFAULT_BOT_URL'):
 def deferred_delete(album_id, response_url='DEFAULT_BOT_URL'):
     try:
         albums_model.delete_from_list_and_albums(album_id)
-        flask.current_app.cache.delete(f'alb-{album_id}')
+        from application import application
+        application.cache.delete(f'alb-{album_id}')
     except DatabaseError as e:
         print(f'[db]: failed to delete album details for {album_id}')
         print(f'[db]: {e}')
@@ -166,7 +171,7 @@ def deferred_process_album_details(album_id, channel=''):
 @delayed.queue_func
 def deferred_process_album_cover(album_id):
     try:
-        _, _, _, album_url, _, _, _, _ = flask.current_app.get_cached_album_details(album_id)
+        _, _, _, album_url, _, _, _, _ = albums_model.get_album_details(album_id)
         album_cover_url = bandcamp.scrape_bandcamp_album_cover_url_from_url(album_url)
         albums_model.add_img_to_album(album_id, album_cover_url)
     except DatabaseError as e:
@@ -184,7 +189,7 @@ def deferred_process_album_cover(album_id):
 @delayed.queue_func
 def deferred_process_album_tags(album_id):
     try:
-        _, _, _, album_url, _, _, _, _ = flask.current_app.get_cached_album_details(album_id)
+        _, _, _, album_url, _, _, _, _ = albums_model.get_album_details(album_id)
         tags = bandcamp.scrape_bandcamp_tags_from_url(album_url)
         if tags:
             deferred_process_tags.delay(album_id, tags)
@@ -236,7 +241,7 @@ def deferred_process_all_album_tags(response_url='DEFAULT_BOT_URL'):
 @delayed.queue_func
 def deferred_check_album_url(album_id):
     try:
-        _, _, _, album_url, _, available, _, _ = flask.current_app.get_cached_album_details(album_id)
+        _, _, _, album_url, _, available, _, _ = albums_model.get_album_details(album_id)
         response = requests.head(album_url)
         if response.ok and not available:
             albums_model.update_album_availability(album_id, True)
