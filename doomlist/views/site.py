@@ -19,4 +19,4 @@ def embedded_random():
         return flask.current_app.db_error_message, 500
     except TypeError:
         return flask.current_app.not_found_message, 404
-    return flask.render_template('index.html', list_name=list_name, album_id=album_id, name=name, artist=artist, album_url=album_url)
+    return flask.render_template('index.html', list_name=site_blueprint.config['LIST_NAME'], album_id=album_id, name=name, artist=artist, album_url=album_url)
