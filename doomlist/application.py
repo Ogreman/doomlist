@@ -10,6 +10,7 @@ import csv
 import functools
 import io
 
+from doomlist import constants
 from doomlist.scrapers import NotFoundError, links, bandcamp
 from doomlist.delayed import delayed
 from doomlist.models import DatabaseError
@@ -37,10 +38,6 @@ BOT_URL_TEMPLATE = BOT_URL_TEMPLATE.format(team=SLACK_TEAM, token=SLACKBOT_TOKEN
 BOT_URL = BOT_URL_TEMPLATE.format(channel=DEFAULT_CHANNEL)
 ADMIN_IDS = app.config['ADMIN_IDS']
 APP_TOKENS = app.config['APP_TOKENS']
-URL_REGEX = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
-HASHTAG_REGEX = '#(?:[a-zA-Z]|[0-9]|[-_.+])+'
-BANDCAMP_URL_TEMPLATE = 'https://bandcamp.com/EmbeddedPlayer/album={album_id}/size=large/artwork=small'
-SLACK_AUTH_URL = 'https://slack.com/api/oauth.access?client_id={client_id}&client_secret={client_secret}&code={code}'
 
 db_error_message = '{name} error - check with admin'.format(name=LIST_NAME)
 not_found_message = 'Album not found in the {name}'.format(name=LIST_NAME)
@@ -398,8 +395,8 @@ def consume_all():
     channel = form_data.get('channel_name', 'chat')
     response_url = BOT_URL_TEMPLATE.format(channel=channel)
     contents = form_data.get('text', '')
-    tags = re.findall(HASHTAG_REGEX, contents)
-    for url in re.findall(URL_REGEX, contents):
+    tags = re.findall(constants.HASHTAG_REGEX, contents)
+    for url in links.scrape_links_from_text(contents):
         if 'bandcamp' in url:
             deferred_consume.delay(
                 url,
@@ -880,7 +877,7 @@ def api_album_by_tag(tag):
 
 @app.route('/api/bc/<album_id>', methods=['GET'])
 def api_bc(album_id):
-    return flask.redirect(BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
+    return flask.redirect(constants.BANDCAMP_URL_TEMPLATE.format(album_id=album_id), code=302)
 
 
 @app.route('/api/albums/random', methods=['GET'])
@@ -998,7 +995,7 @@ def available_urls():
 @app.route('/slack/auth', methods=['GET'])
 def auth():
     code = flask.request.args.get('code')
-    url = SLACK_AUTH_URL.format(code=code, client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
+    url = constants.SLACK_AUTH_URL.format(code=code, client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
     response = requests.get(url)
     print(f'[auth]: {response.json()}')
     return response.content, 200

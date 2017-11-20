@@ -2,7 +2,7 @@ import requests
 import json
 import lxml.html as lxh
 
-from doomlist.scrapers import NotFoundError
+from doomlist.scrapers import NotFoundError, links
 
 
 def scrape_bandcamp_album_ids_from_attachments(message):
@@ -64,7 +64,9 @@ def scrape_bandcamp_album_ids_from_messages(messages, do_requests=True):
                     yield str(album_id)
             elif do_requests:
                 try:
-                    yield str(scrape_bandcamp_album_ids_from_url(message['text']))
+                    for url in links.scrape_links_from_text(message['text']):
+                        if 'bandcamp' in url:
+                            yield str(scrape_bandcamp_album_ids_from_url(url))
                 except (ValueError, KeyError, NotFoundError):
                     continue
 

@@ -1,3 +1,8 @@
+import re
+
+from doomlist import constants
+
+
 def scrape_links_from_attachments(messages):
     for message in messages:
         if message.get('type') == 'message':
@@ -8,12 +13,5 @@ def scrape_links_from_attachments(messages):
                     continue
 
 
-def scrape_links_from_text(messages):
-    for message in messages:
-        if message.get('type') == 'message':
-            text = message.get('text', '')  
-            try:
-                if 'http' in text:
-                    yield text
-            except TypeError:
-                pass
+def scrape_links_from_text(text):
+    return [url for url in re.findall(constants.URL_REGEX, text)]
