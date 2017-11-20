@@ -24,7 +24,7 @@ def replace_response_url(func):
 @replace_response_url
 def deferred_scrape(scrape_function, callback, response_url='DEFAULT_BOT_URL'):
     try:
-        slack = slacker.Slacker(API_TOKEN)
+        slack = slacker.Slacker(flask.current_app.config['API_TOKEN'])
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Getting channel history...'}))
         response = slack.channels.history(os.environ['SLACK_CHANNEL_ID'])
