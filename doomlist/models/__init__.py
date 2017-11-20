@@ -33,4 +33,3 @@ def add_column(table, col, col_type):
             conn.commit()
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
-

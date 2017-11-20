@@ -1,2 +1,2 @@
-web: gunicorn doomlist.application:app --log-file=-
+web: gunicorn application:application --log-file=-
 worker: python daemon_bot.py
