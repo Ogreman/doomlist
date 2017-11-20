@@ -198,7 +198,7 @@ def deferred_process_all_album_details(response_url=BOT_URL):
     try:
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
-        for album_id in albms.check_for_new_albums():
+        for album_id in albums_model.check_for_new_albums():
             deferred_process_album_details.delay(album_id)
     except DatabaseError as e:
         print('[db]: failed to check for new album details')
