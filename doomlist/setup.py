@@ -51,8 +51,6 @@ def create_app():
     BOT_URL_TEMPLATE = app.config['BOT_URL_TEMPLATE']
     DEFAULT_CHANNEL = app.config['DEFAULT_CHANNEL']
     SLACKBOT_TOKEN = app.config['SLACKBOT_TOKEN']
-    BOT_URL_TEMPLATE = BOT_URL_TEMPLATE.format(team=SLACK_TEAM, token=SLACKBOT_TOKEN, channel='{channel}')
-    BOT_URL = BOT_URL_TEMPLATE.format(channel=DEFAULT_CHANNEL)
     ADMIN_IDS = app.config['ADMIN_IDS']
     APP_TOKENS = app.config['APP_TOKENS']
 

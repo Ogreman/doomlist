@@ -20,8 +20,8 @@ slack_blueprint = flask.Blueprint(name='slack',
 
 @slack_blueprint.before_request
 def before_request():
-    print('slack request')
-    if flask.request.form.get('token', '') in slack_blueprint.config['APP_TOKENS'] or slack_blueprint.config['DEBUG']:
+    print('[web]: slack request')
+    if flask.request.form.get('token', '') not in slack_blueprint.config['APP_TOKENS']:
         print('[access]: failed slack-check test')
         flask.abort(403)
 
@@ -35,7 +35,7 @@ def admin_only(func):
         if flask.request.form.get('user_id', '') in slack_blueprint.config['ADMIN_IDS'] or slack_blueprint.config['DEBUG']:
             return func(*args, **kwargs)
         print('[access]: failed admin-only test')
-        return '', 403
+        flask.abort(403)
     return wraps
 
 
@@ -48,7 +48,7 @@ def not_bots(func):
         if 'bot_id' not in flask.request.form:
             return func(*args, **kwargs)
         print('[access]: failed not-bot test')
-        return '', 403
+        flask.abort(403)
     return wraps
 
 
