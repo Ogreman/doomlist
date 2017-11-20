@@ -129,6 +129,8 @@ def deferred_scrape(scrape_function, callback, response_url=BOT_URL):
             try:    
                 if album_ids:
                     callback(album_ids)
+                    print(f'[scraper]: {len(album_ids)} new albums found and added to the list')
+                    deferred_process_all_album_details.delay(None)
             except DatabaseError as e:
                 message = 'failed to update list'
                 print(f'[db]: failed to perform {callback.__name__}')
