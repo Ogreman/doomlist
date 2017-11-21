@@ -15,39 +15,36 @@ def deferred_scrape(scrape_function, callback, response_url='DEFAULT_BOT_URL'):
     if response_url == 'DEFAULT_BOT_URL':
         response_url = flask.current_app.config['DEFAULT_BOT_URL']
     try:
-        slack = slacker.Slacker(flask.current_app.config['API_TOKEN'])
+        slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Getting channel history...'}))
         response = slack.channels.history(os.environ['SLACK_CHANNEL_ID'])
-    except (KeyError, slacker.Error):
+    except (KeyError, slacker.Error) as e:
         message = 'There was an error accessing the Slack API'
-    else:
-        if response.successful:
-            messages = response.body.get('messages', [])
-            if response_url:
-                requests.post(response_url, data=json.dumps({'text': 'Scraping...'}))
-            results = scrape_function(messages)
-            album_ids = list_model.check_for_new_list_ids(results)
-            try:    
-                if album_ids:
-                    callback(album_ids)
-                    print(f'[scraper]: {len(album_ids)} new albums found and added to the list')
-                    deferred_process_all_album_details.delay(None)
-            except DatabaseError as e:
-                message = 'failed to update list'
-                print(f'[db]: failed to perform {callback.__name__}')
-                print(f'[db]: {e}')
-            else:
-                message = 'Finished checking for new albums: %d found.' % (len(album_ids), )
+        if response_url:
+            requests.post(response_url, data=json.dumps({'text': message}))
+        raise e
+    if response.successful:
+        messages = response.body.get('messages', [])
+        if response_url:
+            requests.post(response_url, data=json.dumps({'text': 'Scraping...'}))
+        results = scrape_function(messages)
+        album_ids = list_model.check_for_new_list_ids(results)
+        try:
+            if album_ids:
+                callback(album_ids)
+                print(f'[scraper]: {len(album_ids)} new albums found and added to the list')
+                deferred_process_all_album_details.delay(None)
+        except DatabaseError as e:
+            message = 'failed to update list'
+            print(f'[db]: failed to perform {callback.__name__}')
+            print(f'[db]: {e}')
         else:
-            message = 'failed to get channel history'
+            message = 'Finished checking for new albums: %d found.' % (len(album_ids), )
+    else:
+        message = 'failed to get channel history'
     if response_url:
-        requests.post(
-            response_url,
-            data=json.dumps(
-                {'text': message}
-            )
-        )
+        requests.post(response_url, data=json.dumps({'text': message}))
 
 
 @delayed.queue_func
