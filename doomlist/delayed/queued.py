@@ -11,14 +11,14 @@ from doomlist.scrapers import bandcamp, links
 
 
 @delayed.queue_func
-def deferred_scrape(scrape_function, callback, response_url='DEFAULT_BOT_URL'):
+def deferred_scrape(scrape_function, callback, channel=None, response_url='DEFAULT_BOT_URL'):
     if response_url == 'DEFAULT_BOT_URL':
         response_url = flask.current_app.config['DEFAULT_BOT_URL']
     try:
         slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Getting channel history...'}))
-        response = slack.channels.history(flask.current_app.config['SCRAPE_CHANNEL_ID'])
+        response = slack.channels.history(channel or flask.current_app.config['SCRAPE_CHANNEL_ID'])
     except (KeyError, slacker.Error) as e:
         message = 'There was an error accessing the Slack API'
         if response_url:

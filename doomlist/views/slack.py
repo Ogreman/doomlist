@@ -174,16 +174,26 @@ def clear_cache():
 @slack_check
 @admin_only
 def scrape():
-    # TODO: scrape by channel
     form_data = flask.request.form
     default_channel = slack_blueprint.config['DEFAULT_CHANNEL']
     response_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=default_channel)
     response = None if 'silence' in form_data else form_data.get('response_url', response_url)
-    queued.deferred_scrape.delay(
-        bandcamp.scrape_bandcamp_album_ids_from_messages,
-        list_model.add_many_to_list,
-        response
-    )
+    contents = form_data.get('text', '')
+    channels = re.findall(constants.SLACK_CHANNEL_REGEX, contents)
+    if channels:
+        for channel in channels:
+            queued.deferred_scrape.delay(
+                bandcamp.scrape_bandcamp_album_ids_from_messages,
+                list_model.add_many_to_list,
+                channel,
+                response
+            )
+    else:
+        queued.deferred_scrape.delay(
+            bandcamp.scrape_bandcamp_album_ids_from_messages,
+            list_model.add_many_to_list,
+            response
+        )
     return 'Scrape request sent', 200
 
 
