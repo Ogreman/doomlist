@@ -10,25 +10,25 @@ import csv
 import functools
 import io
 
-from doomlist import constants
-from doomlist.scrapers import NotFoundError, links, bandcamp
-from doomlist.models import DatabaseError
-from doomlist.models import albums as albums_model, tags as tags_model, list as list_model
+from albumlist import constants
+from albumlist.scrapers import NotFoundError, links, bandcamp
+from albumlist.models import DatabaseError
+from albumlist.models import albums as albums_model, tags as tags_model, list as list_model
 
 from flask_cacheify import init_cacheify
 from pathlib import Path
 
 
 def add_blueprints(application):
-    from doomlist.views.api import api_blueprint
+    from albumlist.views.api import api_blueprint
     application.register_blueprint(api_blueprint)
     api_blueprint.config = application.config.copy()
 
-    from doomlist.views.site import site_blueprint
+    from albumlist.views.site import site_blueprint
     application.register_blueprint(site_blueprint)
     site_blueprint.config = application.config.copy()
 
-    from doomlist.views.slack import slack_blueprint
+    from albumlist.views.slack import slack_blueprint
     application.register_blueprint(slack_blueprint)
     slack_blueprint.config = application.config.copy()
 

@@ -1,6 +1,6 @@
 import re
 
-from doomlist import constants
+from albumlist import constants
 
 
 def scrape_links_from_attachments(messages):

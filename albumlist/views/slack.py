@@ -5,12 +5,12 @@ import re
 import requests
 import slacker
 
-from doomlist import constants
-from doomlist.delayed import queued
-from doomlist.models import DatabaseError
-from doomlist.models import albums as albums_model, tags as tags_model, list as list_model
-from doomlist.scrapers import bandcamp, links
-from doomlist.views import build_album_details
+from albumlist import constants
+from albumlist.delayed import queued
+from albumlist.models import DatabaseError
+from albumlist.models import albums as albums_model, tags as tags_model, list as list_model
+from albumlist.scrapers import bandcamp, links
+from albumlist.views import build_album_details
 
 
 slack_blueprint = flask.Blueprint(name='slack',

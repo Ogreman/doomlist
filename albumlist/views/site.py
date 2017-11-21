@@ -1,7 +1,7 @@
 import flask
 
-from doomlist.models import DatabaseError
-from doomlist.models import albums as albums_model
+from albumlist.models import DatabaseError
+from albumlist.models import albums as albums_model
 
 
 site_blueprint = flask.Blueprint(name='site',

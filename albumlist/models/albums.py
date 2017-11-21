@@ -2,8 +2,8 @@ from contextlib import closing
 
 import psycopg2
 
-from doomlist.models import DatabaseError, get_connection
-from doomlist.models.list import get_list
+from albumlist.models import DatabaseError, get_connection
+from albumlist.models.list import get_list
 
 
 def create_albums_table():

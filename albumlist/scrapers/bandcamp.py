@@ -2,7 +2,7 @@ import requests
 import json
 import lxml.html as lxh
 
-from doomlist.scrapers import NotFoundError, links
+from albumlist.scrapers import NotFoundError, links
 
 
 def scrape_bandcamp_album_ids_from_attachments(message):

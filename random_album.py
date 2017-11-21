@@ -1,12 +1,12 @@
 import os
 import requests
 
-from doomlist import delayed
+from albumlist import delayed
 
 
-message = 'Today\'s album of the day from the Doomlist is: {url}'
+message = f'Today\'s album of the day from the {os.environ.get('LIST_NAME')} is: {url}'
 error_message = 'Odd... Something went wrong.'
-url = 'https://doomlist.herokuapp.com/slack/random'
+url = f'https://{os.environ.get('LIST_NAME')}.herokuapp.com/slack/random'
 data = {'token': os.environ.get('SLACK_APP_TOKEN')} 
 channel = "C0A8M8B9Q" # announcements
 

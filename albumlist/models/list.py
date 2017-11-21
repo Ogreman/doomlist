@@ -3,7 +3,7 @@ from contextlib import closing
 
 import psycopg2
 
-from doomlist.models import DatabaseError, get_connection
+from albumlist.models import DatabaseError, get_connection
 
 
 def create_list_table():

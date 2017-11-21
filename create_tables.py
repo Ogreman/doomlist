@@ -1,7 +1,7 @@
-from doomlist.models import DatabaseError
-from doomlist.models.albums import create_albums_table, create_albums_index
-from doomlist.models.list import create_list_table
-from doomlist.models.tags import create_tags_table, create_album_tags_table
+from albumlist.models import DatabaseError
+from albumlist.models.albums import create_albums_table, create_albums_index
+from albumlist.models.list import create_list_table
+from albumlist.models.tags import create_tags_table, create_album_tags_table
 
 
 if __name__ == '__main__':

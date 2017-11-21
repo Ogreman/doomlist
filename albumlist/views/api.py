@@ -3,10 +3,10 @@ import flask
 import functools
 import io
 
-from doomlist import constants
-from doomlist.models import DatabaseError
-from doomlist.models import albums as albums_model, tags as tags_model, list as list_model
-from doomlist.views import build_album_details
+from albumlist import constants
+from albumlist.models import DatabaseError
+from albumlist.models import albums as albums_model, tags as tags_model, list as list_model
+from albumlist.views import build_album_details
 
 
 api_blueprint = flask.Blueprint(name='api',
