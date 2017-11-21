@@ -9,6 +9,8 @@ redis_connection = redis.from_url(os.environ['REDIS_URL'])
 
 
 def queue_daemon(queue, rv_ttl=500):
+    from application import application
+
     while 1:
         print('[daemon]: waiting for instruction...')
         msg = redis_connection.blpop(queue)
@@ -23,8 +25,9 @@ def queue_daemon(queue, rv_ttl=500):
         else:
             try:
                 print(f'[daemon]: calling {func.__name__}')
-                rv = func(*args, **kwargs)
-                print('[daemon]: complete!')
+                with application.app_context():
+                    rv = func(*args, **kwargs)
+                    print('[daemon]: complete!')
             except Exception as e:
                 print(f'[daemon]: {e}')
                 rv = e
