@@ -39,6 +39,7 @@ def create_app():
     app = flask.Flask(__name__, template_folder=TEMPLATE_DIR)
     app.config.from_object(os.environ['APP_SETTINGS'])
 
+    # check required config variables
     LIST_NAME = app.config['LIST_NAME']
     API_TOKEN = app.config['SLACK_API_TOKEN']
     CLIENT_ID = app.config['SLACK_CLIENT_ID']
@@ -49,6 +50,7 @@ def create_app():
     SLACKBOT_TOKEN = app.config['SLACKBOT_TOKEN']
     ADMIN_IDS = app.config['ADMIN_IDS']
     APP_TOKENS = app.config['APP_TOKENS']
+    SCRAPE_CHANNEL_ID = app.config['SCRAPE_CHANNEL_ID']
 
     app.config['BOT_URL_TEMPLATE'] = BOT_URL_TEMPLATE.format(team=SLACK_TEAM, token=SLACKBOT_TOKEN, channel='{channel}')
     app.config['DEFAULT_BOT_URL'] = app.config['BOT_URL_TEMPLATE'].format(channel=DEFAULT_CHANNEL)

@@ -12,6 +12,7 @@ class Config(object):
     SLACKBOT_TOKEN = os.environ.get('SLACKBOT_TOKEN')
     BOT_URL_TEMPLATE = os.environ.get('BOT_URL_TEMPLATE')
     DEFAULT_CHANNEL = os.environ.get('DEFAULT_CHANNEL')
+    SCRAPE_CHANNEL_ID = os.environ.get('SCRAPE_CHANNEL_ID')
     APP_TOKENS = [
         token for key, token in os.environ.items()
         if key.startswith('APP_TOKEN')

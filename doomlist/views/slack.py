@@ -174,6 +174,7 @@ def clear_cache():
 @slack_check
 @admin_only
 def scrape():
+    # TODO: scrape by channel
     form_data = flask.request.form
     default_channel = slack_blueprint.config['DEFAULT_CHANNEL']
     response_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=default_channel)

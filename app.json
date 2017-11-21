@@ -68,7 +68,7 @@
         "description": "The Slack app's client secret for validating authentication when adding to a Slack team.",
         "value": "CHANGE_ME"
     },
-    "SLACK_CHANNEL_ID": {
+    "SCRAPE_CHANNEL_ID": {
         "description": "The channel to scrape with the API for new albums when using doing a full scrape.",
         "value": "CHANGE_ME",
         "required": false
