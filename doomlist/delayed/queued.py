@@ -11,15 +11,14 @@ from doomlist.scrapers import bandcamp, links
 
 
 @delayed.queue_func
-def deferred_scrape(scrape_function, callback, channel=None, response_url='DEFAULT_BOT_URL'):
+def deferred_scrape(scrape_function, callback, channel_id, channel_name=None, response_url='DEFAULT_BOT_URL'):
     if response_url == 'DEFAULT_BOT_URL':
         response_url = flask.current_app.config['DEFAULT_BOT_URL']
     try:
         slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
-        channel = channel or flask.current_app.config['SCRAPE_CHANNEL_ID']
         if response_url:
-            requests.post(response_url, data=json.dumps({'text': f'Getting channel history for {channel}...'}))
-        response = slack.channels.history(channel)
+            requests.post(response_url, data=json.dumps({'text': f'Getting channel history for {channel_name or channel_id}...'}))
+        response = slack.channels.history(channel_id)
     except (KeyError, slacker.Error) as e:
         message = 'There was an error accessing the Slack API'
         if response_url:
@@ -28,7 +27,7 @@ def deferred_scrape(scrape_function, callback, channel=None, response_url='DEFAU
     if response.successful:
         messages = response.body.get('messages', [])
         if response_url:
-            requests.post(response_url, data=json.dumps({'text': 'Scraping...'}))
+            requests.post(response_url, data=json.dumps({'text': f'Scraping {channel_name or channel_id}...'}))
         results = scrape_function(messages)
         album_ids = list_model.check_for_new_list_ids(results)
         try:
@@ -41,9 +40,9 @@ def deferred_scrape(scrape_function, callback, channel=None, response_url='DEFAU
             print(f'[db]: failed to perform {callback.__name__}')
             print(f'[db]: {e}')
         else:
-            message = 'Finished checking for new albums: %d found.' % (len(album_ids), )
+            message = f'Finished checking for new albums: {len(album_ids)} found in {channel_name or channel_id}'
     else:
-        message = 'failed to get channel history'
+        message = f'failed to get channel history for {channel_name or channel_id}'
     if response_url:
         requests.post(response_url, data=json.dumps({'text': message}))
 

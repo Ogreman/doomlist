@@ -179,24 +179,26 @@ def scrape():
     response_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=default_channel)
     response = None if 'silence' in form_data else form_data.get('response_url', response_url)
     contents = form_data.get('text', '')
-    print(f'[debug]: command contents: {contents}')
     channels = re.findall(constants.SLACK_CHANNEL_REGEX, contents)
-    print(f'[debug]: channels found: {channels or None}')
     if channels:
-        for channel in channels:
+        for channel_id, channel_name in channels:
             queued.deferred_scrape.delay(
                 bandcamp.scrape_bandcamp_album_ids_from_messages,
                 list_model.add_many_to_list,
-                channel,
+                channel_id,
+                channel_name,
                 response
             )
+            print(f'[slack]: scrape request sent for #{channel_name}')
     else:
         queued.deferred_scrape.delay(
             bandcamp.scrape_bandcamp_album_ids_from_messages,
             list_model.add_many_to_list,
-            response
+            flask.current_app.config['SCRAPE_CHANNEL_ID'],
+            response_url=response
         )
-    return 'Scrape request sent', 200
+        print('[slack]: scrape request sent for default channel')
+    return 'Scrape request(s) sent', 200
 
 
 @slack_blueprint.route('/check', methods=['POST'])
