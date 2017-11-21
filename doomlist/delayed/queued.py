@@ -16,9 +16,10 @@ def deferred_scrape(scrape_function, callback, channel=None, response_url='DEFAU
         response_url = flask.current_app.config['DEFAULT_BOT_URL']
     try:
         slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
+        channel = channel or flask.current_app.config['SCRAPE_CHANNEL_ID']
         if response_url:
-            requests.post(response_url, data=json.dumps({'text': 'Getting channel history...'}))
-        response = slack.channels.history(channel or flask.current_app.config['SCRAPE_CHANNEL_ID'])
+            requests.post(response_url, data=json.dumps({'text': f'Getting channel history for {channel}...'}))
+        response = slack.channels.history(channel)
     except (KeyError, slacker.Error) as e:
         message = 'There was an error accessing the Slack API'
         if response_url:

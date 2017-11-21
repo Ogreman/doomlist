@@ -179,7 +179,9 @@ def scrape():
     response_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=default_channel)
     response = None if 'silence' in form_data else form_data.get('response_url', response_url)
     contents = form_data.get('text', '')
+    print(f'[debug]: command contents: {contents}')
     channels = re.findall(constants.SLACK_CHANNEL_REGEX, contents)
+    print(f'[debug]: channels found: {channels or None}')
     if channels:
         for channel in channels:
             queued.deferred_scrape.delay(
