@@ -5,7 +5,10 @@ import redis
 import pickle
 
 
-redis_connection = redis.from_url(os.environ['REDIS_URL'])
+if 'REDIS_HOST' in os.environ:
+    redis_connection = redis.Redis(host=os.environ['REDIS_HOST'], port=os.environ.get('REDIS_PORT', 6379))
+else:
+    redis_connection = redis.from_url(os.environ['REDIS_URL'])
 
 
 def queue_daemon(queue, rv_ttl=500):

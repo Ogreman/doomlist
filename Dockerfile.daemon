@@ -12,6 +12,4 @@ COPY Pipfile.lock Pipfile.lock
 
 RUN pipenv install --deploy --system
 
-ENTRYPOINT ["python", "daemon_bot.py"]
-
 COPY . /usr/src/app

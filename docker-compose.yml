@@ -1,0 +1,46 @@
+version: '2'
+
+services:
+
+  albumlist:
+    build: .
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
+    command: ./docker-entrypoint.sh
+    ports:
+      - "5000:5000"
+    links:
+      - redis
+      - db
+
+  daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile.daemon
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - PYTHONUNBUFFERED=0
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
+    command: python -u daemon_bot.py
+    links:
+      - redis
+      - db
+
+  redis:
+    image: redis
+
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5433:5432"
