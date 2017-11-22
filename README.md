@@ -10,7 +10,7 @@ You can deploy this app yourself to [Heroku](https://heroku.com/) to play with -
 
 ## Running services locally
 
-Using [[Docker Compose](https://docs.docker.com/compose/install/):
+Using [Docker Compose](https://docs.docker.com/compose/install/):
 
 ```
 # create a local .env file to be consumed by the daemon and albumlist
@@ -69,5 +69,6 @@ NB: pipenv will try to use pyenv to install a missing version of Python specifie
 
 Run commands within the new virtual environment with:
 ```
+pipenv run python create_tables.py
 pipenv run python run.py
 ```
