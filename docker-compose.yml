@@ -11,7 +11,7 @@ services:
       - APP_SETTINGS=config.StagingConfig
       - MEMCACHIER_SERVERS=memcached
       - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
-    command: ./docker-entrypoint.sh
+      - PORT=5000
     ports:
       - "5000:5000"
     links:
@@ -31,7 +31,6 @@ services:
       - APP_SETTINGS=config.StagingConfig
       - MEMCACHIER_SERVERS=memcached
       - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
-    command: python -u daemon_bot.py
     links:
       - redis
       - db

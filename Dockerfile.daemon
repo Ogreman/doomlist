@@ -12,4 +12,6 @@ COPY Pipfile.lock Pipfile.lock
 
 RUN pipenv install --deploy --system
 
+CMD ["python", "-u", "daemon_bot.py"]
+
 COPY . /usr/src/app

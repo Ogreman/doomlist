@@ -1,2 +1,2 @@
 #!/bin/bash
-gunicorn -b 0.0.0.0:5000 application:application --log-file=-
+gunicorn -b 0.0.0.0:$PORT application:application --log-file=-

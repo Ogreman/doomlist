@@ -14,4 +14,6 @@ RUN pipenv install --deploy --system
 
 EXPOSE 5000
 
+CMD ["sh", "docker-entrypoint.sh"]
+
 COPY . /usr/src/app
