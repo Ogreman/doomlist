@@ -34,7 +34,7 @@ class ProductionConfig(Config):
 class StagingConfig(Config):
     DEVELOPMENT = True
     DEBUG = True
-    CACHE_TYPE = "simple"
+    CACHE_TYPE = "memcached"
 
 
 class DevelopmentConfig(Config):

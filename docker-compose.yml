@@ -8,6 +8,8 @@ services:
       - .env
     environment:
       - REDIS_HOST=redis
+      - APP_SETTINGS=config.StagingConfig
+      - MEMCACHIER_SERVERS=memcached
       - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
     command: ./docker-entrypoint.sh
     ports:
@@ -15,6 +17,7 @@ services:
     links:
       - redis
       - db
+      - memcached
 
   daemon:
     build:
@@ -25,11 +28,14 @@ services:
     environment:
       - REDIS_HOST=redis
       - PYTHONUNBUFFERED=0
+      - APP_SETTINGS=config.StagingConfig
+      - MEMCACHIER_SERVERS=memcached
       - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
     command: python -u daemon_bot.py
     links:
       - redis
       - db
+      - memcached
 
   redis:
     image: redis
@@ -44,3 +50,8 @@ services:
       POSTGRES_DB: postgres
     ports:
       - "5433:5432"
+
+  memcached:
+    image: memcached
+    ports:
+      - "11211:11211"
