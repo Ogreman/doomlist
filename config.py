@@ -28,13 +28,15 @@ class Config(object):
 
 class ProductionConfig(Config):
     DEBUG = False
-    CACHE_TYPE = "memcached"
+    CACHE_TYPE = "redis"
+    CACHE_REDIS_URL = os.environ.get('REDIS_URL')
 
 
 class StagingConfig(Config):
     DEVELOPMENT = True
     DEBUG = True
-    CACHE_TYPE = "memcached"
+    CACHE_TYPE = "redis"
+    CACHE_REDIS_URL = os.environ.get('REDIS_URL')
 
 
 class DevelopmentConfig(Config):

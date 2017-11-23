@@ -3,7 +3,9 @@ version: '2'
 services:
 
   albumlist:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.web
     env_file:
       - .env
     environment:
@@ -22,7 +24,7 @@ services:
   daemon:
     build:
       context: .
-      dockerfile: Dockerfile.daemon
+      dockerfile: Dockerfile.worker
     env_file:
       - .env
     environment:

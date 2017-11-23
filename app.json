@@ -94,9 +94,6 @@
       "options": {
         "version": "9.5"
       }
-    },
-    {
-      "plan": "memcachier:dev"
     }
   ]
 }
