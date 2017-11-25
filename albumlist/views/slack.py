@@ -348,7 +348,7 @@ def build_search_response(details):
         text += f' (but we can only show you {max_attachments})'
 
     return {
-        'text': results,
+        'text': text,
         'attachments': attachments[:max_attachments],
     }
 
