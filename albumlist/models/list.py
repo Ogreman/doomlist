@@ -42,6 +42,8 @@ def add_to_list(album_id):
             cur = conn.cursor()
             cur.execute('INSERT INTO list (album) VALUES (%s)', (album_id,))
             conn.commit()
+        except psycopg2.IntegrityError:
+            raise DatabaseError(f'list item {album_id} already exists')
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 

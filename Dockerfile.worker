@@ -4,14 +4,9 @@ RUN apt-get update && apt-get install -y libmemcached-dev
 
 RUN pip install -U pipenv==8.3.2
 
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
-
-COPY Pipfile Pipfile
-COPY Pipfile.lock Pipfile.lock
+ADD . /code
+WORKDIR /code
 
 RUN pipenv install --deploy --system
 
 CMD ["python", "-u", "daemon_bot.py"]
-
-COPY . /usr/src/app

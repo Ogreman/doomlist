@@ -458,3 +458,16 @@ def auth():
     response = requests.get(url)
     print(f'[auth]: {response.json()}')
     return response.content, 200
+
+
+@slack_blueprint.route('/restore_from_url', methods=['POST'])
+@slack_check
+@admin_only
+def restore_albums():
+    contents = flask.request.form.get('text', '')
+    try:
+        url = links.scrape_links_from_text(contents)[0]
+    except IndexError:
+        return '', 401
+    queued.deferred_fetch_and_restore.delay(url)
+    return 'Restoring...', 200

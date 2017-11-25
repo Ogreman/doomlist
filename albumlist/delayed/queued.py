@@ -1,4 +1,6 @@
+import csv
 import flask
+import io
 import json
 import requests
 import slacker
@@ -156,6 +158,28 @@ def deferred_process_album_details(album_id, channel=''):
 
 
 @delayed.queue_func
+def deferred_add_new_album_details(album_id, album, artist, url, img='', available=True, channel='', added='', tags=None):
+    try:
+        if album_id not in list_model.get_list():
+            list_model.add_to_list(album_id)
+        albums_model.add_to_albums(album_id, artist=artist, name=album, url=url, img=img, channel=channel)
+        if added:
+            albums_model.update_album_added(album_id, added)
+        if not img:
+            deferred_process_album_cover.delay(album_id)
+        if tags is not None:
+            deferred_process_tags.delay(album_id, tags)
+        else:
+            deferred_process_album_tags.delay(album_id)
+        deferred_check_album_url.delay(album_id)
+    except DatabaseError as e:
+        print(f'[db]: failed to add new album details for [{album_id}] {album} by {artist}')
+        print(f'[db]: {e}')
+    else:
+        print(f'[db]: added new album details for [{album_id}] {album} by {artist}')
+
+
+@delayed.queue_func
 def deferred_process_album_cover(album_id):
     try:
         _, _, _, album_url, _, _, _, _ = albums_model.get_album_details(album_id)
@@ -263,3 +287,16 @@ def deferred_check_all_album_urls(response_url='DEFAULT_BOT_URL'):
         message = 'Finished checking all album URLs'
     if response_url:
         requests.post(response_url, data=json.dumps({'text': message}))
+
+
+@delayed.queue_func
+def deferred_fetch_and_restore(url_to_csv):
+    response = requests.get(url_to_csv)
+    if response.ok and csv.Sniffer().has_header(response.text):
+        f = io.StringIO(response.text)
+        reader = csv.reader(f)
+        _ = next(reader) # skip header
+        for album_details in reader:
+            deferred_add_new_album_details.delay(*tuple(album_details))
+    else:
+        print('[restore]: failed to get csv')

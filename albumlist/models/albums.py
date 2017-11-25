@@ -197,6 +197,8 @@ def add_to_albums(album_id, artist, name, url, img='', channel=''):
             cur = conn.cursor()
             cur.execute(sql, (album_id, artist, name, url, img, channel, True))
             conn.commit()
+        except psycopg2.IntegrityError:
+            raise DatabaseError(f'album {album_id} already exists')
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
@@ -259,6 +261,21 @@ def update_album_availability(album_id, status):
                 """
             cur = conn.cursor()
             cur.execute(sql, (bool(status), album_id))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
+def update_album_added(album_id, added):
+    with closing(get_connection()) as conn:
+        try:
+            sql = """
+                UPDATE albums
+                SET added = %s
+                WHERE id = %s;
+                """
+            cur = conn.cursor()
+            cur.execute(sql, (added, album_id))
             conn.commit()
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
