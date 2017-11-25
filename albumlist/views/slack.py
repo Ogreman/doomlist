@@ -342,9 +342,14 @@ def build_search_response(details):
         }
         attachments.append(attachment)
 
+    max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
+    text = f'Your search returned {len(details)} results'
+    if len(details) > max_attachments:
+        text += f' (but we can only show you {max_attachments})'
+
     return {
-        'text': f'Your search returned {len(details)} results',
-        'attachments': attachments,
+        'text': results,
+        'attachments': attachments[:max_attachments],
     }
 
 
@@ -365,7 +370,7 @@ def search():
                 return 'failed to perform search', 500
             else:
                 response = build_search_response(details)
-                flask.current_app.cache.set(f'q-{query}', response, 60 * 15)
+                flask.current_app.cache.set(f'q-{query}', response, 60 * 5)
         return flask.jsonify(response), 200
     return '', 200
 
@@ -417,7 +422,7 @@ def button():
                     return 'failed to perform search', 500
                 else:
                     search_response = build_search_response(details)
-                    flask.current_app.cache.set(f't-{query}', search_response, 60 * 15)
+                    flask.current_app.cache.set(f't-{query}', search_response, 60 * 5)
             response = {
                 'response_type': 'ephemeral',
                 'text': f'Your #{query} results',
