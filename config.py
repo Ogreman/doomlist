@@ -24,7 +24,7 @@ class Config(object):
     SLACK_CLIENT_ID = os.environ.get('SLACK_CLIENT_ID')
     SLACK_CLIENT_SECRET = os.environ.get('SLACK_CLIENT_SECRET')
     LIST_NAME = os.environ.get('LIST_NAME', 'Albumlist')
-    SLACK_MAX_ATTACHMENTS = os.environ.get('SLACK_MAX_ATTACHMENTS', 100)
+    SLACK_MAX_ATTACHMENTS = int(os.environ.get('SLACK_MAX_ATTACHMENTS', 100))
 
 
 class ProductionConfig(Config):
