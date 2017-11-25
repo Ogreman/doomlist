@@ -357,7 +357,7 @@ def build_search_response(details):
 @slack_check
 def search():
     form_data = flask.request.form
-    query = form_data.get('text')
+    query = form_data.get('text').lower()
     if query:
         response = flask.current_app.cache.get(f'q-{query}')
         if not response:
@@ -379,7 +379,7 @@ def search():
 @slack_check
 def search_tags():
     form_data = flask.request.form
-    query = form_data.get('text')
+    query = form_data.get('text').lower()
     if query:
         response = flask.current_app.cache.get(f't-{query}')
         if not response:
@@ -410,7 +410,7 @@ def button():
     try:
         action = form_data['actions'][0]
         if 'tag' in action['name']:
-            query = action['value']
+            query = action['value'].lower()
             search_response = flask.current_app.cache.get(f't-{query}')
             if not search_response:
                 func = functools.partial(albums_model.search_albums_by_tag, query)

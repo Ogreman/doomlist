@@ -321,7 +321,7 @@ def search_albums(query):
         OR id IN (
             SELECT album
             FROM album_tags
-            WHERE tag LIKE %s
+            WHERE LOWER(tag) LIKE %s
         )
         AND available = true;
         """
@@ -343,7 +343,7 @@ def search_albums_by_tag(query):
         WHERE id IN (
             SELECT album
             FROM album_tags
-            WHERE tag LIKE %s
+            WHERE LOWER(tag) LIKE %s
         )
         AND available = true;
         """
