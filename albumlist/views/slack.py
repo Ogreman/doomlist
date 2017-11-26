@@ -86,12 +86,10 @@ def spoiler():
 def consume():
     form_data = flask.request.form
     channel = form_data.get('channel_name', 'chat')
-    bot_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=channel)
     queued.deferred_consume.delay(
         form_data.get('text', ''),
         bandcamp.scrape_bandcamp_album_ids_from_url,
         list_model.add_to_list,
-        response_url=bot_url,
         channel=channel
     )
     return '', 200
@@ -102,7 +100,6 @@ def consume():
 def consume_all():
     form_data = flask.request.form
     channel = form_data.get('channel_name', 'chat')
-    bot_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=channel)
     contents = form_data.get('text', '')
     tags = re.findall(constants.HASHTAG_REGEX, contents)
     for url in links.scrape_links_from_text(contents):
@@ -111,7 +108,6 @@ def consume_all():
                 url,
                 bandcamp.scrape_bandcamp_album_ids_from_url,
                 list_model.add_to_list,
-                response_url=bot_url,
                 channel=channel,
                 tags=tags
             )
@@ -434,7 +430,7 @@ def button():
         elif 'album' in action['name']:
             url = action['value']
             user = form_data['user']['name']
-            message = f'{user} posted {url} from the {LIST_NAME}'
+            message = f"{user} posted {url} from the {slack_blueprint.config['LIST_NAME']}"
             response = {
                 'response_type': 'in_channel',
                 'text': message,
@@ -495,7 +491,6 @@ def events_handler():
                             link['url'],
                             bandcamp.scrape_bandcamp_album_ids_from_url,
                             list_model.add_to_list,
-                            response_url=None,
                         )
 
         except KeyError:
