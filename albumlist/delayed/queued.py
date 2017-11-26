@@ -76,7 +76,7 @@ def deferred_consume(text, scrape_function, callback, channel='', tags=None):
             print(f'[db]: {e}')
     if channel and message is not None:
         slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
-        slack.chat.post_message(f'#{channel}', message)
+        slack.chat.post_message(f'{channel}', message)
 
 
 @delayed.queue_func
@@ -158,7 +158,7 @@ def deferred_process_album_details(album_id, channel=''):
         print(f'[scraper]: {message}')
     if channel and message:
         slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
-        slack.chat.post_message(f'#{channel}', f':full_moon_with_face: {message}')
+        slack.chat.post_message(f'{channel}', f':full_moon_with_face: {message}')
 
 
 @delayed.queue_func

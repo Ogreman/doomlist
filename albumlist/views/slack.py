@@ -90,7 +90,7 @@ def consume():
         form_data.get('text', ''),
         bandcamp.scrape_bandcamp_album_ids_from_url,
         list_model.add_to_list,
-        channel=channel
+        channel=f'#{channel}'
     )
     return '', 200
 
@@ -108,7 +108,7 @@ def consume_all():
                 url,
                 bandcamp.scrape_bandcamp_album_ids_from_url,
                 list_model.add_to_list,
-                channel=channel,
+                channel=f'#{channel}',
                 tags=tags
             )
         elif 'youtube' in url or 'youtu.be' in url:
@@ -485,12 +485,14 @@ def events_handler():
                 event_type = body['event']['type']
 
                 if event_type == 'link_shared':
+                    channel = body['event']['channel']
                     for link in body['event']['links']:
                         print(f"[events]: link shared matching {link['domain']}")
                         queued.deferred_consume.delay(
                             link['url'],
                             bandcamp.scrape_bandcamp_album_ids_from_url,
                             list_model.add_to_list,
+                            channel=channel
                         )
 
         except KeyError:
