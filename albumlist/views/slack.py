@@ -471,3 +471,18 @@ def restore_albums():
         return '', 401
     queued.deferred_fetch_and_restore.delay(url)
     return 'Restoring...', 200
+
+
+@slack_blueprint.route('/events', methods=['POST'])
+@slack_check
+def events_handler():
+    body = flask.request.form
+    event_type = body.get('type')
+    if not event_type:
+        return '', 401
+    if event_type == 'url_verification':
+        try:
+            return flask.jsonify({'challenge': body['challenge']})
+        except KeyError:
+            return '', 403
+    print(f'[events]: {body}')
