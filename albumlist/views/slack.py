@@ -468,21 +468,22 @@ def restore_albums():
     try:
         url = links.scrape_links_from_text(contents)[0]
     except IndexError:
-        return '', 401
+        flask.abort(401)
     queued.deferred_fetch_and_restore.delay(url)
     return 'Restoring...', 200
 
 
 @slack_blueprint.route('/events', methods=['POST'])
-@slack_check
 def events_handler():
-    body = flask.request.form
-    event_type = body.get('type')
-    if not event_type:
-        return '', 401
-    if event_type == 'url_verification':
+    body = flask.request.json
+    token = body.get('token', '')
+    if token in slack_blueprint.config['APP_TOKENS'] or slack_blueprint.config['DEBUG']:
         try:
-            return flask.jsonify({'challenge': body['challenge']})
+            event_type = body['type']
+            if event_type == 'url_verification':
+                return flask.jsonify({'challenge': body['challenge']})
         except KeyError:
-            return '', 403
-    print(f'[events]: {body}')
+            flask.abort(401)
+    else:
+        print('[events]: failed slack-check test')
+        flask.abort(403)
