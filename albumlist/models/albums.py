@@ -139,7 +139,7 @@ def get_albums_unavailable_count():
 def get_album_details(album_id):
     sql = """
         SELECT id, name, artist, url, img, available, channel, added
-        FROM albums 
+        FROM albums
         WHERE id = %s;
         """
     with closing(get_connection()) as conn:
@@ -150,6 +150,22 @@ def get_album_details(album_id):
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
     
+
+def get_album_details_with_tags(album_id):
+    sql = """
+        SELECT id, name, artist, url, img, available, channel, added, album_tags.tag
+        FROM albums
+        LEFT JOIN album_tags on albums.id = album_tags.album
+        WHERE id = %s;
+        """
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, (album_id, ))
+            return cur.fetchone()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
 
 def get_album_details_from_ids(album_ids):
     sql = """

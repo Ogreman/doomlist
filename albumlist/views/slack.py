@@ -10,7 +10,7 @@ from albumlist.delayed import queued
 from albumlist.models import DatabaseError
 from albumlist.models import albums as albums_model, tags as tags_model, list as list_model
 from albumlist.scrapers import bandcamp, links
-from albumlist.views import build_album_details
+from albumlist.views import build_album_details, build_attachment
 
 
 slack_blueprint = flask.Blueprint(name='slack',
@@ -294,50 +294,10 @@ def random_album():
 
 
 def build_search_response(details):
-    attachments = []
-    for album_id, d in details.items():
-        tag_actions = [
-            {
-                'name': 'tag',
-                'text': f'#{tag}',
-                'type': 'button',
-                'value': str(tag),
-            }
-            for i, tag in enumerate(d['tags'])
-        ]
-        attachment = {
-            'fallback': f'{d["album"]} by {d["artist"]}',
-            'color': '#36a64f',
-            'pretext': f'{d["album"]} by {d["artist"]}',
-            'author_name': d['artist'],
-            'image_url': d['img'],
-            'title': d['album'],
-            'title_link': d['url'],
-            'callback_id': f'album_results_{album_id}',
-            'fields': [
-                {
-                    'title': 'Album ID',
-                    'value': album_id,
-                    'short': 'false',
-                },
-                {
-                        'title': 'Tags',
-                        'value': ', '.join(d['tags']),
-                        'short': 'false',
-                },
-            ],
-            'actions': [
-                {
-                    'name': 'album',
-                    'text': 'Post',
-                    'type': 'button',
-                    'value': d['url'],
-                }
-            ] + tag_actions,
-            'footer': slack_blueprint.config['LIST_NAME'],
-        }
-        attachments.append(attachment)
-
+    attachments = [
+        build_attachment(album_id, album_details, slack_blueprint.config['LIST_NAME'])
+        for album_id, album_details in details.items()
+    ]
     max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
     text = f'Your search returned {len(details)} results'
     if len(details) > max_attachments:
