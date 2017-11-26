@@ -476,14 +476,31 @@ def restore_albums():
 @slack_blueprint.route('/events', methods=['POST'])
 def events_handler():
     body = flask.request.json
+    print(body)
     token = body.get('token', '')
     if token in slack_blueprint.config['APP_TOKENS'] or slack_blueprint.config['DEBUG']:
         try:
-            event_type = body['type']
-            if event_type == 'url_verification':
+            request_type = body['type']
+
+            if request_type == 'url_verification':
                 return flask.jsonify({'challenge': body['challenge']})
+
+            elif request_type == 'event_callback':
+                event_type = body['event']['type']
+
+                if event_type == 'link_shared':
+                    for link in body['event']['links']:
+                        print(f"[events]: link shared matching {link['domain']}")
+                        queued.deferred_consume.delay(
+                            link['url'],
+                            bandcamp.scrape_bandcamp_album_ids_from_url,
+                            list_model.add_to_list,
+                            response_url=None,
+                        )
+
         except KeyError:
             flask.abort(401)
     else:
         print('[events]: failed slack-check test')
         flask.abort(403)
+    return '', 200
