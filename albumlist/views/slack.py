@@ -476,8 +476,8 @@ def restore_albums():
 @slack_blueprint.route('/events', methods=['POST'])
 def events_handler():
     body = flask.request.json
-    print(body)
     token = body.get('token', '')
+
     if token in slack_blueprint.config['APP_TOKENS'] or slack_blueprint.config['DEBUG']:
         try:
             request_type = body['type']
