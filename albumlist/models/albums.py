@@ -57,7 +57,7 @@ def get_albums():
 
 def get_albums_with_tags():
     sql = """
-        SELECT id, name, artist, url, img, channel, added, album_tags.tag
+        SELECT id, name, artist, url, img, available, channel, added, album_tags.tag
         FROM albums
         LEFT JOIN album_tags on albums.id = album_tags.album;
     """
@@ -72,7 +72,7 @@ def get_albums_with_tags():
 
 def get_albums_by_channel_with_tags(channel):
     sql = """
-        SELECT id, name, artist, url, img, channel, added, album_tags.tag
+        SELECT id, name, artist, url, img, available, channel, added, album_tags.tag
         FROM albums
         LEFT JOIN album_tags on albums.id = album_tags.album
         WHERE channel = %s;

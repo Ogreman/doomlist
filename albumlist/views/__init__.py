@@ -11,7 +11,7 @@ def build_album_details(func):
         'added': '',
         'tags': []
     })
-    for album_id, album, artist, url, img, channel, added, tag in func():
+    for album_id, album, artist, url, img, _, channel, added, tag in func():
         if album_id not in details:
             details[album_id]['artist'] = artist
             details[album_id]['album'] = album
