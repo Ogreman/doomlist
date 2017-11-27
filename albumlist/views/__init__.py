@@ -57,7 +57,7 @@ def build_attachment(album_id, album_details, list_name):
         ],
         'actions': [
             {
-                'name': 'album',
+                'name': 'post_album',
                 'text': 'Post',
                 'type': 'button',
                 'value': album_details['url'],

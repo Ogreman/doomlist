@@ -387,7 +387,7 @@ def button():
                 'attachments': search_response['attachments'],
             }
             return flask.jsonify(response)
-        elif 'album' in action['name']:
+        elif 'post_album' in action['name']:
             url = action['value']
             user = form_data['user']['name']
             message = f"{user} posted {url} from the {slack_blueprint.config['LIST_NAME']}"
