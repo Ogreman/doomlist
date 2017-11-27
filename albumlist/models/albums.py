@@ -184,7 +184,7 @@ def get_album_details_from_ids(album_ids):
 
 def get_albums_by_channel(channel):
     sql = """
-        SELECT id, name, artist, url, img, channel, added
+        SELECT id, name, artist, url, img, available, channel, added
         FROM albums
         WHERE channel = %s
     """
@@ -326,7 +326,7 @@ def get_random_album():
 
 def get_albums_by_tag(tag):
     sql = """
-        SELECT id, name, artist, url, img, channel, added, album_tags.tag
+        SELECT id, name, artist, url, img, available, channel, added, album_tags.tag
         FROM albums 
         LEFT JOIN album_tags on albums.id = album_tags.album
         WHERE id IN (
@@ -346,7 +346,7 @@ def get_albums_by_tag(tag):
 
 def search_albums(query):
     sql = """
-        SELECT id, name, artist, url, img, channel, added, album_tags.tag
+        SELECT id, name, artist, url, img, available, channel, added, album_tags.tag
         FROM albums 
         LEFT JOIN album_tags on albums.id = album_tags.album
         WHERE LOWER(name) LIKE %s 
@@ -370,7 +370,7 @@ def search_albums(query):
 
 def search_albums_by_tag(query):
     sql = """
-        SELECT id, name, artist, url, img, channel, added, album_tags.tag
+        SELECT id, name, artist, url, img, available, channel, added, album_tags.tag
         FROM albums 
         LEFT JOIN album_tags on albums.id = album_tags.album
         WHERE id IN (

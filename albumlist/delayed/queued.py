@@ -71,6 +71,7 @@ def deferred_consume(text, scrape_function, callback, channel='', tags=None):
                     deferred_process_album_details.delay(str(album_id), channel)
             else:
                 message = f':new_moon: album already in list: {album_id}'
+                deferred_post_attachment.delay(album_id, channel)
             if tags:
                 deferred_process_tags.delay(str(album_id), tags)
         except DatabaseError as e:
