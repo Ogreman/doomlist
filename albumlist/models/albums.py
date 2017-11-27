@@ -162,7 +162,7 @@ def get_album_details_with_tags(album_id):
         try:
             cur = conn.cursor()
             cur.execute(sql, (album_id, ))
-            return cur.fetchone()
+            return cur.fetchall()
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
@@ -343,6 +343,7 @@ def get_albums_by_tag(tag):
             return cur.fetchall()
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
+
 
 def search_albums(query):
     sql = """
