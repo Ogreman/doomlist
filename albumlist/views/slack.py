@@ -431,7 +431,7 @@ def restore_albums():
 
 @slack_blueprint.route('/events', methods=['POST'])
 def events_handler():
-    if int(flask.headers.get('X-Slack-Retry-Num', 0)) > 1:
+    if int(flask.request.headers.get('X-Slack-Retry-Num', 0)) > 1:
         return '', 200
 
     body = flask.request.json
