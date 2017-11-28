@@ -150,18 +150,17 @@ def deferred_process_album_details(album_id, channel=''):
         deferred_process_album_cover.delay(album_id)
         deferred_process_album_tags.delay(album_id)
     except DatabaseError as e:
-        message = f'failed to add album details for {album_id}'
-        print(f'[db]: {message}')
+        print(f'[db]: failed to add album details for {album_id}')
         print(f'[db]: {e}')
+        if channel:
+            slack.chat.post_message(f'{channel}', f':red_circle: failed to add album details')
     except (TypeError, ValueError):
-        message = None
+        pass
     else:
-        message = f'processed album details for [{album_id}] {album} by {artist}'
-        print(f'[scraper]: {message}')
-    if channel and message:
-        slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
-        slack.chat.post_message(f'{channel}', f':full_moon_with_face: {message}')
-        deferred_post_attachment.delay(album_id, channel)
+        print(f'[scraper]: processed album details for {album_id}')
+        if channel:
+            slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
+            slack.chat.post_message(f'{channel}', f':full_moon_with_face: processed album details for "*{album}*" by *{artist}*')
 
 
 @delayed.queue_func
