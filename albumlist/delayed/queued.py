@@ -52,33 +52,33 @@ def deferred_scrape(scrape_function, callback, channel_id, channel_name=None, re
 
 
 @delayed.queue_func
-def deferred_consume(text, scrape_function, callback, channel='', tags=None):
+def deferred_consume(url, scrape_function, callback, channel='', tags=None):
     try:
-        album_id = scrape_function(text)
+        album_id = scrape_function(url)
     except NotFoundError:
         message = None
     else:
+        slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
         try:
             if album_id not in list_model.get_list():
                 try:    
                     callback(album_id)
                 except DatabaseError as e:
-                    message = ':red_circle: failed to update list'
+                    if channel:
+                        slack.chat.post_message(f'{channel}', ':red_circle: failed to update list')
                     print(f'[db]: failed to perform {callback.__name__}')
                     print(f'[db]: {e}')
                 else:
-                    message = f':full_moon: added album to list: {album_id}'
+                    if channel:
+                        slack.chat.post_message(f'{channel}', f':full_moon: added album to list: {url}', unfurl_links=True)
                     deferred_process_album_details.delay(str(album_id), channel)
-            else:
-                message = f':new_moon: album already in list: {album_id}'
+            elif channel:
+                slack.chat.post_message(f'{channel}', f':new_moon: album already in list: {url}', unfurl_links=True)
             if tags:
                 deferred_process_tags.delay(str(album_id), tags)
         except DatabaseError as e:
             print('[db]: failed to check existing items')
             print(f'[db]: {e}')
-    if channel and message is not None:
-        slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
-        slack.chat.post_message(f'{channel}', message)
 
 
 @delayed.queue_func

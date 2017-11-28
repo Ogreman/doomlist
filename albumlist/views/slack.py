@@ -431,6 +431,9 @@ def restore_albums():
 
 @slack_blueprint.route('/events', methods=['POST'])
 def events_handler():
+    if int(flask.headers.get('X-Slack-Retry-Num', 0)) > 1:
+        return '', 200
+
     body = flask.request.json
     token = body.get('token', '')
 
@@ -446,6 +449,7 @@ def events_handler():
 
                 if event_type == 'link_shared':
                     channel = body['event']['channel']
+
                     for link in body['event']['links']:
                         print(f"[events]: link shared matching {link['domain']}")
                         queued.deferred_consume.delay(
