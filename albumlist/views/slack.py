@@ -382,8 +382,8 @@ def button():
             response = {
                 'response_type': 'ephemeral',
                 'text': f'Your #{query} results',
-                'replace_original': 'false',
-                'unfurl_links': 'true',
+                'replace_original': False,
+                'unfurl_links': True,
                 'attachments': search_response['attachments'],
             }
             return flask.jsonify(response)
@@ -395,7 +395,7 @@ def button():
                 'response_type': 'in_channel',
                 'text': message,
                 'replace_original': False,
-                'unfurl_links': 'true',
+                'unfurl_links': True,
             }
             return flask.jsonify(response)
     except KeyError as e:
