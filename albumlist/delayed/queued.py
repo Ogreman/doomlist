@@ -169,16 +169,15 @@ def deferred_process_album_details(album_id, channel=''):
 def deferred_post_attachment(album_id, channel='#announcements'):
     try:
         func = functools.partial(albums_model.get_album_details_with_tags, album_id)
-        details = build_album_details(func)[album_id]
-        attachment = build_attachment(album_id, details, flask.current_app.config['LIST_NAME'])
+        details = build_album_details(func)
+        if album_id not in details:
+            raise DatabaseError('album details missing')
+        attachment = build_attachment(album_id, details[album_id], flask.current_app.config['LIST_NAME'])
         slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
-        slack.chat.post_message(f'{channel}', attachments=[attachment])
+        slack.chat.post_message(f'{channel}', attachments=[attachment], unfurl_links=True)
     except DatabaseError as e:
-        message = f'failed to get album details for {album_id}'
-        print(f'[db]: {message}')
+        print(f'[db]: failed to get album details for {album_id}')
         print(f'[db]: {e}')
-    except (TypeError, ValueError):
-        message = None
 
 
 @delayed.queue_func
