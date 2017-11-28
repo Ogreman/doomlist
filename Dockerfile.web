@@ -7,9 +7,6 @@ RUN pip install -U pipenv==8.3.2
 ADD . /code
 WORKDIR /code
 
-COPY Pipfile Pipfile
-COPY Pipfile.lock Pipfile.lock
-
 RUN pipenv install --deploy --system
 
 EXPOSE 5000
