@@ -265,7 +265,7 @@ def link():
         response = {
             'response_type': 'in_channel',
             'text': url,
-            'unfurl_links': 'true',
+            'unfurl_links': True,
         }
         return flask.jsonify(response), 200
 
@@ -288,7 +288,7 @@ def random_album():
         response = {
             'response_type': response_type,
             'text': url,
-            'unfurl_links': 'true',
+            'unfurl_links': True,
         }
         return flask.jsonify(response), 200
 
