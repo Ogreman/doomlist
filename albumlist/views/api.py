@@ -95,13 +95,13 @@ def api_dump_album_details():
 def api_album(album_id):
     try:
         album = flask.current_app.get_cached_album_details(album_id)
+        if album is None:
+            return flask.jsonify({'text': 'not found'}), 404
         response = {
             'text': 'success',
             'album': album.to_dict(),
         }
         return flask.jsonify(response), 200
-    except TypeError:
-        return flask.jsonify({'text': 'not found'}), 404
     except DatabaseError as e:
         print(f'[db]: failed to get album: {album_id}')
         print(f'[db]: {e}')
@@ -144,13 +144,13 @@ def api_bc(album_id):
 def api_random():
     try:
         album = albums_model.get_random_album()
+        if album is None:
+            return flask.jsonify({'text': 'not found'}), 404
         response = {
             'text': 'success',
             'album': album.to_dict(),
         }
         return flask.jsonify(response), 200
-    except TypeError:
-        return flask.jsonify({'text': 'not found'}), 404
     except DatabaseError as e:
         print(f'[db]: failed to get random album')
         print(f'[db]: {e}')

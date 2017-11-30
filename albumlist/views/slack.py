@@ -254,20 +254,18 @@ def link():
         return 'Provide an album ID', 401
     try:
         album = flask.current_app.get_cached_album_details(album_id)
-    except DatabaseError as e:
-        print('[db]: failed to get album')
-        print(f'[db]: {e}')
-        return flask.current_app.db_error_message, 500
-    except TypeError as e:
-        print(f'[slack]: no album found for link: {e}')
-        return flask.current_app.not_found_message, 404
-    else:
+        if album is None:
+            return flask.current_app.not_found_message, 404
         response = {
             'response_type': 'in_channel',
             'text': album.album_url,
             'unfurl_links': True,
         }
         return flask.jsonify(response), 200
+    except DatabaseError as e:
+        print('[db]: failed to get album')
+        print(f'[db]: {e}')
+        return flask.current_app.db_error_message, 500
 
 
 @slack_blueprint.route('/random', methods=['POST'])
@@ -276,13 +274,12 @@ def random_album():
     form_data = flask.request.form
     try:
         album = albums_model.get_random_album()
+        if album is None:
+            return flask.current_app.not_found_message, 404
     except DatabaseError as e:
         print('[db]: failed to get random album')
         print(f'[db]: {e}')
         return flask.current_app.db_error_message, 500
-    except TypeError as e:
-        print(f'[slack]: no album found for random: {e}')
-        return flask.current_app.not_found_message, 404
     else:
         if 'post' in form_data.get('text', ''):
             response = {
