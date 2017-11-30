@@ -32,12 +32,15 @@ class Album(object):
 
     @classmethod
     def from_values(cls, values):
-        return cls(*values)
+        return cls(*values) if values else None
 
     @classmethod
     def albums_from_values(cls, list_of_values):
-        for values in list_of_values:
-            yield cls.from_values(values)
+        if not list_of_values:
+            return
+        else:
+            for values in list_of_values:
+                yield cls.from_values(values)
 
     @staticmethod
     def details_map_from_albums(albums):

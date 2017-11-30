@@ -257,10 +257,10 @@ def link():
     except DatabaseError as e:
         print('[db]: failed to get album')
         print(f'[db]: {e}')
-        return db_error_message, 500
+        return flask.current_app.db_error_message, 500
     except TypeError as e:
         print(f'[slack]: no album found for link: {e}')
-        return not_found_message, 404
+        return flask.current_app.not_found_message, 404
     else:
         response = {
             'response_type': 'in_channel',
@@ -279,10 +279,10 @@ def random_album():
     except DatabaseError as e:
         print('[db]: failed to get random album')
         print(f'[db]: {e}')
-        return db_error_message, 500
+        return flask.current_app.db_error_message, 500
     except TypeError as e:
         print(f'[slack]: no album found for random: {e}')
-        return not_found_message, 404
+        return flask.current_app.not_found_message, 404
     else:
         if 'post' in form_data.get('text', ''):
             response = {
