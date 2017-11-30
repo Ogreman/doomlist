@@ -8,7 +8,7 @@ from albumlist.models.list import get_list
 
 class Album(object):
 
-    def __init__(self, album_id, name, artist, url, img, channel, available, added, tag=None):
+    def __init__(self, album_id, name, artist, url, img, available, channel, added, tag=None):
         self.album_id = album_id
         self.album_artist = artist
         self.album_name = name
