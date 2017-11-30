@@ -11,7 +11,7 @@ from albumlist.models import DatabaseError
 from albumlist.models import albums as albums_model, tags as tags_model, list as list_model
 from albumlist.scrapers import NotFoundError
 from albumlist.scrapers import bandcamp, links
-from albumlist.views import build_attachment, build_album_details
+from albumlist.views import build_attachment
 
 
 @delayed.queue_func
@@ -166,13 +166,13 @@ def deferred_process_album_details(album_id, channel=''):
 @delayed.queue_func
 def deferred_post_attachment(album_id, channel='#announcements'):
     try:
-        func = functools.partial(albums_model.get_album_details_with_tags, album_id)
-        details = build_album_details(func)
+        albums = albums_model.get_album_details_with_tags(album_id)
+        details = albums_model.Album.details_map_from_albums(albums)
         if album_id not in details:
             raise DatabaseError('album details missing')
         attachment = build_attachment(album_id, details[album_id], flask.current_app.config['LIST_NAME'])
         slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
-        slack.chat.post_message(f'{channel}', attachments=[attachment], unfurl_links=True)
+        slack.chat.post_message(f'{channel}', attachments=[attachment])
     except DatabaseError as e:
         print(f'[db]: failed to get album details for {album_id}')
         print(f'[db]: {e}')
@@ -203,8 +203,8 @@ def deferred_add_new_album_details(album_id, album, artist, url, img='', availab
 @delayed.queue_func
 def deferred_process_album_cover(album_id):
     try:
-        _, _, _, album_url, _, _, _, _ = albums_model.get_album_details(album_id)
-        album_cover_url = bandcamp.scrape_bandcamp_album_cover_url_from_url(album_url)
+        album = albums_model.get_album_details(album_id)
+        album_cover_url = bandcamp.scrape_bandcamp_album_cover_url_from_url(album.album_url)
         albums_model.add_img_to_album(album_id, album_cover_url)
     except DatabaseError as e:
         print(f'[db]: failed to add album cover for {album_id}')
@@ -221,8 +221,8 @@ def deferred_process_album_cover(album_id):
 @delayed.queue_func
 def deferred_process_album_tags(album_id):
     try:
-        _, _, _, album_url, _, _, _, _ = albums_model.get_album_details(album_id)
-        tags = bandcamp.scrape_bandcamp_tags_from_url(album_url)
+        album = albums_model.get_album_details(album_id)
+        tags = bandcamp.scrape_bandcamp_tags_from_url(album.album_url)
         if tags:
             deferred_process_tags.delay(album_id, tags)
     except DatabaseError as e:
@@ -241,8 +241,8 @@ def deferred_process_all_album_covers(response_url='DEFAULT_BOT_URL'):
     try:
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
-        for album_id in [alb[0] for alb in albums_model.get_albums() if not alb[4]]:
-            deferred_process_album_cover.delay(album_id)
+        for album in albums_model.get_albums_without_covers():
+            deferred_process_album_cover.delay(album.album_id)
     except DatabaseError as e:
         print('[db]: failed to get all album details')
         print(f'[db]: {e}')
@@ -260,8 +260,8 @@ def deferred_process_all_album_tags(response_url='DEFAULT_BOT_URL'):
     try:
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
-        for album_id in [alb[0] for alb in albums_model.get_albums()]:
-            deferred_process_album_tags.delay(album_id)
+        for album in albums_model.get_albums():
+            deferred_process_album_tags.delay(album.album_id)
     except DatabaseError as e:
         print('[db]: failed to get all album details')
         print(f'[db]: {e}')
@@ -275,13 +275,13 @@ def deferred_process_all_album_tags(response_url='DEFAULT_BOT_URL'):
 @delayed.queue_func
 def deferred_check_album_url(album_id, announce=True):
     try:
-        _, name, artist, album_url, _, available, _, _ = albums_model.get_album_details(album_id)
-        response = requests.head(album_url)
-        if response.ok and not available:
+        album = albums_model.get_album_details(album_id)
+        response = requests.head(album.album_url)
+        if response.ok and not album.available:
             albums_model.update_album_availability(album_id, True)
-        elif response.status_code > 400 and available:
+        elif response.status_code > 400 and album.available:
             albums_model.update_album_availability(album_id, False)
-            message = '[{album_id}] {name} by {artist} is no longer available'
+            message = '[{album_id}] {album.album_name} by {album.album_artist} is no longer available'
             print(f'[scraper]: {message}')
             if announce:
                 slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])

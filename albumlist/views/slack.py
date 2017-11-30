@@ -10,7 +10,7 @@ from albumlist.delayed import queued
 from albumlist.models import DatabaseError
 from albumlist.models import albums as albums_model, tags as tags_model, list as list_model
 from albumlist.scrapers import bandcamp, links
-from albumlist.views import build_album_details, build_attachment
+from albumlist.views import build_attachment
 
 
 slack_blueprint = flask.Blueprint(name='slack',
@@ -253,9 +253,9 @@ def link():
     if not album_id:
         return 'Provide an album ID', 401
     try:
-        _, _, _, url, _, _, _, _ = flask.current_app.get_cached_album_details(album_id)
+        album = flask.current_app.get_cached_album_details(album_id)
     except DatabaseError as e:
-        print('[db]: failed to get random album')
+        print('[db]: failed to get album')
         print(f'[db]: {e}')
         return db_error_message, 500
     except TypeError as e:
@@ -264,7 +264,7 @@ def link():
     else:
         response = {
             'response_type': 'in_channel',
-            'text': url,
+            'text': album.album_url,
             'unfurl_links': True,
         }
         return flask.jsonify(response), 200
@@ -275,7 +275,7 @@ def link():
 def random_album():
     form_data = flask.request.form
     try:
-        _, _, _, url, img = albums_model.get_random_album()
+        album = albums_model.get_random_album()
     except DatabaseError as e:
         print('[db]: failed to get random album')
         print(f'[db]: {e}')
@@ -284,25 +284,36 @@ def random_album():
         print(f'[slack]: no album found for random: {e}')
         return not_found_message, 404
     else:
-        response_type = 'in_channel' if 'post' in form_data.get('text', '') else 'ephemeral'
-        response = {
-            'response_type': response_type,
-            'text': url,
-            'unfurl_links': True,
-        }
+        if 'post' in form_data.get('text', ''):
+            response = {
+                'response_type': 'in_channel',
+                'text': f'{album.album_url}',
+                'unfurl_links': True
+            }
+        else:
+            attachment = build_attachment(
+                album.album_id,
+                album.to_dict(),
+                slack_blueprint.config['LIST_NAME'],
+                tags=False,
+            )
+            response = {
+                'response_type': 'ephemeral',
+                'text': f'Your random album is...',
+                'attachments': [attachment],
+            }
         return flask.jsonify(response), 200
 
 
-def build_search_response(details):
+def build_search_response(albums, list_name, max_attachments=None):
+    details = albums_model.Album.details_map_from_albums(albums)
     attachments = [
-        build_attachment(album_id, album_details, slack_blueprint.config['LIST_NAME'])
+        build_attachment(album_id, album_details, list_name)
         for album_id, album_details in details.items()
     ]
-    max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
     text = f'Your search returned {len(details)} results'
-    if len(details) > max_attachments:
+    if max_attachments and len(details) > max_attachments:
         text += f' (but we can only show you {max_attachments})'
-
     return {
         'text': text,
         'attachments': attachments[:max_attachments],
@@ -317,15 +328,16 @@ def search():
     if query:
         response = flask.current_app.cache.get(f'q-{query}')
         if not response:
-            func = functools.partial(albums_model.search_albums, query)
             try:
-                details = build_album_details(func)
+                albums = albums_model.search_albums(query)
             except DatabaseError as e:
                 print('[db]: failed to build album details')
                 print(f'[db]: {e}')
                 return 'failed to perform search', 500
             else:
-                response = build_search_response(details)
+                max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
+                list_name = slack_blueprint.config['LIST_NAME']
+                response = build_search_response(albums, list_name, max_attachments)
                 flask.current_app.cache.set(f'q-{query}', response, 60 * 5)
         return flask.jsonify(response), 200
     return '', 200
@@ -339,15 +351,16 @@ def search_tags():
     if query:
         response = flask.current_app.cache.get(f't-{query}')
         if not response:
-            func = functools.partial(albums_model.search_albums_by_tag, query)
             try:
-                details = build_album_details(func)
+                albums = albums_model.search_albums_by_tag(query)
             except DatabaseError as e:
                 print('[db]: failed to build album details')
                 print(f'[db]: {e}')
                 return 'failed to perform search', 500
             else:
-                response = build_search_response(details)
+                max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
+                list_name = slack_blueprint.config['LIST_NAME']
+                response = build_search_response(albums, list_name, max_attachments)
                 flask.current_app.cache.set(f't-{query}', response, 60 * 15)
         return flask.jsonify(response), 200
     return '', 200
@@ -369,15 +382,16 @@ def button():
             query = action['value'].lower()
             search_response = flask.current_app.cache.get(f't-{query}')
             if not search_response:
-                func = functools.partial(albums_model.search_albums_by_tag, query)
                 try:
-                    details = build_album_details(func)
+                    albums = albums_model.search_albums_by_tag(query)
                 except DatabaseError as e:
                     print('[db]: failed to build album details')
                     print(f'[db]: {e}')
                     return 'failed to perform search', 500
                 else:
-                    search_response = build_search_response(details)
+                    max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
+                    list_name = slack_blueprint.config['LIST_NAME']
+                    search_response = build_search_response(albums, list_name, max_attachments)
                     flask.current_app.cache.set(f't-{query}', search_response, 60 * 5)
             response = {
                 'response_type': 'ephemeral',

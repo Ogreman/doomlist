@@ -6,6 +6,50 @@ from albumlist.models import DatabaseError, get_connection
 from albumlist.models.list import get_list
 
 
+class Album(object):
+
+    def __init__(self, album_id, name, artist, url, img, channel, available, added, tag=None):
+        self.album_id = album_id
+        self.album_artist = artist
+        self.album_name = name
+        self.album_url = url
+        self.album_image = img
+        self.channel = channel
+        self.available = available
+        self.added = added
+        self.tag = tag
+
+    def to_dict(self):
+        return {
+            'added': self.added.isoformat() or '',
+            'album': self.album_name or '',
+            'artist': self.album_artist or '',
+            'channel': self.channel or '',
+            'img': self.album_image or '',
+            'tags': [self.tag] if self.tag else [],
+            'url': self.album_url or '',
+        }
+
+    @classmethod
+    def from_values(cls, values):
+        return cls(*values)
+
+    @classmethod
+    def albums_from_values(cls, list_of_values):
+        for values in list_of_values:
+            yield cls.from_values(values)
+
+    @staticmethod
+    def details_map_from_albums(albums):
+        details = dict()
+        for album in albums:
+            if album.album_id not in details:
+                details[album.album_id] = album.to_dict()
+            elif album.tag:
+                details[album.album_id]['tags'].append(album.tag)
+        return details
+
+
 def create_albums_table():
     sql = """
         CREATE TABLE albums (
@@ -41,6 +85,7 @@ def create_albums_index():
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
+
 def get_albums():
     sql = """
         SELECT id, name, artist, url, img, available, channel, added
@@ -50,7 +95,7 @@ def get_albums():
         try:
             cur = conn.cursor()
             cur.execute(sql)
-            return cur.fetchall()
+            return Album.albums_from_values(cur.fetchall())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
@@ -65,7 +110,7 @@ def get_albums_with_tags():
         try:
             cur = conn.cursor()
             cur.execute(sql)
-            return cur.fetchall()
+            return Album.albums_from_values(cur.fetchall())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
@@ -81,14 +126,14 @@ def get_albums_by_channel_with_tags(channel):
         try:
             cur = conn.cursor()
             cur.execute(sql, (channel,))
-            return cur.fetchall()
+            return Album.albums_from_values(cur.fetchall())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
 
 def get_albums_available():
     sql = """
-        SELECT id, name, artist, url, added
+        SELECT id, name, artist, url, img, available, channel, added
         FROM albums
         WHERE available = true;
     """
@@ -96,14 +141,14 @@ def get_albums_available():
         try:
             cur = conn.cursor()
             cur.execute(sql)
-            return cur.fetchall()
+            return Album.albums_from_values(cur.fetchall())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
 
 def get_albums_unavailable():
     sql = """
-        SELECT id, name, artist, url, added
+        SELECT id, name, artist, url, img, available, channel, added
         FROM albums 
         WHERE available = false;
     """
@@ -111,7 +156,22 @@ def get_albums_unavailable():
         try:
             cur = conn.cursor()
             cur.execute(sql)
-            return cur.fetchall()
+            return Album.albums_from_values(cur.fetchall())
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
+def get_albums_without_covers():
+    sql = """
+        SELECT id, name, artist, url, img, available, channel, added
+        FROM albums
+        WHERE img = '';
+    """
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(sql)
+            return Album.albums_from_values(cur.fetchall())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
@@ -146,7 +206,7 @@ def get_album_details(album_id):
         try:
             cur = conn.cursor()
             cur.execute(sql, (album_id, ))
-            return cur.fetchone()
+            return Album.from_values(cur.fetchone())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
     
@@ -162,7 +222,7 @@ def get_album_details_with_tags(album_id):
         try:
             cur = conn.cursor()
             cur.execute(sql, (album_id, ))
-            return cur.fetchall()
+            return Album.albums_from_values(cur.fetchall())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
@@ -177,7 +237,7 @@ def get_album_details_from_ids(album_ids):
         try:
             cur = conn.cursor()
             cur.execute(sql, (album_ids, ))
-            return cur.fetchall()
+            return Album.albums_from_values(cur.fetchall())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
@@ -192,7 +252,7 @@ def get_albums_by_channel(channel):
         try:
             cur = conn.cursor()
             cur.execute(sql, (channel,))
-            return cur.fetchall()
+            return Album.albums_from_values(cur.fetchall())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
@@ -309,7 +369,7 @@ def get_album_ids():
 
 def get_random_album():
     sql = """
-        SELECT id, name, artist, url, img 
+        SELECT id, name, artist, url, img, available, channel, added
         FROM albums 
         WHERE available = true
         ORDER BY RANDOM() 
@@ -319,7 +379,7 @@ def get_random_album():
         try:
             cur = conn.cursor()
             cur.execute(sql)
-            return cur.fetchone()
+            return Album.from_values(cur.fetchone())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
@@ -340,7 +400,7 @@ def get_albums_by_tag(tag):
         try:
             cur = conn.cursor()
             cur.execute(sql, (tag, ))
-            return cur.fetchall()
+            return Album.albums_from_values(cur.fetchall())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
@@ -364,7 +424,7 @@ def search_albums(query):
             cur = conn.cursor()
             term = f'%{query}%'
             cur.execute(sql, (term, term, term))
-            return cur.fetchall()
+            return Album.albums_from_values(cur.fetchall())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
@@ -386,7 +446,7 @@ def search_albums_by_tag(query):
             cur = conn.cursor()
             term = f'%{query}%'
             cur.execute(sql, (term, ))
-            return cur.fetchall()
+            return Album.albums_from_values(cur.fetchall())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 

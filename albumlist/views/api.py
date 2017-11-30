@@ -6,7 +6,6 @@ import io
 from albumlist import constants
 from albumlist.models import DatabaseError
 from albumlist.models import albums as albums_model, tags as tags_model, list as list_model
-from albumlist.views import build_album_details
 
 
 api_blueprint = flask.Blueprint(name='api',
@@ -45,15 +44,15 @@ def api_id_count():
 def api_list_album_details():
     channel = flask.request.args.get('channel')
     if channel:
-        get_func = functools.partial(albums_model.get_albums_by_channel_with_tags, channel)
+        albums = albums_model.get_albums_by_channel_with_tags(channel)
         key = f'api-albums-{channel}'
     else:
-        get_func = albums_model.get_albums_with_tags
+        albums = albums_model.get_albums_with_tags()
         key = 'api-albums'
     try:
         details = flask.current_app.cache.get(key)
         if not details:
-            details = build_album_details(get_func)
+            details = albums_model.Album.details_map_from_albums(albums)
             details = [{key: d} for key, d in details.items()]
             flask.current_app.cache.set(key, details, 60 * 30)
         return flask.jsonify(details), 200
@@ -78,9 +77,11 @@ def api_dump_album_details():
     # need StringIO for csv.writer
     proxy = io.StringIO()
     csv_writer = csv.writer(proxy)
-    csv_writer.writerow(['id', 'album', 'artist', 'url', 'img', 'available', 'channel', 'added'])
-    for album_id, album, artist, url, img, available, channel, added in albums_model.get_albums():
-        csv_writer.writerow([album_id, album, artist, url, img, available, channel, added.isoformat()])
+    csv_writer.writerow(('id', 'added', 'album', 'artist', 'channel', 'img', 'tags', 'url'))
+    albums = albums_model.get_albums_with_tags()
+    details = albums_model.Album.details_map_from_albums(albums)
+    for album_id, album_details in details.items():
+        csv_writer.writerow([album.album_id] + list(album_details.values()))
     # and BytesIO for flask.send_file
     mem = io.BytesIO()
     mem.write(proxy.getvalue().encode('utf-8'))
@@ -93,13 +94,10 @@ def api_dump_album_details():
 @api_blueprint.route('/album/<album_id>', methods=['GET'])
 def api_album(album_id):
     try:
-        album_id, album, artist, url, img, available, channel, added = flask.current_app.get_cached_album_details(album_id)
+        album = flask.current_app.get_cached_album_details(album_id)
         response = {
             'text': 'success',
-            'album': dict(zip(
-                ('id', 'name', 'artist', 'url', 'img', 'available', 'channel', 'added'),
-                (album_id, album, artist, url, img, available, channel, added.isoformat()),
-            ))
+            'album': album.to_dict(),
         }
         return flask.jsonify(response), 200
     except TypeError:
@@ -122,12 +120,12 @@ def api_tags():
 
 @api_blueprint.route('/tags/<tag>', methods=['GET'])
 def api_album_by_tag(tag):
-    get_func = functools.partial(albums_model.get_albums_by_tag, tag)
     key = f'api-tags-{tag}'
     try:
         details = flask.current_app.cache.get(key)
         if not details:
-            details = build_album_details(get_func)
+            albums = albums_model.get_albums_by_tag(tag)
+            details = albums_model.Album.details_map_from_albums(albums)
             details = [{key: d} for key, d in details.items()]
             flask.current_app.cache.set(key, details, 60 * 30)
         return flask.jsonify(details), 200
@@ -145,19 +143,16 @@ def api_bc(album_id):
 @api_blueprint.route('/albums/random', methods=['GET'])
 def api_random():
     try:
-        album_id, name, artist, album_url, img = albums_model.get_random_album()
+        album = albums_model.get_random_album()
         response = {
             'text': 'success',
-            'album': dict(zip(
-                ('id', 'name', 'artist', 'url', 'img'),
-                (album_id, name, artist, album_url, img),
-            ))
+            'album': album.to_dict(),
         }
         return flask.jsonify(response), 200
     except TypeError:
         return flask.jsonify({'text': 'not found'}), 404
     except DatabaseError as e:
-        print(f'[db]: failed to get album: {album_id}')
+        print(f'[db]: failed to get random album')
         print(f'[db]: {e}')
         return flask.jsonify({'text': 'failed'}), 500
 
@@ -166,11 +161,11 @@ def api_random():
 def available_urls():
     try:
         key = 'api-albums-available-urls'
-        details = flask.current_app.cache.get(key)
-        if not details:
-            details = [album[3] for album in albums_model.get_albums_available()]
-            flask.current_app.cache.set(key, details, 60 * 30)
-        return flask.jsonify(details), 200
+        urls = flask.current_app.cache.get(key)
+        if not urls:
+            urls = [album.album_url for album in albums_model.get_albums_available()]
+            flask.current_app.cache.set(key, urls, 60 * 30)
+        return flask.jsonify(urls), 200
     except DatabaseError as e:
         print('[db]: failed to get album urls')
         print(f'[db]: {e}')
