@@ -120,6 +120,7 @@ def consume_all():
 
 @slack_blueprint.route('/consume/artist', methods=['POST'])
 @slack_check
+@admin_only
 def consume_artist():
     form_data = flask.request.form
     channel = form_data.get('channel_name', 'chat')
