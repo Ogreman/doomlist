@@ -118,6 +118,18 @@ def consume_all():
     return '', 200
 
 
+@slack_blueprint.route('/consume/artist', methods=['POST'])
+@slack_check
+def consume_artist():
+    form_data = flask.request.form
+    channel = form_data.get('channel_name', 'chat')
+    contents = form_data.get('text', '')
+    for url in links.scrape_links_from_text(contents):
+        if 'bandcamp' in url:
+            queued.deferred_consume_artist_albums.delay(url, channel=f'#{channel}')
+    return '', 200
+
+
 @slack_blueprint.route('/count', methods=['POST'])
 @slack_check
 def album_count():

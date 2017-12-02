@@ -82,6 +82,30 @@ def deferred_consume(url, scrape_function, callback, channel='', tags=None):
 
 
 @delayed.queue_func
+def deferred_consume_artist_albums(artist_url, channel=''):
+    try:
+        existing_albums = list_model.get_list()
+        artist_albums = bandcamp.scrape_bandcamp_album_ids_from_artist_page(artist_url)
+    except DatabaseError as e:
+        print('[db]: failed to check existing items')
+        print(f'[db]: {e}')
+    except NotFoundError:
+        print(f'[scraper]: no albums found for artist at {artist_url}')
+        if channel:
+            slack.chat.post_message(f'{channel}', ':red_circle: failed to find any albums')
+    else:
+        for new_album_id in [album_id for album_id in artist_albums if album_id not in existing_albums]:
+            try:
+                albums_model.add_to_list(new_album_id)
+                deferred_process_album_details.delay(str(new_album_id), channel)
+            except DatabaseError as e:
+                if channel:
+                    slack.chat.post_message(f'{channel}', ':red_circle: failed to update list')
+                    print(f'[db]: failed to update list with {new_album_id} from {artist_url}')
+                    print(f'[db]: {e}')
+
+
+@delayed.queue_func
 def deferred_process_tags(album_id, tags):
     for tag in tags:
         tag = tag[1:] if tag.startswith('#') else tag

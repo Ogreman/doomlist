@@ -45,6 +45,17 @@ def scrape_bandcamp_album_cover_url_from_url(url):
     raise NotFoundError
 
 
+def scrape_bandcamp_album_ids_from_artist_page(url):
+    response = requests.get(url if url.endswith('/music') else f'{url}/music')
+    if response.ok:
+        html = lxh.fromstring(response.text)
+        try:
+            return [data.split('-')[1] for data in html.xpath('//@data-item-id') if data.startswith('album-')]
+        except (IndexError, KeyError):
+            raise NotFoundError
+    raise NotFoundError
+
+
 def scrape_bandcamp_tags_from_url(url):
     response = requests.get(url)
     if response.ok:
