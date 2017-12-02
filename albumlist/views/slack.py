@@ -126,8 +126,9 @@ def consume_artist():
     contents = form_data.get('text', '')
     for url in links.scrape_links_from_text(contents):
         if 'bandcamp' in url:
+            print(f'[scraper]: scraping albums from {url}')
             queued.deferred_consume_artist_albums.delay(url, channel=f'#{channel}')
-    return '', 200
+    return 'Scrape request sent', 200
 
 
 @slack_blueprint.route('/count', methods=['POST'])
