@@ -100,7 +100,7 @@ def deferred_consume_artist_albums(artist_url, response_url='DEFAULT_BOT_URL'):
         print(f'[scraper]: no albums found for artist at {artist_url}')
         if response_url:
             requests.post(response_url, data=json.dumps({'text': ':red_circle: failed to find any albums'}))
-    elif new_album_ids:
+    else:
         for new_album_id in new_album_ids:
             try:
                 list_model.add_to_list(new_album_id)
@@ -108,7 +108,7 @@ def deferred_consume_artist_albums(artist_url, response_url='DEFAULT_BOT_URL'):
             except DatabaseError as e:
                 print(f'[db]: failed to update list with {new_album_id} from {artist_url}')
                 print(f'[db]: {e}')
-        if response_url:
+        if response_url and new_album_ids:
             requests.post(response_url, data=json.dumps({'text': f':full_moon_with_face: done processing artist albums'}))
 
 
