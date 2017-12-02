@@ -124,10 +124,12 @@ def consume_artist():
     form_data = flask.request.form
     channel = form_data.get('channel_name', 'chat')
     contents = form_data.get('text', '')
+    response_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=channel)
+    response = None if 'silence' in form_data else form_data.get('response_url', response_url)
     for url in links.scrape_links_from_text(contents):
         if 'bandcamp' in url:
             print(f'[scraper]: scraping albums from {url}')
-            queued.deferred_consume_artist_albums.delay(url, channel=f'#{channel}')
+            queued.deferred_consume_artist_albums.delay(url, response)
     return 'Scrape request sent', 200
 
 
