@@ -5,7 +5,7 @@ import io
 
 from albumlist import constants
 from albumlist.models import DatabaseError
-from albumlist.models import albums as albums_model, tags as tags_model, list as list_model
+from albumlist.models import albums as albums_model, list as list_model
 
 
 api_blueprint = flask.Blueprint(name='api',
@@ -108,14 +108,14 @@ def api_album(album_id):
         return flask.jsonify({'text': 'failed'}), 500
 
 
-@api_blueprint.route('/tags', methods=['GET'])
-def api_tags():
-    try:
-        return flask.jsonify({'text': 'success', 'tags': [tag for tag in tags_model.get_tags()]}), 200
-    except DatabaseError as e:
-        print('[db]: failed to get tags')
-        print(f'[db]: {e}')
-        return flask.jsonify({'text': 'failed'}), 500
+# @api_blueprint.route('/tags', methods=['GET'])
+# def api_tags():
+#     try:
+#         return flask.jsonify({'text': 'success', 'tags': [tag for tag in tags_model.get_tags()]}), 200
+#     except DatabaseError as e:
+#         print('[db]: failed to get tags')
+#         print(f'[db]: {e}')
+#         return flask.jsonify({'text': 'failed'}), 500
 
 
 @api_blueprint.route('/tags/<tag>', methods=['GET'])

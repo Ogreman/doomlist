@@ -1,4 +1,5 @@
 from contextlib import closing
+import json
 
 import psycopg2
 
@@ -8,7 +9,7 @@ from albumlist.models.list import get_list
 
 class Album(object):
 
-    def __init__(self, album_id, name, artist, url, img, available, channel, added, tag=None):
+    def __init__(self, album_id, name, artist, url, img, available, channel, added, tags=None):
         self.album_id = album_id
         self.album_artist = artist
         self.album_name = name
@@ -17,7 +18,7 @@ class Album(object):
         self.channel = channel
         self.available = available
         self.added = added
-        self.tag = tag
+        self.tags = tags
 
     def to_dict(self):
         return {
@@ -26,7 +27,7 @@ class Album(object):
             'artist': self.album_artist or '',
             'channel': self.channel or '',
             'img': self.album_image or '',
-            'tags': [self.tag] if self.tag else [],
+            'tags': self.tags if self.tags else [],
             'url': self.album_url or '',
         }
 
@@ -48,8 +49,6 @@ class Album(object):
         for album in albums:
             if album.album_id not in details:
                 details[album.album_id] = album.to_dict()
-            elif album.tag:
-                details[album.album_id]['tags'].append(album.tag)
         return details
 
 
@@ -64,6 +63,7 @@ def create_albums_table():
         channel varchar DEFAULT '',
         available boolean DEFAULT true, 
         added timestamp DEFAULT now()
+        tags_json jsonb DEFAULT '[]'
         );"""
     with closing(get_connection()) as conn:
         try:
@@ -105,9 +105,8 @@ def get_albums():
 
 def get_albums_with_tags():
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, album_tags.tag
+        SELECT id, name, artist, url, img, available, channel, added, tags_json
         FROM albums
-        LEFT JOIN album_tags on albums.id = album_tags.album;
     """
     with closing(get_connection()) as conn:
         try:
@@ -120,9 +119,8 @@ def get_albums_with_tags():
 
 def get_albums_by_channel_with_tags(channel):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, album_tags.tag
+        SELECT id, name, artist, url, img, available, channel, added, tags_json
         FROM albums
-        LEFT JOIN album_tags on albums.id = album_tags.album
         WHERE channel = %s;
     """
     with closing(get_connection()) as conn:
@@ -216,16 +214,15 @@ def get_album_details(album_id):
 
 def get_album_details_with_tags(album_id):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, album_tags.tag
+        SELECT id, name, artist, url, img, available, channel, added, tags_json
         FROM albums
-        LEFT JOIN album_tags on albums.id = album_tags.album
         WHERE id = %s;
         """
     with closing(get_connection()) as conn:
         try:
             cur = conn.cursor()
             cur.execute(sql, (album_id, ))
-            return Album.albums_from_values(cur.fetchall())
+            return Album.from_values(cur.fetchone())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
@@ -360,6 +357,51 @@ def update_album_added(album_id, added):
             raise DatabaseError(e)
 
 
+def set_album_tags(album_id, tags):
+    with closing(get_connection()) as conn:
+        try:
+            sql = """
+                UPDATE albums
+                SET tags_json = %s
+                WHERE id = %s;
+                """
+            cur = conn.cursor()
+            cur.execute(sql, (json.dumps(tags), album_id))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
+def add_tag_to_album(album_id, tag):
+    with closing(get_connection()) as conn:
+        try:
+            sql = """
+                UPDATE albums
+                SET tags_json = tags_json || %s
+                WHERE id = %s;
+                """
+            cur = conn.cursor()
+            cur.execute(sql, (json.dumps([tag.lower()]), album_id))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
+def remove_tag_from_album(album_id, tag):
+    with closing(get_connection()) as conn:
+        try:
+            sql = """
+                UPDATE albums
+                SET tags_json = tags_json - %s
+                WHERE id = %s;
+                """
+            cur = conn.cursor()
+            cur.execute(sql, (json.dumps(tag), album_id))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
 def get_album_ids():
     with closing(get_connection()) as conn:
         try:
@@ -372,7 +414,7 @@ def get_album_ids():
 
 def get_random_album():
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added
+        SELECT id, name, artist, url, img, available, channel, added, tags_json
         FROM albums 
         WHERE available = true
         ORDER BY RANDOM() 
@@ -389,14 +431,9 @@ def get_random_album():
 
 def get_albums_by_tag(tag):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, album_tags.tag
-        FROM albums 
-        LEFT JOIN album_tags on albums.id = album_tags.album
-        WHERE id IN (
-            SELECT album
-            FROM album_tags
-            WHERE tag = %s
-        )
+        SELECT id, name, artist, url, img, available, channel, added, tags_json
+        FROM albums
+        WHERE tags_json ? %s
         AND available = true;
         """
     with closing(get_connection()) as conn:
@@ -410,16 +447,11 @@ def get_albums_by_tag(tag):
 
 def search_albums(query):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, album_tags.tag
-        FROM albums 
-        LEFT JOIN album_tags on albums.id = album_tags.album
+        SELECT id, name, artist, url, img, available, channel, added, tags_json
+        FROM albums
         WHERE LOWER(name) LIKE %s 
         OR LOWER(artist) LIKE %s
-        OR id IN (
-            SELECT album
-            FROM album_tags
-            WHERE LOWER(tag) LIKE %s
-        )
+        OR tags_json ? %s
         AND available = true;
         """
     with closing(get_connection()) as conn:
@@ -434,21 +466,16 @@ def search_albums(query):
 
 def search_albums_by_tag(query):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, album_tags.tag
+        SELECT id, name, artist, url, img, available, channel, added, tags_json
         FROM albums 
-        LEFT JOIN album_tags on albums.id = album_tags.album
-        WHERE id IN (
-            SELECT album
-            FROM album_tags
-            WHERE LOWER(tag) LIKE %s
-        )
+        WHERE tags_json ? %s
         AND available = true;
         """
     with closing(get_connection()) as conn:
         try:
             cur = conn.cursor()
-            term = f'%{query}%'
-            cur.execute(sql, (term, ))
+            # term = f'%{query}%' TODO
+            cur.execute(sql, (query, ))
             return Album.albums_from_values(cur.fetchall())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)

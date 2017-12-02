@@ -8,7 +8,7 @@ import slacker
 
 from albumlist import delayed
 from albumlist.models import DatabaseError
-from albumlist.models import albums as albums_model, tags as tags_model, list as list_model
+from albumlist.models import albums as albums_model, list as list_model
 from albumlist.scrapers import NotFoundError
 from albumlist.scrapers import bandcamp, links
 from albumlist.views import build_attachment
@@ -114,17 +114,14 @@ def deferred_consume_artist_albums(artist_url, response_url='DEFAULT_BOT_URL'):
 
 @delayed.queue_func
 def deferred_process_tags(album_id, tags):
-    for tag in tags:
-        tag = tag[1:] if tag.startswith('#') else tag
-        try:
-            if tag not in tags_model.get_tags():
-                tags_model.add_to_tags(tag)
-            tags_model.tag_album(album_id, tag)
-        except DatabaseError as e:
-            print(f'[db]: failed to add tag "{tag}" to album {album_id}')
-            print(f'[db]: {e}')
-        else:
-            print(f'[scraper]: tagged {album_id} with "{tag}"')
+    tags = [tag[1:] if tag.startswith('#') else tag for tag in tags]
+    try:
+        albums_model.set_album_tags(album_id, tags)
+    except DatabaseError as e:
+        print(f'[db]: failed to add tags "{tags}" to album {album_id}')
+        print(f'[db]: {e}')
+    else:
+        print(f'[scraper]: tagged {album_id} with "{tags}"')
 
 
 @delayed.queue_func
