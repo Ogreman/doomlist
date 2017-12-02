@@ -96,7 +96,7 @@ def deferred_consume_artist_albums(artist_url, channel=''):
     else:
         for new_album_id in [album_id for album_id in artist_albums if album_id not in existing_albums]:
             try:
-                albums_model.add_to_list(new_album_id)
+                list_model.add_to_list(new_album_id)
                 deferred_process_album_details.delay(str(new_album_id), channel)
             except DatabaseError as e:
                 if channel:
