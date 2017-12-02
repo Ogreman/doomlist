@@ -281,7 +281,7 @@ def deferred_check_album_url(album_id, announce=True):
             albums_model.update_album_availability(album_id, True)
         elif response.status_code > 400 and album.available:
             albums_model.update_album_availability(album_id, False)
-            message = '[{album_id}] {album.album_name} by {album.album_artist} is no longer available'
+            message = f'[{album_id}] {album.album_name} by {album.album_artist} is no longer available'
             print(f'[scraper]: {message}')
             if announce:
                 slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
