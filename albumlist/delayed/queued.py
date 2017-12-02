@@ -89,8 +89,10 @@ def deferred_consume_artist_albums(artist_url, response_url='DEFAULT_BOT_URL'):
         existing_albums = list_model.get_list()
         artist_albums = bandcamp.scrape_bandcamp_album_ids_from_artist_page(artist_url)
         new_album_ids = [album_id for album_id in artist_albums if album_id not in existing_albums]
-        if response_url:
+        if response_url and new_album_ids:
             requests.post(response_url, data=json.dumps({'text': f':full_moon: found {len(new_album_ids)} new albums to process...'}))
+        elif response_url:
+            requests.post(response_url, data=json.dumps({'text': f':new_moon: found no new albums to process'}))
     except DatabaseError as e:
         print('[db]: failed to check existing items')
         print(f'[db]: {e}')
@@ -98,7 +100,7 @@ def deferred_consume_artist_albums(artist_url, response_url='DEFAULT_BOT_URL'):
         print(f'[scraper]: no albums found for artist at {artist_url}')
         if response_url:
             requests.post(response_url, data=json.dumps({'text': ':red_circle: failed to find any albums'}))
-    else:
+    elif new_album_ids:
         for new_album_id in new_album_ids:
             try:
                 list_model.add_to_list(new_album_id)
