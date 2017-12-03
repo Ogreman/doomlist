@@ -114,7 +114,7 @@ def deferred_consume_artist_albums(artist_url, response_url='DEFAULT_BOT_URL'):
 
 @delayed.queue_func
 def deferred_process_tags(album_id, tags):
-    tags = [tag[1:] if tag.startswith('#') else tag for tag in tags]
+    tags = [tag[1:].lower() if tag.startswith('#') else tag.lower() for tag in tags]
     try:
         albums_model.set_album_tags(album_id, tags)
     except DatabaseError as e:
