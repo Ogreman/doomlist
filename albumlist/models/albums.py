@@ -458,7 +458,7 @@ def search_albums(query):
         try:
             cur = conn.cursor()
             term = f'%{query}%'
-            cur.execute(sql, (term, term, term))
+            cur.execute(sql, (term, term, query))
             return Album.albums_from_values(cur.fetchall())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
