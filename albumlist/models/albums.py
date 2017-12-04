@@ -312,6 +312,21 @@ def add_img_to_album(album_id, album_img):
             raise DatabaseError(e)
 
 
+def update_album_url(album_id, album_url):
+    with closing(get_connection()) as conn:
+        try:
+            sql = """
+                UPDATE albums
+                SET url = %s
+                WHERE id = %s;
+                """
+            cur = conn.cursor()
+            cur.execute(sql, (album_url, album_id))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
 def add_added_to_album(album_id, dt):
     with closing(get_connection()) as conn:
         try:

@@ -301,19 +301,36 @@ def deferred_process_all_album_tags(response_url='DEFAULT_BOT_URL'):
 
 
 @delayed.queue_func
-def deferred_check_album_url(album_id, announce=True):
+def deferred_check_album_url(album_id, announce=True, check_for_new_url=True):
     try:
         album = albums_model.get_album_details(album_id)
         response = requests.head(album.album_url)
         if response.ok and not album.available:
             albums_model.update_album_availability(album_id, True)
-        elif response.status_code > 400 and album.available:
-            albums_model.update_album_availability(album_id, False)
-            message = f'[{album_id}] {album.album_name} by {album.album_artist} is no longer available'
-            print(f'[scraper]: {message}')
-            if announce:
-                slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
-                slack.chat.post_message(f'#announcements', f':crying_cat_face: {message}')
+
+        elif response.status_code > 400:
+
+            if check_for_new_url:
+                try:
+                    _, _, album_url = bandcamp.scrape_bandcamp_album_details_from_id(album_id)
+                    if album_url != album.album_url:
+                        print(f'[scraper] alternative album URL found at {album_url} for {album_id}')
+                        albums_model.update_album_url(album_id, album_url)
+                        return
+                except TypeError:
+                    print(f'[scraper] no alternative URL found for {album_id}')
+                except DatabaseError as e:
+                    print(f'[db]: failed to update album URL for {album_id}')
+                    print(f'[db]: {e}')
+
+            if album.available:
+                albums_model.update_album_availability(album_id, False)
+                message = f'[{album_id}] {album.album_name} by {album.album_artist} is no longer available'
+                print(f'[scraper]: {message}')
+                if announce:
+                    slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
+                    slack.chat.post_message(f'#announcements', f':crying_cat_face: {message}')
+
     except DatabaseError as e:
         print('[db]: failed to update album after check')
         print(f'[db]: {e}')
