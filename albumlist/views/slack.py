@@ -343,10 +343,10 @@ def build_bandcamp_search_response(album_details, max_attachments=None):
             'tags': [],
         } for result_id, details in enumerate(album_details)
     }
-    attachments = [
+    attachments = list(reversed([
         build_attachment(album_id, album_details, 'bandcamp')
         for album_id, album_details in album_map.items()
-    ]
+    ]))
     text = f'Your search returned {len(album_map)} results'
     if max_attachments and len(album_map) > max_attachments:
         text += f' (but we can only show you {max_attachments})'
