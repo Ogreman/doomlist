@@ -44,6 +44,7 @@ def build_attachment(album_id, album_details, list_name, tags=True, scrape=False
             for i, tag in enumerate(album_details['tags'])
         ]
     if scrape:
+        attachment['callback_id'] = f'bandcamp_#{album_id}'
         attachment['actions'] += [
             {
                 'name': 'scrape_album',

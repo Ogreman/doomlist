@@ -459,7 +459,10 @@ def button():
         elif 'post_album' in action['name']:
             url = action['value']
             user = form_data['user']['name']
-            message = f"{user} posted {url} from the {slack_blueprint.config['LIST_NAME']}"
+            if form_data['callback_id'].startswith('bandcamp_#'):
+                message = f'{user} posted {url} from bandcamp search results'
+            else:
+                message = f"{user} posted {url} from the {slack_blueprint.config['LIST_NAME']}"
             response = {
                 'response_type': 'in_channel',
                 'text': message,
