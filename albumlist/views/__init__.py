@@ -1,7 +1,7 @@
 import collections
 
 
-def build_attachment(album_id, album_details, list_name, tags=True):
+def build_attachment(album_id, album_details, list_name, tags=True, scrape=False):
     attachment = {
         'fallback': f'{album_details["album"]} by {album_details["artist"]}',
         'color': '#36a64f',
@@ -42,5 +42,14 @@ def build_attachment(album_id, album_details, list_name, tags=True):
                 'value': str(tag),
             }
             for i, tag in enumerate(album_details['tags'])
+        ]
+    if scrape:
+        attachment['actions'] += [
+            {
+                'name': 'scrape_album',
+                'text': 'Scrape',
+                'type': 'button',
+                'value': album_details['url'],
+            }
         ]
     return attachment

@@ -344,7 +344,7 @@ def build_bandcamp_search_response(album_details, max_attachments=None):
         } for result_id, details in enumerate(album_details)
     }
     attachments = list(reversed([
-        build_attachment(album_id, album_details, 'bandcamp')
+        build_attachment(album_id, album_details, 'bandcamp', tags=False, scrape=True)
         for album_id, album_details in album_map.items()
     ]))
     text = f'Your search returned {len(album_map)} results'
@@ -465,6 +465,20 @@ def button():
                 'text': message,
                 'replace_original': False,
                 'unfurl_links': True,
+            }
+            return flask.jsonify(response)
+        elif 'scrape_album' in action['name']:
+            url = action['value']
+            queued.deferred_consume.delay(
+                url,
+                bandcamp.scrape_bandcamp_album_ids_from_url,
+                list_model.add_to_list,
+            )
+            response = {
+                'response_type': 'ephemeral',
+                'text': f'Scraping from {url}...',
+                'replace_original': True,
+                'unfurl_links': False,
             }
             return flask.jsonify(response)
     except KeyError as e:
