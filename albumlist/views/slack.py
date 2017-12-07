@@ -333,6 +333,29 @@ def build_search_response(albums, list_name, max_attachments=None):
     }
 
 
+def build_bandcamp_search_response(album_details, max_attachments=None):
+    album_map = {
+        result_id: {
+            'album': details[0],
+            'artist': details[1],
+            'url': details[2],
+            'img': details[3],
+            'tags': [],
+        } for result_id, details in enumerate(album_details)
+    }
+    attachments = [
+        build_attachment(album_id, album_details, 'bandcamp')
+        for album_id, album_details in album_map.items()
+    ]
+    text = f'Your search returned {len(album_map)} results'
+    if max_attachments and len(album_map) > max_attachments:
+        text += f' (but we can only show you {max_attachments})'
+    return {
+        'text': text,
+        'attachments': attachments[:max_attachments],
+    }
+
+
 @slack_blueprint.route('/search', methods=['POST'])
 @slack_check
 def search():
@@ -352,6 +375,25 @@ def search():
                 list_name = slack_blueprint.config['LIST_NAME']
                 response = build_search_response(albums, list_name, max_attachments)
                 flask.current_app.cache.set(f'q-{query}', response, 60 * 5)
+        return flask.jsonify(response), 200
+    return '', 200
+
+
+@slack_blueprint.route('/search/bandcamp', methods=['POST'])
+@slack_check
+def search_bandcamp():
+    form_data = flask.request.form
+    query = form_data.get('text').lower()
+    if query:
+        response = flask.current_app.cache.get(f'bcq-{query}')
+        if not response:
+            try:
+                max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
+                results = bandcamp.scrape_bandcamp_album_details_from_search(query)
+                response = build_bandcamp_search_response(results, max_attachments)
+                flask.current_app.cache.set(f'bcq-{query}', response, 60 * 5)
+            except NotFoundError:
+                return '', 404
         return flask.jsonify(response), 200
     return '', 200
 

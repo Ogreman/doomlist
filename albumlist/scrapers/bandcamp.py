@@ -96,3 +96,20 @@ def scrape_bandcamp_album_details_from_id(album_id):
                 return data['album_title'], data['artist'], data['linkback']
             except (KeyError, TypeError, ValueError):
                 pass
+
+
+def scrape_bandcamp_album_details_from_search(query):
+    response = requests.get(f'https://bandcamp.com/search?q={query.replace(" ", "%20")}')
+    if response.ok:
+        html = lxh.fromstring(response.text)
+        for album in html.cssselect('li.searchresult.album'):
+            try:
+                album_name = album.cssselect('.heading a')[0].text.strip()
+                artist = album.cssselect('div.subhead')[0].text.strip()[3:]
+                album_url = album.cssselect('.itemurl a')[0].text.strip()
+                album_cover_url = album.cssselect('.art img')[0].attrib['src']
+                yield album_name, artist, album_url, album_cover_url
+            except (IndexError, KeyError):
+                continue
+    else:
+        raise NotFoundError
