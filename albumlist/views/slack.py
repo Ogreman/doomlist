@@ -472,15 +472,17 @@ def button():
             return flask.jsonify(response)
         elif 'scrape_album' in action['name']:
             url = action['value']
+            channel_id = form_data['channel']['id']
             queued.deferred_consume.delay(
                 url,
                 bandcamp.scrape_bandcamp_album_ids_from_url,
                 list_model.add_to_list,
+                channel=channel_id,
             )
             response = {
                 'response_type': 'ephemeral',
                 'text': f'Scraping from {url}...',
-                'replace_original': True,
+                'replace_original': False,
                 'unfurl_links': False,
             }
             return flask.jsonify(response)

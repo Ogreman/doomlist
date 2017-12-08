@@ -56,7 +56,7 @@ def deferred_consume(url, scrape_function, callback, channel='', tags=None):
     try:
         album_id = scrape_function(url)
     except NotFoundError:
-        message = None
+        print(f'[scraper]: no album id found at {url}')
     else:
         slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
         try:
@@ -64,10 +64,10 @@ def deferred_consume(url, scrape_function, callback, channel='', tags=None):
                 try:    
                     callback(album_id)
                 except DatabaseError as e:
-                    if channel:
-                        slack.chat.post_message(f'{channel}', ':red_circle: failed to update list')
                     print(f'[db]: failed to perform {callback.__name__}')
                     print(f'[db]: {e}')
+                    if channel:
+                        slack.chat.post_message(f'{channel}', ':red_circle: failed to update list')
                 else:
                     if channel:
                         slack.chat.post_message(f'{channel}', f':full_moon: added album to list: {url}', unfurl_links=True)
