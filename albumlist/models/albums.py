@@ -187,6 +187,31 @@ def get_albums_count():
             raise DatabaseError(e)
 
 
+def find_album_artist_duplicates():
+    all_sql = """
+        SELECT name, artist
+        FROM albums;
+    """
+    duplicate_sql = """
+        SELECT id, url
+        FROM albums
+        WHERE LOWER(name) = %s
+        AND LOWER(artist) = %s;
+    """
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(all_sql)
+            duplicates = set()
+            for name, artist in cur.fetchall():
+                cur.execute(duplicate_sql, (name.lower(), artist.lower()))
+                if cur.rowcount > 1:
+                    duplicates.add(cur.fetchall())
+            return duplicates
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
 def get_albums_unavailable_count():
     with closing(get_connection()) as conn:
         try:
