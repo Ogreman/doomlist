@@ -498,7 +498,9 @@ def button():
             }
             return flask.jsonify(response)
         elif 'delete_album' in action['name']:
-            queued.deferred_delete.delay(action['value'])
+            template = slack_blueprint.config['BOT_URL_TEMPLATE']
+            response_url = template.format(channel=form_data['channel']['id'])
+            queued.deferred_delete.delay(action['value'], response_url=response_url)
             response = {
                 'response_type': 'ephemeral',
                 'text': 'Deleting...',
