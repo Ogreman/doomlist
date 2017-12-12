@@ -225,6 +225,17 @@ def check_urls():
     return 'Check request sent', 200
 
 
+@slack_blueprint.route('/duplicates', methods=['POST'])
+@slack_check
+@admin_only
+def check_for_duplicates():
+    duplicates = albums_model.find_album_artist_duplicates()
+    max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
+    list_name = slack_blueprint.config['LIST_NAME']
+    response = build_search_response(duplicates, list_name, max_attachments, delete=True)
+    return flask.jsonify(response), 200
+
+
 @slack_blueprint.route('/process', methods=['POST'])
 @slack_check
 @admin_only
@@ -318,10 +329,10 @@ def random_album():
         return flask.jsonify(response), 200
 
 
-def build_search_response(albums, list_name, max_attachments=None):
+def build_search_response(albums, list_name, max_attachments=None, delete=False):
     details = albums_model.Album.details_map_from_albums(albums)
     attachments = [
-        build_attachment(album_id, album_details, list_name)
+        build_attachment(album_id, album_details, list_name, delete=delete)
         for album_id, album_details in details.items()
     ]
     text = f'Your search returned {len(details)} results'
@@ -482,6 +493,15 @@ def button():
             response = {
                 'response_type': 'ephemeral',
                 'text': f'Scraping from {url}...',
+                'replace_original': False,
+                'unfurl_links': False,
+            }
+            return flask.jsonify(response)
+        elif 'delete_album' in action['name']:
+            queued.deferred_delete.delay(action['value'])
+            response = {
+                'response_type': 'ephemeral',
+                'text': 'Deleting...',
                 'replace_original': False,
                 'unfurl_links': False,
             }

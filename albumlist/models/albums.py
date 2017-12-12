@@ -188,26 +188,18 @@ def get_albums_count():
 
 
 def find_album_artist_duplicates():
-    all_sql = """
-        SELECT name, artist
-        FROM albums;
-    """
-    duplicate_sql = """
-        SELECT id, url
-        FROM albums
-        WHERE LOWER(name) = %s
-        AND LOWER(artist) = %s;
+    sql = """
+        SELECT a1.* from (SELECT id, LOWER(name) as name, LOWER(artist) as artist, url, img, available, channel, added from albums) a1
+        LEFT JOIN (SELECT LOWER(artist) as artist, LOWER(name) as name, COUNT(*) as duplicates from albums GROUP BY LOWER(artist), LOWER(name)) a2
+        ON a1.artist = a2.artist AND a1.name = a2.name
+        WHERE a2.duplicates > 1
+        ORDER BY a1.artist, a1.name
     """
     with closing(get_connection()) as conn:
         try:
             cur = conn.cursor()
-            cur.execute(all_sql)
-            duplicates = set()
-            for name, artist in cur.fetchall():
-                cur.execute(duplicate_sql, (name.lower(), artist.lower()))
-                if cur.rowcount > 1:
-                    duplicates.add(cur.fetchall())
-            return duplicates
+            cur.execute(sql)
+            return Album.albums_from_values(cur.fetchall())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 
