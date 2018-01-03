@@ -4,7 +4,7 @@ import requests
 from albumlist import delayed
 
 
-message = f'Today\'s album of the day from the {os.environ.get('LIST_NAME')} is: {url}'
+message = f'Today\'s album of the day from the {os.environ.get('LIST_NAME', 'list')} is: {url}'
 error_message = 'Odd... Something went wrong.'
 url = f'https://{os.environ.get('LIST_NAME')}.herokuapp.com/slack/random'
 data = {'token': os.environ.get('SLACK_APP_TOKEN')} 

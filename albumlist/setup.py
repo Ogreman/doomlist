@@ -59,8 +59,8 @@ def create_app():
 
     app.cache = init_cacheify(app)
 
-    app.db_error_message = '{name} error - check with admin'.format(name=LIST_NAME)
-    app.not_found_message = 'Album not found in the {name}'.format(name=LIST_NAME)
+    app.db_error_message = f'{LIST_NAME} error - check with admin'
+    app.not_found_message = f'Album not found in the {LIST_NAME}'
 
     def get_and_set_album_details(album_id):
         try:

@@ -104,13 +104,14 @@ def consume_all():
     tags = re.findall(constants.HASHTAG_REGEX, contents)
     for url in links.scrape_links_from_text(contents):
         if 'bandcamp' in url:
-            queued.deferred_consume.delay(
-                url,
-                bandcamp.scrape_bandcamp_album_ids_from_url,
-                list_model.add_to_list,
-                channel=f'#{channel}',
-                tags=tags
-            )
+            # queued.deferred_consume.delay(
+            #     url,
+            #     bandcamp.scrape_bandcamp_album_ids_from_url,
+            #     list_model.add_to_list,
+            #     channel=f'#{channel}',
+            #     tags=tags
+            # )
+            requests.post(bot_url, data='Bandcamp scraper already running')
         elif 'youtube' in url or 'youtu.be' in url:
             requests.post(bot_url, data='YouTube scraper not yet implemented')
         elif 'soundcloud' in url:
