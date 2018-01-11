@@ -2,6 +2,8 @@
 
 This is a [Slack](https://slack.com/) app that scrapes and compiles lists of ([bandcamp](https://www.bandcamp.com)) albums that have been shared by a Slack team.
 
+Once deployed, use the [albumlistbot](https://slack.com/oauth/authorize?client_id=10066701634.66761250224&scope=commands,links:read,chat:write:bot,channels:history) to register your Slack team with your new Albumlist.
+
 ## Deploy to Heroku
 
 You can deploy this app yourself to [Heroku](https://heroku.com/) to play with - though I would suggest forking this repository first and tweaking the environment variables listed under "env" in the [app.json file](https://github.com/Ogreman/albumlist/blob/master/app.json).
