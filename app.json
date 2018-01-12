@@ -21,7 +21,7 @@
         "description": "A secret key for verifying magic Flask stuff.",
         "generator": "secret"
     },
-    "APP_TOKEN_A": {
+    "APP_TOKEN_BOT": {
         "description": "The config looks for Slack integration tokens starting wtih APP_TOKEN. These are used to allow access to any of the /slack/[endpoints].",
         "value": "CHANGE_ME",
         "required": false
