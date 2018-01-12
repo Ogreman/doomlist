@@ -16,12 +16,8 @@ Using [Docker Compose](https://docs.docker.com/compose/install/):
 # create a local .env file to be consumed by the daemon and albumlist
 $ cat .env
 APP_SETTINGS=config.DevelopmentConfig 
-BOT_URL_TEMPLATE="https://{team}.slack.com/services/hooks/slackbot?token={token}&channel=%23{channel}"
 SLACK_TEAM=albumlistchat
-DEFAULT_CHANNEL=chat
 LIST_NAME=albumlist
-SLACK_API_TOKEN="[TOKEN_FROM_SLACK]"
-SCRAPE_CHANNEL_ID="[DEFAULT_SLACK_CHANNEL_ID_TO_SCRAPE]"
 
 $ docker-compose up -d
 $ docker exec albumlist python create_tables.py

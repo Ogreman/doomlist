@@ -15,11 +15,9 @@ from albumlist.views import build_attachment
 
 
 @delayed.queue_func
-def deferred_scrape(scrape_function, callback, channel_id, channel_name=None, response_url='DEFAULT_BOT_URL'):
-    if response_url == 'DEFAULT_BOT_URL':
-        response_url = flask.current_app.config['DEFAULT_BOT_URL']
+def deferred_scrape_channel(scrape_function, callback, channel_id, slack_token, channel_name=None, response_url=None):
     try:
-        slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
+        slack = slacker.Slacker(slack_token)
         if response_url:
             requests.post(response_url, data=json.dumps({'text': f'Getting channel history for {channel_name or channel_id}...'}))
         response = slack.channels.history(channel_id)
@@ -52,13 +50,14 @@ def deferred_scrape(scrape_function, callback, channel_id, channel_name=None, re
 
 
 @delayed.queue_func
-def deferred_consume(url, scrape_function, callback, channel='', tags=None):
+def deferred_consume(url, scrape_function, callback, channel='', tags=None, slack_token=None):
     try:
         album_id = scrape_function(url)
     except NotFoundError:
         print(f'[scraper]: no album id found at {url}')
     else:
-        slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
+        if slack_token:
+            slack = slacker.Slacker(slack_token)
         try:
             if album_id not in list_model.get_list():
                 try:    
@@ -66,13 +65,13 @@ def deferred_consume(url, scrape_function, callback, channel='', tags=None):
                 except DatabaseError as e:
                     print(f'[db]: failed to perform {callback.__name__}')
                     print(f'[db]: {e}')
-                    if channel:
+                    if channel and slack_token:
                         slack.chat.post_message(f'{channel}', ':red_circle: failed to update list')
                 else:
-                    if channel:
+                    if channel and slack_token:
                         slack.chat.post_message(f'{channel}', f':full_moon: added album to list: {url}', unfurl_links=True)
                     deferred_process_album_details.delay(str(album_id), channel)
-            elif channel:
+            elif channel and slack_token:
                 slack.chat.post_message(f'{channel}', f':new_moon: album already in list: {url}', unfurl_links=True)
             if tags:
                 deferred_process_tags.delay(str(album_id), tags)
@@ -82,9 +81,7 @@ def deferred_consume(url, scrape_function, callback, channel='', tags=None):
 
 
 @delayed.queue_func
-def deferred_consume_artist_albums(artist_url, response_url='DEFAULT_BOT_URL'):
-    if response_url == 'DEFAULT_BOT_URL':
-        response_url = flask.current_app.config['DEFAULT_BOT_URL']
+def deferred_consume_artist_albums(artist_url, response_url=None):
     try:
         existing_albums = list_model.get_list()
         artist_albums = bandcamp.scrape_bandcamp_album_ids_from_artist_page(artist_url)
@@ -125,9 +122,7 @@ def deferred_process_tags(album_id, tags):
 
 
 @delayed.queue_func
-def deferred_process_all_album_details(response_url='DEFAULT_BOT_URL'):
-    if response_url == 'DEFAULT_BOT_URL':
-        response_url = flask.current_app.config['DEFAULT_BOT_URL']
+def deferred_process_all_album_details(response_url=None):
     try:
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
@@ -144,18 +139,14 @@ def deferred_process_all_album_details(response_url='DEFAULT_BOT_URL'):
 
 
 @delayed.queue_func
-def deferred_clear_cache(response_url='DEFAULT_BOT_URL'):
-    if response_url == 'DEFAULT_BOT_URL':
-        response_url = flask.current_app.config['DEFAULT_BOT_URL']
+def deferred_clear_cache(response_url=None):
     flask.current_app.cache.clear()
     if response_url:
         requests.post(response_url, data=json.dumps({'text': 'Cache cleared'}))
 
 
 @delayed.queue_func
-def deferred_delete(album_id, response_url='DEFAULT_BOT_URL'):
-    if response_url == 'DEFAULT_BOT_URL':
-        response_url = flask.current_app.config['DEFAULT_BOT_URL']
+def deferred_delete(album_id, response_url=None):
     try:
         albums_model.delete_from_list_and_albums(album_id)
         flask.current_app.cache.delete(f'alb-{album_id}')
@@ -171,7 +162,7 @@ def deferred_delete(album_id, response_url='DEFAULT_BOT_URL'):
 
 
 @delayed.queue_func
-def deferred_process_album_details(album_id, channel=''):
+def deferred_process_album_details(album_id, channel='', slack_token=None):
     try:
         album, artist, url = bandcamp.scrape_bandcamp_album_details_from_id(album_id)
         albums_model.add_to_albums(album_id, artist, album, url, channel=channel)
@@ -180,30 +171,14 @@ def deferred_process_album_details(album_id, channel=''):
     except DatabaseError as e:
         print(f'[db]: failed to add album details for {album_id}')
         print(f'[db]: {e}')
-        if channel:
-            slack.chat.post_message(f'{channel}', f':red_circle: failed to add album details')
+        if channel and slack_token:
+            slacker.Slacker(slack_token).chat.post_message(f'{channel}', f':red_circle: failed to add album details')
     except (TypeError, ValueError):
         pass
     else:
         print(f'[scraper]: processed album details for {album_id}')
-        if channel:
-            slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
-            slack.chat.post_message(f'{channel}', f':full_moon_with_face: processed album details for "*{album}*" by *{artist}*')
-
-
-@delayed.queue_func
-def deferred_post_attachment(album_id, channel='#announcements'):
-    try:
-        albums = albums_model.get_album_details_with_tags(album_id)
-        details = albums_model.Album.details_map_from_albums(albums)
-        if album_id not in details:
-            raise DatabaseError('album details missing')
-        attachment = build_attachment(album_id, details[album_id], flask.current_app.config['LIST_NAME'])
-        slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
-        slack.chat.post_message(f'{channel}', attachments=[attachment])
-    except DatabaseError as e:
-        print(f'[db]: failed to get album details for {album_id}')
-        print(f'[db]: {e}')
+        if channel and slack_token:
+            slacker.Slacker(slack_token).chat.post_message(f'{channel}', f':full_moon_with_face: processed album details for "*{album}*" by *{artist}*')
 
 
 @delayed.queue_func
@@ -263,9 +238,7 @@ def deferred_process_album_tags(album_id):
 
 
 @delayed.queue_func
-def deferred_process_all_album_covers(response_url='DEFAULT_BOT_URL'):
-    if response_url == 'DEFAULT_BOT_URL':
-        response_url = flask.current_app.config['DEFAULT_BOT_URL']
+def deferred_process_all_album_covers(response_url=None):
     try:
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
@@ -282,9 +255,7 @@ def deferred_process_all_album_covers(response_url='DEFAULT_BOT_URL'):
 
 
 @delayed.queue_func
-def deferred_process_all_album_tags(response_url='DEFAULT_BOT_URL'):
-    if response_url == 'DEFAULT_BOT_URL':
-        response_url = flask.current_app.config['DEFAULT_BOT_URL']
+def deferred_process_all_album_tags(response_url=None):
     try:
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
@@ -301,7 +272,7 @@ def deferred_process_all_album_tags(response_url='DEFAULT_BOT_URL'):
 
 
 @delayed.queue_func
-def deferred_check_album_url(album_id, announce=True, check_for_new_url=True):
+def deferred_check_album_url(album_id, announce=True, check_for_new_url=True, slack_token=None):
     try:
         album = albums_model.get_album_details(album_id)
         response = requests.head(album.album_url)
@@ -327,9 +298,8 @@ def deferred_check_album_url(album_id, announce=True, check_for_new_url=True):
                 albums_model.update_album_availability(album_id, False)
                 message = f'[{album_id}] {album.album_name} by {album.album_artist} is no longer available'
                 print(f'[scraper]: {message}')
-                if announce:
-                    slack = slacker.Slacker(flask.current_app.config['SLACK_API_TOKEN'])
-                    slack.chat.post_message(f'#announcements', f':crying_cat_face: {message}')
+                if announce and slack_token:
+                    slacker.Slacker(slack_token).chat.post_message(f'#announcements', f':crying_cat_face: {message}')
 
     except DatabaseError as e:
         print('[db]: failed to update album after check')
@@ -341,9 +311,7 @@ def deferred_check_album_url(album_id, announce=True, check_for_new_url=True):
 
 
 @delayed.queue_func
-def deferred_check_all_album_urls(response_url='DEFAULT_BOT_URL'):
-    if response_url == 'DEFAULT_BOT_URL':
-        response_url = flask.current_app.config['DEFAULT_BOT_URL']
+def deferred_check_all_album_urls(response_url=None):
     try:
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'Check started...'}))
@@ -352,11 +320,8 @@ def deferred_check_all_album_urls(response_url='DEFAULT_BOT_URL'):
     except DatabaseError as e:
         print('[db]: failed to check for new album details')
         print(f'[db]: {e}')
-        message = 'failed to check all album urls...'
-    else:
-        message = 'Finished checking all album URLs'
-    if response_url:
-        requests.post(response_url, data=json.dumps({'text': message}))
+        if response_url:
+            requests.post(response_url, data=json.dumps({'text': 'failed to check all album urls'}))
 
 
 @delayed.queue_func

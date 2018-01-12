@@ -3,7 +3,6 @@ import functools
 import json
 import re
 import requests
-import slacker
 
 from albumlist import constants
 from albumlist.delayed import queued
@@ -71,8 +70,7 @@ def spoiler():
     channel = form_data.get('channel_name', 'chat')
     user = form_data['user_name']
     text = form_data['text']
-    bot_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=channel)
-    url = form_data.get('response_url', bot_url)
+    url = form_data['response_url']
     requests.post(url, data=json.dumps({
         'text': user + ' posted a spoiler...',
         'attachments': [
@@ -133,8 +131,7 @@ def consume_artist():
     form_data = flask.request.form
     channel = form_data.get('channel_name', 'chat')
     contents = form_data.get('text', '')
-    response_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=channel)
-    response = None if 'silence' in form_data else form_data.get('response_url', response_url)
+    response = None if 'silence' in form_data else form_data.get('response_url')
     for url in links.scrape_links_from_text(contents):
         if 'bandcamp' in url:
             print(f'[scraper]: scraping albums from {url}')
@@ -156,8 +153,8 @@ def delete():
     album_id = form_data.get('text')
     channel = form_data.get('channel_name', 'chat')
     if album_id:
-        bot_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=channel)
-        queued.deferred_delete.delay(album_id.strip(), bot_url)
+        response = None if 'silence' in form_data else form_data.get('response_url')
+        queued.deferred_delete.delay(album_id.strip(), response)
     return '', 200
 
 
@@ -183,9 +180,7 @@ def add():
 @admin_only
 def clear_cache():
     form_data = flask.request.form
-    default_channel = slack_blueprint.config['DEFAULT_CHANNEL']
-    response_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=default_channel)
-    response = None if 'silence' in form_data else form_data.get('response_url', response_url)
+    response = None if 'silence' in form_data else form_data.get('response_url')
     queued.deferred_clear_cache.delay(response)
     return 'Clear cache request sent', 200
 
@@ -195,29 +190,22 @@ def clear_cache():
 @admin_only
 def scrape():
     form_data = flask.request.form
-    default_channel = slack_blueprint.config['DEFAULT_CHANNEL']
-    response_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=default_channel)
-    response = None if 'silence' in form_data else form_data.get('response_url', response_url)
+    response = None if 'silence' in form_data else form_data.get('response_url')
     contents = form_data.get('text', '')
     channels = re.findall(constants.SLACK_CHANNEL_REGEX, contents)
+    if 'oauth_token' not in form_data:
+        return 'Requires API scope', 200
     if channels:
         for channel_id, channel_name in channels:
-            queued.deferred_scrape.delay(
+            queued.deferred_scrape_channel.delay(
                 bandcamp.scrape_bandcamp_album_ids_from_messages,
                 list_model.add_many_to_list,
                 channel_id,
-                channel_name,
-                response
+                form_data['oauth_token'],
+                channel_name=channel_name,
+                response_url=response,
             )
             print(f'[slack]: scrape request sent for #{channel_name}')
-    else:
-        queued.deferred_scrape.delay(
-            bandcamp.scrape_bandcamp_album_ids_from_messages,
-            list_model.add_many_to_list,
-            flask.current_app.config['SCRAPE_CHANNEL_ID'],
-            response_url=response
-        )
-        print('[slack]: scrape request sent for default channel')
     return 'Scrape request(s) sent', 200
 
 
@@ -226,9 +214,7 @@ def scrape():
 @admin_only
 def check_urls():
     form_data = flask.request.form
-    default_channel = slack_blueprint.config['DEFAULT_CHANNEL']
-    response_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=default_channel)
-    response = None if 'silence' in form_data else form_data.get('response_url', response_url)
+    response = None if 'silence' in form_data else form_data.get('response_url')
     queued.deferred_check_all_album_urls.delay(response)
     return 'Check request sent', 200
 
@@ -249,9 +235,7 @@ def check_for_duplicates():
 @admin_only
 def process():
     form_data = flask.request.form
-    default_channel = slack_blueprint.config['DEFAULT_CHANNEL']
-    response_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=default_channel)
-    response = None if 'silence' in form_data else form_data.get('response_url', response_url)
+    response = None if 'silence' in form_data else form_data.get('response_url')
     queued.deferred_process_all_album_details.delay(response)
     return 'Process request sent', 200
 
@@ -261,9 +245,7 @@ def process():
 @admin_only
 def process_covers():
     form_data = flask.request.form
-    default_channel = slack_blueprint.config['DEFAULT_CHANNEL']
-    response_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=default_channel)
-    response = None if 'silence' in form_data else form_data.get('response_url', response_url)
+    response = None if 'silence' in form_data else form_data.get('response_url')
     queued.deferred_process_all_album_covers.delay(response)
     return 'Process request sent', 200
 
@@ -273,9 +255,7 @@ def process_covers():
 @admin_only
 def process_tags():
     form_data = flask.request.form
-    default_channel = slack_blueprint.config['DEFAULT_CHANNEL']
-    response_url = slack_blueprint.config['BOT_URL_TEMPLATE'].format(channel=default_channel)
-    response = None if 'silence' in form_data else form_data.get('response_url', response_url)
+    response = None if 'silence' in form_data else form_data.get('response_url')
     queued.deferred_process_all_album_tags.delay(response)
     return 'Process request sent', 200
 
@@ -443,15 +423,16 @@ def search_tags():
 @slack_blueprint.route('/search/button', methods=['POST'])
 def button():
     try:
-        form_data = json.loads(flask.request.form['payload'])
+        form_data = flask.request.form
+        payload = json.loads(form_data['payload'])
     except KeyError:
         print('[slack]: payload missing from button')
         return '', 401
-    if form_data.get('token') not in slack_blueprint.config['APP_TOKENS']:
+    if payload.get('token') not in slack_blueprint.config['APP_TOKENS']:
         print('[access]: button failed slack test')
         return '', 403
     try:
-        action = form_data['actions'][0]
+        action = payload['actions'][0]
         if 'tag' in action['name']:
             query = action['value'].lower()
             search_response = flask.current_app.cache.get(f't-{query}')
@@ -477,8 +458,8 @@ def button():
             return flask.jsonify(response)
         elif 'post_album' in action['name']:
             url = action['value']
-            user = form_data['user']['name']
-            if form_data['callback_id'].startswith('bandcamp_#'):
+            user = payload['user']['name']
+            if payload['callback_id'].startswith('bandcamp_#'):
                 message = f'{user} posted {url} from bandcamp search results'
             else:
                 message = f"{user} posted {url} from the {slack_blueprint.config['LIST_NAME']}"
@@ -491,12 +472,13 @@ def button():
             return flask.jsonify(response)
         elif 'scrape_album' in action['name']:
             url = action['value']
-            channel_id = form_data['channel']['id']
+            channel_id = payload['channel']['id']
             queued.deferred_consume.delay(
                 url,
                 bandcamp.scrape_bandcamp_album_ids_from_url,
                 list_model.add_to_list,
                 channel=channel_id,
+                slack_token=form_data.get('oauth_token')
             )
             response = {
                 'response_type': 'ephemeral',
@@ -506,9 +488,7 @@ def button():
             }
             return flask.jsonify(response)
         elif 'delete_album' in action['name']:
-            template = slack_blueprint.config['BOT_URL_TEMPLATE']
-            response_url = template.format(channel=form_data['channel']['id'])
-            queued.deferred_delete.delay(action['value'], response_url=response_url)
+            queued.deferred_delete.delay(action['value'], response_url=payload.get('response_url'))
             response = {
                 'response_type': 'ephemeral',
                 'text': 'Deleting...',
@@ -520,18 +500,6 @@ def button():
         print(f'[slack]: failed to build results: {e}')
         return db_error_message, 500
     return '', 200
-
-
-@slack_blueprint.route('/auth', methods=['GET'])
-@slack_check
-def auth():
-    code = flask.request.args.get('code')
-    client_id = slack_blueprint.config['SLACK_CLIENT_ID']
-    client_secret = slack_blueprint.config['SLACK_CLIENT_SECRET']
-    url = constants.SLACK_AUTH_URL.format(code=code, client_id=client_id, client_secret=client_secret)
-    response = requests.get(url)
-    print(f'[auth]: {response.json()}')
-    return response.content, 200
 
 
 @slack_blueprint.route('/restore_from_url', methods=['POST'])
@@ -559,10 +527,7 @@ def events_handler():
         try:
             request_type = body['type']
 
-            if request_type == 'url_verification':
-                return flask.jsonify({'challenge': body['challenge']})
-
-            elif request_type == 'event_callback':
+            if request_type == 'event_callback':
                 event_type = body['event']['type']
 
                 if event_type == 'link_shared':
@@ -574,7 +539,8 @@ def events_handler():
                             link['url'],
                             bandcamp.scrape_bandcamp_album_ids_from_url,
                             list_model.add_to_list,
-                            channel=channel
+                            channel=channel,
+                            slack_token=body.get('oauth_token')
                         )
 
         except KeyError:
