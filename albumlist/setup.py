@@ -36,6 +36,9 @@ def create_app():
     TEMPLATE_DIR = Path(__file__).parent.joinpath('templates')
     
     app = flask.Flask(__name__, template_folder=TEMPLATE_DIR)
+    if 'DYNO' in os.environ:
+        app.logger.addHandler(logging.StreamHandler(sys.stdout))
+        app.logger.setLevel(logging.ERROR)
     app.config.from_object(os.environ['APP_SETTINGS'])
 
     # check required config variables
@@ -66,5 +69,7 @@ def create_app():
 
     app.get_and_set_album_details = get_and_set_album_details
     app.get_cached_album_details = get_cached_album_details
+
+    app.logger.info(f'[app]: created with {os.environ["APP_SETTINGS"]}')
 
     return app

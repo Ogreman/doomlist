@@ -12,7 +12,7 @@ from albumlist.scrapers import bandcamp, links
 from albumlist.views import build_attachment
 
 
-slack_blueprint = flask.Blueprint(name='slack',
+slack_blueprint = flask.Blueflask(name='slack',
                                import_name=__name__,
                                url_prefix='/slack')
 
@@ -25,7 +25,7 @@ def slack_check(func):
     def wraps(*args, **kwargs):
         if flask.request.form.get('token', '') in slack_blueprint.config['APP_TOKENS'] or slack_blueprint.config['DEBUG']:
             return func(*args, **kwargs)
-        print('[access]: failed slack-check test')
+        flask.current_app.logger.error('[access]: failed slack-check test')
         flask.abort(403)
     return wraps
 
@@ -38,7 +38,7 @@ def admin_only(func):
     def wraps(*args, **kwargs):
         if flask.request.form.get('user_id', '') in slack_blueprint.config['ADMIN_IDS'] or slack_blueprint.config['DEBUG']:
             return func(*args, **kwargs)
-        print('[access]: failed admin-only test')
+        flask.current_app.logger.error('[access]: failed admin-only test')
         flask.abort(403)
     return wraps
 
@@ -51,7 +51,7 @@ def not_bots(func):
     def wraps(*args, **kwargs):
         if 'bot_id' not in flask.request.form:
             return func(*args, **kwargs)
-        print('[access]: failed not-bot test')
+        flask.current_app.logger.error('[access]: failed not-bot test')
         flask.abort(403)
     return wraps
 
@@ -134,7 +134,7 @@ def consume_artist():
     response = None if 'silence' in form_data else form_data.get('response_url')
     for url in links.scrape_links_from_text(contents):
         if 'bandcamp' in url:
-            print(f'[scraper]: scraping albums from {url}')
+            flask.current_app.logger.info(f'[scraper]: scraping albums from {url}')
             queued.deferred_consume_artist_albums.delay(url, response)
     return 'Scrape request sent', 200
 
@@ -167,8 +167,8 @@ def add():
         try:
             list_model.add_to_list(album_id.strip())
         except DatabaseError as e:
-            print('[db]: failed to add new album')
-            print(f'[db]: {e}')
+            flask.current_app.logger.error('[db]: failed to add new album')
+            flask.current_app.logger.error(f'[db]: {e}')
             return 'failed to add new album', 200
         else:
             return 'Added new album', 200
@@ -205,7 +205,7 @@ def scrape():
                 channel_name=channel_name,
                 response_url=response,
             )
-            print(f'[slack]: scrape request sent for #{channel_name}')
+            flask.current_app.logger.info(f'[slack]: scrape request sent for #{channel_name}')
     return 'Scrape request(s) sent', 200
 
 
@@ -278,8 +278,8 @@ def link():
         }
         return flask.jsonify(response), 200
     except DatabaseError as e:
-        print('[db]: failed to get album')
-        print(f'[db]: {e}')
+        flask.current_app.logger.error('[db]: failed to get album')
+        flask.current_app.logger.error(f'[db]: {e}')
         return flask.current_app.db_error_message, 500
 
 
@@ -292,8 +292,8 @@ def random_album():
         if album is None:
             return flask.current_app.not_found_message, 404
     except DatabaseError as e:
-        print('[db]: failed to get random album')
-        print(f'[db]: {e}')
+        flask.current_app.logger.error('[db]: failed to get random album')
+        flask.current_app.logger.error(f'[db]: {e}')
         return flask.current_app.db_error_message, 500
     else:
         if 'post' in form_data.get('text', ''):
@@ -366,8 +366,8 @@ def search():
             try:
                 albums = albums_model.search_albums(query)
             except DatabaseError as e:
-                print('[db]: failed to build album details')
-                print(f'[db]: {e}')
+                flask.current_app.logger.error('[db]: failed to build album details')
+                flask.current_app.logger.error(f'[db]: {e}')
                 return 'failed to perform search', 500
             else:
                 max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
@@ -408,8 +408,8 @@ def search_tags():
             try:
                 albums = albums_model.search_albums_by_tag(query)
             except DatabaseError as e:
-                print('[db]: failed to build album details')
-                print(f'[db]: {e}')
+                flask.current_app.logger.error('[db]: failed to build album details')
+                flask.current_app.logger.error(f'[db]: {e}')
                 return 'failed to perform search', 500
             else:
                 max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
@@ -426,10 +426,10 @@ def button():
         form_data = flask.request.form
         payload = json.loads(form_data['payload'])
     except KeyError:
-        print('[slack]: payload missing from button')
+        flask.current_app.logger.error('[slack]: payload missing from button')
         return '', 401
     if payload.get('token') not in slack_blueprint.config['APP_TOKENS']:
-        print('[access]: button failed slack test')
+        flask.current_app.logger.error('[access]: button failed slack test')
         return '', 403
     try:
         action = payload['actions'][0]
@@ -440,8 +440,8 @@ def button():
                 try:
                     albums = albums_model.search_albums_by_tag(query)
                 except DatabaseError as e:
-                    print('[db]: failed to build album details')
-                    print(f'[db]: {e}')
+                    flask.current_app.logger.error('[db]: failed to build album details')
+                    flask.current_app.logger.error(f'[db]: {e}')
                     return 'failed to perform search', 500
                 else:
                     max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
@@ -497,7 +497,7 @@ def button():
             }
             return flask.jsonify(response)
     except KeyError as e:
-        print(f'[slack]: failed to build results: {e}')
+        flask.current_app.logger.error(f'[slack]: failed to build results: {e}')
         return db_error_message, 500
     return '', 200
 
@@ -534,7 +534,7 @@ def events_handler():
                     channel = body['event']['channel']
 
                     for link in body['event']['links']:
-                        print(f"[events]: link shared matching {link['domain']}")
+                        flask.current_app.logger.info(f"[events]: link shared matching {link['domain']}")
                         queued.deferred_consume.delay(
                             link['url'],
                             bandcamp.scrape_bandcamp_album_ids_from_url,
@@ -546,6 +546,6 @@ def events_handler():
         except KeyError:
             flask.abort(401)
     else:
-        print('[events]: failed slack-check test')
+        flask.current_app.logger.error('[events]: failed slack-check test')
         flask.abort(403)
     return '', 200
