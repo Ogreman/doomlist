@@ -62,7 +62,7 @@ def create_albums_table():
         img varchar DEFAULT '',
         channel varchar DEFAULT '',
         available boolean DEFAULT true, 
-        added timestamp DEFAULT now()
+        added timestamp DEFAULT now(),
         tags_json jsonb DEFAULT '[]'
         );"""
     with closing(get_connection()) as conn:
