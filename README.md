@@ -18,7 +18,6 @@ Using [Docker Compose](https://docs.docker.com/compose/install/):
 # create a local .env file to be consumed by the daemon and albumlist
 $ cat .env
 APP_SETTINGS=config.DevelopmentConfig 
-SLACK_TEAM=albumlistchat
 LIST_NAME=albumlist
 
 $ docker-compose up -d

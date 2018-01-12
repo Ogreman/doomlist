@@ -7,7 +7,6 @@ class Config(object):
     CSRF_ENABLED = True
     SECRET_KEY = os.environ.get('SECRET_KEY', 'change-me')
     REDIS_QUEUE_KEY = 'deferred_queue'
-    SLACK_TEAM = os.environ.get('SLACK_TEAM')
     APP_TOKENS = [
         token for key, token in os.environ.items()
         if key.startswith('APP_TOKEN')

@@ -21,17 +21,8 @@
         "description": "A secret key for verifying magic Flask stuff.",
         "generator": "secret"
     },
-    "SLACK_TEAM": {
-        "description": "Slack team name identified by the subdomain.",
-        "value": "CHANGE_ME"
-    },
     "APP_TOKEN_A": {
         "description": "The config looks for Slack integration tokens starting wtih APP_TOKEN. These are used to allow access to any of the /slack/[endpoints].",
-        "value": "CHANGE_ME",
-        "required": false
-    },
-    "ADMIN_ID_MARYJANE": {
-        "description": "The config looks for Slack user ID's for access against some of the [admin] only slash commands.",
         "value": "CHANGE_ME",
         "required": false
     },
