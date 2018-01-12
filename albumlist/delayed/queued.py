@@ -70,7 +70,7 @@ def deferred_consume(url, scrape_function, callback, channel='', tags=None, slac
                 else:
                     if channel and slack_token:
                         slack.chat.post_message(f'{channel}', f':full_moon: added album to list: {url}', unfurl_links=True)
-                    deferred_process_album_details.delay(str(album_id), channel)
+                    deferred_process_album_details.delay(str(album_id), channel, slack_token)
             elif channel and slack_token:
                 slack.chat.post_message(f'{channel}', f':new_moon: album already in list: {url}', unfurl_links=True)
             if tags:
