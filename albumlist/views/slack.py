@@ -44,6 +44,7 @@ def admin_only(func):
         if not token:
             flask.abort(401)
         slack = slacker.Slacker(token)
+        user_id = flask.request.form['user_id']
         flask.current_app.logger.info(f'[access]: performing admin check...')
         info = slack.users.info(user_id)
         if info.body['user']['is_admin']:
