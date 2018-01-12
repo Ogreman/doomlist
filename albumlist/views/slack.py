@@ -1,8 +1,10 @@
-import flask
 import functools
 import json
 import re
+
+import flask
 import requests
+import slacker
 
 from albumlist import constants
 from albumlist.delayed import queued
@@ -36,7 +38,15 @@ def admin_only(func):
     """
     @functools.wraps(func)
     def wraps(*args, **kwargs):
-        if flask.request.form.get('user_id', '') in slack_blueprint.config['ADMIN_IDS'] or slack_blueprint.config['DEBUG']:
+        if slack_blueprint.config['DEBUG']:
+            return func(*args, **kwargs)
+        token = flask.request.form.get('oauth_token')
+        if not token:
+            flask.abort(401)
+        slack = slacker.Slacker(token)
+        flask.current_app.logger.info(f'[access]: performing admin check...')
+        info = slack.users.info(user_id)
+        if info.body['user']['is_admin']:
             return func(*args, **kwargs)
         flask.current_app.logger.error('[access]: failed admin-only test')
         flask.abort(403)
