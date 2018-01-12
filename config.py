@@ -12,10 +12,6 @@ class Config(object):
         token for key, token in os.environ.items()
         if key.startswith('APP_TOKEN')
     ]
-    ADMIN_IDS = [
-        user_id for key, user_id in os.environ.items()
-        if key.startswith('ADMIN_ID')
-    ]
     LIST_NAME = os.environ.get('LIST_NAME', 'Albumlist')
     SLACK_MAX_ATTACHMENTS = int(os.environ.get('SLACK_MAX_ATTACHMENTS', 100))
 

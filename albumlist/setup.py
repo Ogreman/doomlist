@@ -55,7 +55,6 @@ def create_app():
     # check required config variables
     LIST_NAME = app.config['LIST_NAME']
     SLACK_TEAM = app.config['SLACK_TEAM']
-    ADMIN_IDS = app.config['ADMIN_IDS']
     APP_TOKENS = app.config['APP_TOKENS']
 
     create_tables(app)
