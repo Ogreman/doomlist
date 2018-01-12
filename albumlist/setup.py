@@ -41,7 +41,7 @@ def create_app():
     app = flask.Flask(__name__, template_folder=TEMPLATE_DIR)
     if 'DYNO' in os.environ:
         app.logger.addHandler(logging.StreamHandler(sys.stdout))
-        app.logger.setLevel(logging.ERROR)
+        app.logger.setLevel(logging.INFO)
     app.config.from_object(os.environ['APP_SETTINGS'])
 
     # check required config variables
