@@ -10,9 +10,9 @@
     "albums", 
     "music"
   ],
-  "scripts": {
-    "postdeploy": "python create_tables.py"
-  },
+  // "scripts": {
+  //   "postdeploy": "python create_tables.py"
+  // },
   "success_url": "/api/albums",
   "env": {
     "APP_SETTINGS": {
