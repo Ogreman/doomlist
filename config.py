@@ -28,7 +28,7 @@ class ProductionConfig(Config):
 
 class StagingConfig(Config):
     DEVELOPMENT = True
-    DEBUG = True
+    DEBUG = False
     CACHE_TYPE = "redis"
     CACHE_REDIS_URL = os.environ.get('REDIS_URL')
 
