@@ -12,7 +12,7 @@ from albumlist.scrapers import bandcamp, links
 from albumlist.views import build_attachment
 
 
-slack_blueprint = flask.Blueflask(name='slack',
+slack_blueprint = flask.Blueprint(name='slack',
                                import_name=__name__,
                                url_prefix='/slack')
 
