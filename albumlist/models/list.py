@@ -10,7 +10,7 @@ def create_list_table():
     with closing(get_connection()) as conn:
         try:
             cur = conn.cursor()
-            cur.execute('CREATE TABLE list (id serial PRIMARY KEY, album varchar);')
+            cur.execute('CREATE TABLE IF NOT EXISTS list (id serial PRIMARY KEY, album varchar);')
             conn.commit()
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)

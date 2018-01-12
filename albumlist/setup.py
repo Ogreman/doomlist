@@ -20,7 +20,6 @@ from albumlist.models import DatabaseError
 from albumlist.models import albums as albums_model, list as list_model
 
 
-
 def add_blueprints(application):
     from albumlist.views.api import api_blueprint
     application.register_blueprint(api_blueprint)
@@ -33,6 +32,15 @@ def add_blueprints(application):
     from albumlist.views.slack import slack_blueprint
     application.register_blueprint(slack_blueprint)
     slack_blueprint.config = application.config.copy()
+
+
+def create_tables(app):
+    try:
+        list_model.create_list_table()
+        albums_model.create_albums_table()
+        albums_model.create_albums_index()
+    except DatabaseError as e:
+        app.logger.error(f'[db]: ERROR - {e}')
 
 
 def create_app():
@@ -49,6 +57,8 @@ def create_app():
     SLACK_TEAM = app.config['SLACK_TEAM']
     ADMIN_IDS = app.config['ADMIN_IDS']
     APP_TOKENS = app.config['APP_TOKENS']
+
+    create_tables(app)
 
     add_blueprints(app)
 

@@ -54,7 +54,7 @@ class Album(object):
 
 def create_albums_table():
     sql = """
-        CREATE TABLE albums (
+        CREATE TABLE IF NOT EXISTS albums (
         id varchar PRIMARY KEY,
         artist varchar DEFAULT '',
         name varchar DEFAULT '',
@@ -76,7 +76,7 @@ def create_albums_table():
 
 def create_albums_index():
     sql = """
-        CREATE INDEX alb_lo_name 
+        CREATE INDEX IF NOT EXISTS alb_lo_name
         ON albums (
         LOWER(name)
         );"""
