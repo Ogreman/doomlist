@@ -40,10 +40,10 @@ def admin_only(func):
     def wraps(*args, **kwargs):
         if slack_blueprint.config['DEBUG']:
             return func(*args, **kwargs)
-        token = flask.request.form.get('oauth_token')
-        if not token:
+        slack_token = slack_blueprint.config['SLACK_OAUTH_TOKEN']
+        if not slack_token:
             flask.abort(401)
-        slack = slacker.Slacker(token)
+        slack = slacker.Slacker(slack_token)
         user_id = flask.request.form['user_id']
         flask.current_app.logger.info(f'[access]: performing admin check...')
         info = slack.users.info(user_id)
@@ -204,7 +204,8 @@ def scrape():
     response = None if 'silence' in form_data else form_data.get('response_url')
     contents = form_data.get('text', '')
     channels = re.findall(constants.SLACK_CHANNEL_REGEX, contents)
-    if 'oauth_token' not in form_data:
+    slack_token = slack_blueprint.config['SLACK_OAUTH_TOKEN']
+    if not slack_token:
         return 'Requires API scope', 200
     if channels:
         for channel_id, channel_name in channels:
@@ -212,7 +213,7 @@ def scrape():
                 bandcamp.scrape_bandcamp_album_ids_from_messages,
                 list_model.add_many_to_list,
                 channel_id,
-                form_data['oauth_token'],
+                slack_token,
                 channel_name=channel_name,
                 response_url=response,
             )
@@ -489,7 +490,7 @@ def button():
                 bandcamp.scrape_bandcamp_album_ids_from_url,
                 list_model.add_to_list,
                 channel=channel_id,
-                slack_token=form_data.get('oauth_token')
+                slack_token=slack_blueprint.config['SLACK_OAUTH_TOKEN']
             )
             response = {
                 'response_type': 'ephemeral',
@@ -551,7 +552,7 @@ def events_handler():
                             bandcamp.scrape_bandcamp_album_ids_from_url,
                             list_model.add_to_list,
                             channel=channel,
-                            slack_token=body.get('oauth_token')
+                            slack_token=slack_blueprint.config['SLACK_OAUTH_TOKEN']
                         )
 
         except KeyError:

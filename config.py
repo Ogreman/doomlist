@@ -11,6 +11,7 @@ class Config(object):
         token for key, token in os.environ.items()
         if key.startswith('APP_TOKEN')
     ]
+    SLACK_OAUTH_TOKEN = os.environ.get('SLACK_OAUTH_TOKEN')
     LIST_NAME = os.environ.get('LIST_NAME', 'Albumlist')
     SLACK_MAX_ATTACHMENTS = int(os.environ.get('SLACK_MAX_ATTACHMENTS', 100))
 

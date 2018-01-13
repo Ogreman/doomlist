@@ -26,6 +26,11 @@
         "value": "CHANGE_ME",
         "required": false
     },
+    "SLACK_OAUTH_TOKEN": {
+        "description": "The oauth bearer token used to make requests to the Slack API",
+        "value": "CHANGE_ME",
+        "required": false
+    },
     "LIST_NAME": {
         "description": "A name given for the team's album list.",
         "value": "Albumlist"
