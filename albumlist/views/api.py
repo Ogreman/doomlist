@@ -81,7 +81,7 @@ def api_dump_album_details():
     albums = albums_model.get_albums_with_tags()
     details = albums_model.Album.details_map_from_albums(albums)
     for album_id, album_details in details.items():
-        csv_writer.writerow([album.album_id] + list(album_details.values()))
+        csv_writer.writerow([album_id] + list(album_details.values()))
     # and BytesIO for flask.send_file
     mem = io.BytesIO()
     mem.write(proxy.getvalue().encode('utf-8'))
