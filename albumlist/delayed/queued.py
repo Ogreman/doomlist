@@ -182,7 +182,7 @@ def deferred_process_album_details(album_id, channel='', slack_token=None):
 
 
 @delayed.queue_func
-def deferred_add_new_album_details(album_id, album, artist, url, img='', available=True, channel='', added='', tags=None):
+def deferred_add_new_album_details(album_id, added, album, artist, channel, img, tags, url):
     try:
         if album_id not in list_model.get_list():
             list_model.add_to_list(album_id)
