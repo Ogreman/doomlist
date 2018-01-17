@@ -14,6 +14,7 @@ class Config(object):
     SLACK_OAUTH_TOKEN = os.environ.get('SLACK_OAUTH_TOKEN')
     LIST_NAME = os.environ.get('LIST_NAME', 'Albumlist')
     SLACK_MAX_ATTACHMENTS = int(os.environ.get('SLACK_MAX_ATTACHMENTS', 100))
+    ALBUMLISTBOT_URL = os.environ.get('ALBUMLISTBOT_URL')
 
 
 class ProductionConfig(Config):
