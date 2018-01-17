@@ -221,7 +221,7 @@ def scrape():
     return 'Scrape request(s) sent', 200
 
 
-@slack_blueprint.route('/check', methods=['POST'])
+@slack_blueprint.route('/process/check', methods=['POST'])
 @slack_check
 @admin_only
 def check_urls():
@@ -231,7 +231,7 @@ def check_urls():
     return 'Check request sent', 200
 
 
-@slack_blueprint.route('/duplicates', methods=['POST'])
+@slack_blueprint.route('/process/duplicates', methods=['POST'])
 @slack_check
 @admin_only
 def check_for_duplicates():
