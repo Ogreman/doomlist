@@ -31,6 +31,10 @@
         "value": "CHANGE_ME",
         "required": false
     },
+    "ALBUMLISTBOT_URL": {
+        "description": "The location an albumlist should ping on.",
+        "value": "CHANGE_ME"
+    },
     "LIST_NAME": {
         "description": "A name given for the team's album list.",
         "value": "Albumlist"

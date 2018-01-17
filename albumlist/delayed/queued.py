@@ -329,6 +329,18 @@ def deferred_check_all_album_urls(response_url=None):
 
 
 @delayed.queue_func
+def deferred_ping_albumlistbot():
+    slack_token = flask.current_app.config['SLACK_OAUTH_TOKEN']
+    albumlistbot_url = flask.current_app.config['ALBUMLISTBOT_URL']
+    print('[ping]: pinging albumlist bot...')
+    response = requests.get(albumlistbot_url, params={'token': slack_token})
+    if response.ok:
+        print('[ping]: done')
+    else:
+        print(f'[ping]: unable to reach albumlist bot: {response.status_code}')
+
+
+@delayed.queue_func
 def deferred_fetch_and_restore(url_to_csv):
     response = requests.get(url_to_csv)
     if response.ok and csv.Sniffer().has_header(response.text):

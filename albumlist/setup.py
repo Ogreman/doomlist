@@ -83,4 +83,7 @@ def create_app():
 
     app.logger.info(f'[app]: created with {os.environ["APP_SETTINGS"]}')
 
+    from albumlist.delayed import queued
+    queued.deferred_ping_albumlistbot.delay()
+
     return app
