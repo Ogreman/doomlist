@@ -192,6 +192,8 @@ def deferred_add_new_album_details(album_id, added, album, artist, channel, img,
         if not img:
             deferred_process_album_cover.delay(album_id)
         if tags is not None:
+            if isinstance(tags, str):
+                tags = ast.literal_eval(tags)
             deferred_process_tags.delay(album_id, tags)
         else:
             deferred_process_album_tags.delay(album_id)
