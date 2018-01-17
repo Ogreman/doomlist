@@ -38,7 +38,7 @@
     "LIST_NAME": {
         "description": "A name given for the team's album list.",
         "value": "Albumlist"
-    },
+    }
   },
   "formation": {
     "web": {
