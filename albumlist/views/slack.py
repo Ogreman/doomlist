@@ -46,7 +46,11 @@ def admin_only(func):
         slack = slacker.Slacker(slack_token)
         user_id = flask.request.form['user_id']
         flask.current_app.logger.info(f'[access]: performing admin check...')
-        info = slack.users.info(user_id)
+        try:
+            info = slack.users.info(user_id)
+        except slacker.Error:
+            flask.current_app.logger.info(f'[access]: {user_id} not found')
+            flask.abort(403)
         if info.body['user']['is_admin']:
             return func(*args, **kwargs)
         flask.current_app.logger.error('[access]: failed admin-only test')
