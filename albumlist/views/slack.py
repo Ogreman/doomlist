@@ -25,7 +25,8 @@ def slack_check(func):
     """
     @functools.wraps(func)
     def wraps(*args, **kwargs):
-        if flask.request.form.get('token', '') in slack_blueprint.config['APP_TOKENS'] or slack_blueprint.config['DEBUG']:
+        if flask.request.form.get('token', '') in slack_blueprint.config['APP_TOKENS'] \
+        or slack_blueprint.config['DEBUG']:
             return func(*args, **kwargs)
         flask.current_app.logger.error('[access]: failed slack-check test')
         flask.abort(403)
@@ -112,30 +113,6 @@ def consume():
         list_model.add_to_list,
         channel=f'#{channel}'
     )
-    return '', 200
-
-
-@slack_blueprint.route('/consume/all', methods=['POST'])
-@slack_check
-def consume_all():
-    form_data = flask.request.form
-    channel = form_data.get('channel_name', 'chat')
-    contents = form_data.get('text', '')
-    tags = re.findall(constants.HASHTAG_REGEX, contents)
-    for url in links.scrape_links_from_text(contents):
-        if 'bandcamp' in url:
-            # queued.deferred_consume.delay(
-            #     url,
-            #     bandcamp.scrape_bandcamp_album_ids_from_url,
-            #     list_model.add_to_list,
-            #     channel=f'#{channel}',
-            #     tags=tags
-            # )
-            requests.post(bot_url, data='Bandcamp scraper already running')
-        elif 'youtube' in url or 'youtu.be' in url:
-            requests.post(bot_url, data='YouTube scraper not yet implemented')
-        elif 'soundcloud' in url:
-            requests.post(bot_url, data='Soundcloud scraper not yet implemented')
     return '', 200
 
 

@@ -20,6 +20,22 @@ services:
     ports:
       - "5000:5000"
 
+  clock:
+    build:
+      context: .
+      dockerfile: Dockerfile.clock
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_URL=redis://redis:6379
+      - PYTHONUNBUFFERED=0
+      - APP_SETTINGS=config.StagingConfig
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
+    links:
+      - redis
+      - db
+
   daemon:
     build:
       context: .

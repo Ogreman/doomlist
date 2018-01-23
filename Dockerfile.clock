@@ -9,4 +9,4 @@ WORKDIR /code
 
 RUN pipenv install --deploy --system
 
-CMD ["python", "-u", "daemon_bot.py"]
+CMD ["python", "-u", "clock.py"]
