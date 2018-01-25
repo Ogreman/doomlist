@@ -18,9 +18,9 @@ def build_attachment(album_id, album_details, list_name, tags=True, scrape=False
                 'short': 'false',
             },
             {
-                    'title': 'Tags',
-                    'value': ', '.join(album_details['tags']),
-                    'short': 'false',
+                'title': 'Tags',
+                'value': ', '.join(album_details['tags']),
+                'short': 'false',
             },
         ],
         'actions': [

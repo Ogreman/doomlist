@@ -2,11 +2,13 @@ import os
 
 from albumlist.models import albums as albums_model
 from albumlist.models import DatabaseError
+from albumlist.views import build_attachment
 import slacker
 
 
 channel = os.environ.get('AOTD_CHANNEL_ID')
 slack_token = os.environ.get('SLACK_OAUTH_TOKEN')
+list_name = os.environ.get('LIST_NAME', 'Albumlist')
 slack = slacker.Slacker(slack_token)
 
 
@@ -24,9 +26,15 @@ def post_random_album():
         print(f'[db]: {e}')
         return
     else:
-        message = f":new_moon_with_face: Today's album of the day is: {album.album_url}"
+        attachment = build_attachment(
+            album.album_id,
+            album.to_dict(),
+            list_name,
+            tags=True,
+        )
         print(f'[random]: posting random album to {channel}')
-        slack.chat.post_message(channel, message, unfurl_links=True)
+        text = f":new_moon_with_face: Today's album of the day is:"
+        slack.chat.post_message(channel, text, attachments=[attachment])
 
 
 if __name__ == '__main__':
