@@ -17,11 +17,6 @@
         "value": "#announcements",
         "required": false
     },
-    "AOTD_HOUR": {
-        "description": "The hour of the day (relative to the server) the album of the day is posted to AOTD_CHANNEL_ID.",
-        "value": "10",
-        "required": false
-    },
     "APP_SETTINGS": {
         "description": "Which config class of settings to use (see: config.py).",
         "value": "config.StagingConfig",
@@ -56,10 +51,6 @@
         "size": "free"
     },
     "worker": {
-        "quantity": 1,
-        "size": "free"
-    },
-    "clock": {
         "quantity": 1,
         "size": "free"
     }
