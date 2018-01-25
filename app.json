@@ -59,6 +59,9 @@
   "stack": "container",
   "addons": [
     {
+      "plan": "scheduler:standard"
+    },
+    {
       "plan": "heroku-redis:hobby-dev"
     },
     {
