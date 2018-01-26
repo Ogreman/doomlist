@@ -76,7 +76,7 @@ def not_bots(func):
 @slack_check
 @admin_only
 def admin_check():
-    return '', 200
+    return 'OK', 200
 
 
 @slack_blueprint.route('/spoiler', methods=['POST'])
