@@ -101,25 +101,28 @@ def spoiler():
     return '', 200
 
 
-@slack_blueprint.route('/consume', methods=['POST'])
+@slack_blueprint.route('/scrape/urls', methods=['POST'])
 @slack_check
 @not_bots
-def consume():
+def scrape_urls():
     form_data = flask.request.form
     channel = form_data.get('channel_name', 'chat')
-    queued.deferred_consume.delay(
-        form_data.get('text', ''),
-        bandcamp.scrape_bandcamp_album_ids_from_url,
-        list_model.add_to_list,
-        channel=f'#{channel}'
-    )
-    return '', 200
+    contents = form_data.get('text', '')
+    for url in links.scrape_links_from_text(contents):
+        queued.deferred_consume.delay(
+            url,
+            bandcamp.scrape_bandcamp_album_ids_from_url_forced,
+            list_model.add_to_list,
+            channel=channel,
+            slack_token=slack_blueprint.config['SLACK_OAUTH_TOKEN']
+        )
+    return 'Scrape request sent', 200
 
 
-@slack_blueprint.route('/consume/artist', methods=['POST'])
+@slack_blueprint.route('/scrape/artist', methods=['POST'])
 @slack_check
 @admin_only
-def consume_artist():
+def scrape_artist():
     form_data = flask.request.form
     channel = form_data.get('channel_name', 'chat')
     contents = form_data.get('text', '')
@@ -177,7 +180,7 @@ def clear_cache():
     return 'Clear cache request sent', 200
 
 
-@slack_blueprint.route('/scrape', methods=['POST'])
+@slack_blueprint.route('/scrape/channels', methods=['POST'])
 @slack_check
 @admin_only
 def scrape():
