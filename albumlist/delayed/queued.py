@@ -276,11 +276,12 @@ def deferred_process_all_album_tags(response_url=None):
 
 
 @delayed.queue_func
-def deferred_check_album_url(album_id, announce=True, check_for_new_url=True, slack_token=None):
+def deferred_check_album_url(album_id, check_for_new_url=True):
     try:
         album = albums_model.get_album_details(album_id)
         response = requests.head(album.album_url)
         if response.ok and not album.available:
+            print(f'[scraper]: [{album_id}] {album.album_name} by {album.album_artist} is now available')
             albums_model.update_album_availability(album_id, True)
 
         elif response.status_code > 400:
@@ -302,8 +303,6 @@ def deferred_check_album_url(album_id, announce=True, check_for_new_url=True, sl
                 albums_model.update_album_availability(album_id, False)
                 message = f'[{album_id}] {album.album_name} by {album.album_artist} is no longer available'
                 print(f'[scraper]: {message}')
-                if announce and slack_token:
-                    slacker.Slacker(slack_token).chat.post_message(f'#announcements', f':crying_cat_face: {message}')
 
     except DatabaseError as e:
         print('[db]: failed to update album after check')
