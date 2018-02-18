@@ -4,8 +4,10 @@ import functools
 import io
 
 from albumlist import constants
+from albumlist.delayed import queued
 from albumlist.models import DatabaseError
 from albumlist.models import albums as albums_model, list as list_model
+from albumlist.scrapers import bandcamp, links
 
 
 api_blueprint = flask.Blueprint(name='api',
@@ -180,6 +182,18 @@ def unavailable_count():
         print('[db]: failed to get unavailable albums count')
         print(f'[db]: {e}')
         return flask.jsonify({'text': 'failed'}), 500
+
+
+@api_blueprint.route('/albums/scrape', methods=['POST'])
+def scrape_album():
+    form_data = flask.request.form
+    for url in links.scrape_links_from_text(form_data.get('url', '')):
+        queued.deferred_consume.delay(
+            url,
+            bandcamp.scrape_bandcamp_album_ids_from_url_forced,
+            list_model.add_to_list,
+        )
+    return 'OK', 200
 
 
 @api_blueprint.route('', methods=['GET'])

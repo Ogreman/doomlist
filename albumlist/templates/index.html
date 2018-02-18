@@ -1,5 +1,17 @@
 
 <body style="text-align: center; background-color: black">
 <h1 style="color: white">{{ list_name }}</h1>
+<p style="color: white">Drag this link into your bookmarks to <a style="background-color: grey; color: black" id="bookmarklet" href="" alt="Scrape">Scrape to {{ list_name }}</a></p>
 <iframe style="border: 0; width: 350px; height: 588px;" src="https://bandcamp.com/EmbeddedPlayer/album={{ album_id }}/size=large/bgcol=333333/linkcol=0f91ff/transparent=true/" seamless><a href="{{ album_url }}">{{ name }} by {{ artist }}</a></iframe></iframe>
 </body>
+
+<script>
+	(function () {
+	  let bookmarkletURL = 'javascript:(function () {' +
+        'var script = document.createElement("script");' +
+	    'script.src = "{{ bookmarket_url }}";' +
+		'document.body.appendChild(script);})();'
+	  var link = document.getElementById('bookmarklet');
+		  link.href = encodeURI(bookmarkletURL);
+	})();
+</script>
