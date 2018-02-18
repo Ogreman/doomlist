@@ -51,4 +51,4 @@ def bookmarklet():
             xhr.send("url=" + window.location.href);
     })();
     """)
-    return template.render(url=flask.url_for('api.scrape_album', _external=True))
+    return template.render(url=flask.url_for('api.scrape_album', _external=True, _scheme="https"))
