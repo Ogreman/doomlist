@@ -40,6 +40,7 @@ def bookmarklet():
     (function () {
         var xhr = new XMLHttpRequest();
             xhr.open("POST", "{{ url }}", true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
             xhr.onreadystatechange = function () {
                 if (xhr.readyState == 4 && xhr.status == 200) {
                     console.log('Scraping: ' + window.location.href);
@@ -47,9 +48,7 @@ def bookmarklet():
                     console.log('Failed');
                 }
             };
-            xhr.send(JSON.stringify({
-                url: window.location.href
-            }));
+            xhr.send("url=" + window.location.href);
     })();
     """)
     return template.render(url=flask.url_for('api.scrape_album', _external=True))

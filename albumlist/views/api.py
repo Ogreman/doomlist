@@ -188,6 +188,7 @@ def unavailable_count():
 def scrape_album():
     form_data = flask.request.form
     for url in links.scrape_links_from_text(form_data.get('url', '')):
+        flask.current_app.logger.info(f'[api]: scraping {url}...')
         queued.deferred_consume.delay(
             url,
             bandcamp.scrape_bandcamp_album_ids_from_url_forced,
