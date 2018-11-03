@@ -1,6 +1,5 @@
 import csv
 import flask
-import functools
 import io
 
 from albumlist import constants
@@ -11,8 +10,8 @@ from albumlist.scrapers import bandcamp, links
 
 
 api_blueprint = flask.Blueprint(name='api',
-                               import_name=__name__,
-                               url_prefix='/api')
+                                import_name=__name__,
+                                url_prefix='/api')
 
 
 @api_blueprint.after_request
@@ -108,16 +107,6 @@ def api_album(album_id):
         print(f'[db]: failed to get album: {album_id}')
         print(f'[db]: {e}')
         return flask.jsonify({'text': 'failed'}), 500
-
-
-# @api_blueprint.route('/tags', methods=['GET'])
-# def api_tags():
-#     try:
-#         return flask.jsonify({'text': 'success', 'tags': [tag for tag in tags_model.get_tags()]}), 200
-#     except DatabaseError as e:
-#         print('[db]: failed to get tags')
-#         print(f'[db]: {e}')
-#         return flask.jsonify({'text': 'failed'}), 500
 
 
 @api_blueprint.route('/tags/<tag>', methods=['GET'])

@@ -13,8 +13,8 @@ python_version = "3.6"
 [packages]
 
 flask = "*"
-flask-cache = "*"
-flask-heroku-cacheify = "*"
+flask-caching = "*"
+flask-heroku-cacheify = {git = "https://github.com/Ogreman/flask-heroku-cacheify", editable = true}
 gunicorn = "*"
 "psycopg2" = "==2.7.1"
 redis = "==2.10.5"

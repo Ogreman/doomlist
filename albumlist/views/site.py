@@ -6,8 +6,8 @@ from albumlist.models import albums as albums_model
 
 
 site_blueprint = flask.Blueprint(name='site',
-                               import_name=__name__,
-                               url_prefix='')
+                                 import_name=__name__,
+                                 url_prefix='')
 
 
 @site_blueprint.route('/', methods=['GET'])
@@ -23,7 +23,7 @@ def embedded_random():
     if album:
         kwargs = dict(
             bot_url=site_blueprint.config['ALBUMLISTBOT_URL'],
-            bookmarket_url=flask.url_for('.bookmarklet', _external=True, _scheme="https"),
+            bookmarklet_url=flask.url_for('.bookmarklet', _external=True, _scheme="https"),
             list_name=site_blueprint.config['LIST_NAME'],
             album_id=album.album_id,
             name=album.album_name,

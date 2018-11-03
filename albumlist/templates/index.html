@@ -9,7 +9,7 @@
 	(function () {
 	  let bookmarkletURL = 'javascript:(function () {' +
         'var script = document.createElement("script");' +
-	    'script.src = "{{ bookmarket_url }}";' +
+	    'script.src = "{{ bookmarlet_url }}";' +
 		'document.body.appendChild(script);})();'
 	  var link = document.getElementById('bookmarklet');
 		  link.href = encodeURI(bookmarkletURL);

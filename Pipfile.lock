@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "4b7be5902f0862404034a063edaaf2c8ab59f6b2a4143e13392892792f4c7bf0"
+            "sha256": "c4c264294c88e964118d83aa91fb7d425c8a5ef69fdfa2963efec31661176096"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -61,19 +61,18 @@
             "index": "pypi",
             "version": "==1.0.2"
         },
-        "flask-cache": {
+        "flask-caching": {
             "hashes": [
-                "sha256:90126ca9bc063854ef8ee276e95d38b2b4ec8e45fd77d5751d37971ee27c7ef4"
+                "sha256:44fe827c6cc519d48fb0945fa05ae3d128af9a98f2a6e71d4702fd512534f227",
+                "sha256:e34f24631ba240e09fe6241e1bf652863e0cff06a1a94598e23be526bc2e4985"
             ],
             "index": "pypi",
-            "version": "==0.13.1"
+            "version": "==1.4.0"
         },
         "flask-heroku-cacheify": {
-            "hashes": [
-                "sha256:f6026f01f6693b16409e4cdf76db024dc64bdcfbbc765e1b472ab02f76ae4c10"
-            ],
-            "index": "pypi",
-            "version": "==1.6.1"
+            "editable": true,
+            "git": "https://github.com/Ogreman/flask-heroku-cacheify",
+            "ref": "90c759b2ff9fe0e2c4e1f80ea293874fef467722"
         },
         "gunicorn": {
             "hashes": [

@@ -1,6 +1,5 @@
 import ast
 import csv
-import functools
 import io
 import json
 
@@ -12,8 +11,7 @@ from albumlist import delayed
 from albumlist.models import DatabaseError
 from albumlist.models import albums as albums_model, list as list_model
 from albumlist.scrapers import NotFoundError
-from albumlist.scrapers import bandcamp, links
-from albumlist.views import build_attachment
+from albumlist.scrapers import bandcamp
 
 
 @delayed.queue_func

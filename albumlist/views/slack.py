@@ -15,8 +15,8 @@ from albumlist.views import build_attachment
 
 
 slack_blueprint = flask.Blueprint(name='slack',
-                               import_name=__name__,
-                               url_prefix='/slack')
+                                  import_name=__name__,
+                                  url_prefix='/slack')
 
 
 def slack_check(func):
@@ -83,7 +83,6 @@ def admin_check():
 @slack_check
 def spoiler():
     form_data = flask.request.form
-    channel = form_data.get('channel_name', 'chat')
     user = form_data['user_name']
     text = form_data['text']
     url = form_data['response_url']
@@ -124,7 +123,6 @@ def scrape_urls():
 @admin_only
 def scrape_artist():
     form_data = flask.request.form
-    channel = form_data.get('channel_name', 'chat')
     contents = form_data.get('text', '')
     response = None if 'silence' in form_data else form_data.get('response_url')
     for url in links.scrape_links_from_text(contents):
@@ -146,7 +144,6 @@ def album_count():
 def delete():
     form_data = flask.request.form
     album_id = form_data.get('text')
-    channel = form_data.get('channel_name', 'chat')
     if album_id:
         response = None if 'silence' in form_data else form_data.get('response_url')
         queued.deferred_delete.delay(album_id.strip(), response)
@@ -223,6 +220,17 @@ def check_for_duplicates():
     max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
     list_name = slack_blueprint.config['LIST_NAME']
     response = build_search_response(duplicates, list_name, max_attachments, delete=True)
+    return flask.jsonify(response), 200
+
+
+@slack_blueprint.route('/process/unavailable', methods=['POST'])
+@slack_check
+@admin_only
+def process_unavailable_albums():
+    unavailable_albums = albums_model.get_albums_unavailable()
+    max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
+    list_name = slack_blueprint.config['LIST_NAME']
+    response = build_search_response(unavailable_albums, list_name, max_attachments, delete=True)
     return flask.jsonify(response), 200
 
 
