@@ -10,7 +10,7 @@ from albumlist import constants
 from albumlist.delayed import queued
 from albumlist.models import DatabaseError
 from albumlist.models import albums as albums_model, list as list_model
-from albumlist.scrapers import bandcamp, links
+from albumlist.scrapers import NotFoundError, bandcamp, links
 from albumlist.views import build_attachment
 
 
@@ -161,7 +161,7 @@ def add():
         except DatabaseError as e:
             flask.current_app.logger.error('[db]: failed to add new album')
             flask.current_app.logger.error(f'[db]: {e}')
-            return 'failed to add new album', 200
+            return 'Failed to add new album', 200
         else:
             return 'Added new album', 200
     return '', 200
@@ -209,7 +209,7 @@ def check_urls():
     form_data = flask.request.form
     response = None if 'silence' in form_data else form_data.get('response_url')
     queued.deferred_check_all_album_urls.delay(response)
-    return 'Check request sent', 200
+    return 'Check all albums request sent...', 200
 
 
 @slack_blueprint.route('/process/duplicates', methods=['POST'])
@@ -315,7 +315,7 @@ def random_album():
             )
             response = {
                 'response_type': 'ephemeral',
-                'text': f'Your random album is...',
+                'text': 'Your random album is...',
                 'attachments': [attachment],
             }
         return flask.jsonify(response), 200
@@ -327,7 +327,7 @@ def build_search_response(albums, list_name, max_attachments=None, delete=False)
         build_attachment(album_id, album_details, list_name, delete=delete)
         for album_id, album_details in details.items()
     ]
-    text = f'Your search returned {len(details)} results'
+    text = f'Your {list_name} search returned {len(details)} results'
     if max_attachments and len(details) > max_attachments:
         text += f' (but we can only show you {max_attachments})'
     return {
@@ -350,7 +350,7 @@ def build_bandcamp_search_response(album_details, max_attachments=None):
         build_attachment(album_id, album_details, 'bandcamp', tags=False, scrape=True)
         for album_id, album_details in album_map.items()
     ]))
-    text = f'Your search returned {len(album_map)} results'
+    text = f'Your bandcamp search returned {len(album_map)} results'
     if max_attachments and len(album_map) > max_attachments:
         text += f' (but we can only show you {max_attachments})'
     return {
@@ -502,7 +502,7 @@ def button():
             return flask.jsonify(response)
     except KeyError as e:
         flask.current_app.logger.error(f'[slack]: failed to build results: {e}')
-        return db_error_message, 500
+        return flask.current_app.db_error_message, 500
     return '', 200
 
 
@@ -513,10 +513,10 @@ def restore_albums():
     contents = flask.request.form.get('text', '')
     try:
         url = links.scrape_links_from_text(contents)[0]
+        queued.deferred_fetch_and_restore.delay(url)
     except IndexError:
         flask.abort(401)
-    queued.deferred_fetch_and_restore.delay(url)
-    return 'Restoring...', 200
+    return 'Restore request sent...', 200
 
 
 @slack_blueprint.route('/events', methods=['POST'])
@@ -537,10 +537,10 @@ def events_handler():
                 if event_type == 'link_shared':
                     channel = body['event']['channel']
 
-                    for link in body['event']['links']:
-                        flask.current_app.logger.info(f"[events]: link shared matching {link['domain']}")
+                    for event_link in body['event']['links']:
+                        flask.current_app.logger.info(f"[events]: link shared matching {event_link['domain']}")
                         queued.deferred_consume.delay(
-                            link['url'],
+                            event_link['url'],
                             bandcamp.scrape_bandcamp_album_ids_from_url,
                             list_model.add_to_list,
                             channel=channel,

@@ -1,6 +1,3 @@
-import collections
-
-
 def build_attachment(album_id, album_details, list_name, tags=True, scrape=False, delete=False):
     attachment = {
         'fallback': f'{album_details["album"]} by {album_details["artist"]}',

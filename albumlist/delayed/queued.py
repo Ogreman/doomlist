@@ -343,7 +343,7 @@ def deferred_fetch_and_restore(url_to_csv):
     if response.ok and csv.Sniffer().has_header(response.text):
         f = io.StringIO(response.text)
         reader = csv.reader(f)
-        _ = next(reader) # skip header
+        _ = next(reader)  # skip header
         for album_details in reader:
             deferred_add_new_album_details.delay(*tuple(album_details))
     else:
