@@ -467,7 +467,7 @@ def handle_message_action(payload):
             }
             requests.post(payload['response_url'], data=json.dumps(response))
         elif 'more_action' in payload['callback_id']:
-            url = links.scrape_links_from_text(payload['message']['text'])[0]
+            url = next(links.scrape_links_from_attachments([payload['message']['text']]))
             album = albums_model.get_album_details_by_url(url)
             if album:
                 random_tag_to_use = random.choice(album.tags)
@@ -481,6 +481,8 @@ def handle_message_action(payload):
                 requests.post(payload['response_url'], data=json.dumps(response))
             else:
                 flask.current_app.logger.warn(f'[slack]: unable to find album by url: {url}')
+    except StopIteration:
+        flask.current_app.logger.warn(f'[slack]: no URL found in message')
     except KeyError as missing_key:
         flask.current_app.logger.warn(f'[slack]: missing key in action payload: {missing_key}')
     return '', 200
