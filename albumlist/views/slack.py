@@ -472,13 +472,10 @@ def handle_message_action(payload):
             if album:
                 random_tag_to_use = random.choice(album.tags)
                 first_result = next(albums_model.search_albums_by_tag(random_tag_to_use))
-                response = {
-                    'response_type': 'ephemeral',
-                    'text': first_result.album_url,
-                    'replace_original': False,
-                    'unfurl_links': True,
-                }
-                requests.post(payload['response_url'], data=json.dumps(response))
+                slack = slacker.Slacker(slack_blueprint.config['SLACK_OAUTH_TOKEN'])
+                slack.chat.post_message(payload['user']['id'],
+                                        f'Your requested similar album: {first_result.album_url}',
+                                        unfurl_links=True)
             else:
                 flask.current_app.logger.warn(f'[slack]: unable to find album by url: {url}')
     except StopIteration:
