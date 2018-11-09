@@ -467,7 +467,7 @@ def handle_message_action(payload):
             }
             requests.post(payload['response_url'], data=json.dumps(response))
         elif 'more_action' in payload['callback_id']:
-            url = next(links.scrape_links_from_attachments([payload['message']['text']]))
+            url = next(links.scrape_links_from_attachments([payload['message']]))
             album = albums_model.get_album_details_by_url(url)
             if album:
                 random_tag_to_use = random.choice(album.tags)
