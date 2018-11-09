@@ -50,7 +50,7 @@ def deferred_scrape_channel(scrape_function, callback, channel_id, slack_token, 
 
 
 @delayed.queue_func
-def deferred_consume(url, scrape_function, callback, channel='', tags=None, slack_token=None):
+def deferred_consume(url, scrape_function, callback, channel='', tags=None, slack_token=None, response_url=None):
     try:
         album_id = scrape_function(url)
     except NotFoundError:
@@ -65,13 +65,19 @@ def deferred_consume(url, scrape_function, callback, channel='', tags=None, slac
                 except DatabaseError as e:
                     print(f'[db]: failed to perform {callback.__name__}')
                     print(f'[db]: {e}')
-                    if channel and slack_token:
+                    if response_url:
+                        requests.post(response_url, data=json.dumps({'text': ':red_circle: failed to update list'}))
+                    elif slack_token and channel:
                         slack.chat.post_message(f'{channel}', ':red_circle: failed to update list')
                 else:
-                    if channel and slack_token:
+                    if response_url:
+                        requests.post(response_url, data=json.dumps({'text': f':full_moon: added album to list: {url}', 'unfurl_links': True}))
+                    elif slack_token and channel:
                         slack.chat.post_message(f'{channel}', f':full_moon: added album to list: {url}', unfurl_links=True)
                     deferred_process_album_details.delay(str(album_id), channel, slack_token)
-            elif channel and slack_token:
+            elif response_url:
+                requests.post(response_url, data=json.dumps({'text': f':new_moon: album already in list: {url}', 'unfurl_links': True}))
+            elif slack_token and channel:
                 slack.chat.post_message(f'{channel}', f':new_moon: album already in list: {url}', unfurl_links=True)
             if tags:
                 deferred_process_tags.delay(str(album_id), tags)

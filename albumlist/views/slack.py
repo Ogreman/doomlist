@@ -465,22 +465,22 @@ def handle_message_action(payload):
                 'replace_original': False,
                 'unfurl_links': False,
             }
-            requests.post(payload['response_url'], data=response)
+            requests.post(payload['response_url'], data=json.dumps(response))
         elif 'more_action' in payload['callback_id']:
-            # scrape album id from url
             url = links.scrape_links_from_text(payload['message']['text'])[0]
-            # get album details
             album = albums_model.get_album_details_by_url(url)
-            # return list results by tag
-            random_tag_to_use = random.choice(album.tags)
-            first_result = next(albums_model.search_albums_by_tag(random_tag_to_use))
-            response = {
-                'response_type': 'ephemeral',
-                'text': first_result.album_url,
-                'replace_original': False,
-                'unfurl_links': True,
-            }
-            requests.post(payload['response_url'], data=response)
+            if album:
+                random_tag_to_use = random.choice(album.tags)
+                first_result = next(albums_model.search_albums_by_tag(random_tag_to_use))
+                response = {
+                    'response_type': 'ephemeral',
+                    'text': first_result.album_url,
+                    'replace_original': False,
+                    'unfurl_links': True,
+                }
+                requests.post(payload['response_url'], data=json.dumps(response))
+            else:
+                flask.current_app.logger.warn(f'[slack]: unable to find album by url: {url}')
     except KeyError as missing_key:
         flask.current_app.logger.warn(f'[slack]: missing key in action payload: {missing_key}')
     return '', 200
