@@ -1,5 +1,6 @@
 import functools
 import json
+import random
 import re
 
 import flask
@@ -424,8 +425,8 @@ def search_tags():
     return '', 200
 
 
-@slack_blueprint.route('/search/button', methods=['POST'])
-def button():
+@slack_blueprint.route('/interactive', methods=['POST'])
+def buttons():
     try:
         form_data = flask.request.form
         payload = json.loads(form_data['payload'])
@@ -435,6 +436,57 @@ def button():
     if payload.get('token') not in slack_blueprint.config['APP_TOKENS']:
         flask.current_app.logger.error('[access]: button failed slack test')
         return '', 403
+    try:
+        return {
+            'message_action': handle_message_action,
+            'interactive_message': handle_interactive_message,
+        }[payload['type']](payload)
+    except KeyError as unknown_type:
+        flask.current_app.logger.warn(f'[slack]: unknown message type: {unknown_type}')
+    return '', 200
+
+
+def handle_message_action(payload):
+    try:
+        if 'scrape_action' in payload['callback_id']:
+            contents = payload['message']['text']
+            channel_id = payload['channel']['id']
+            for url in links.scrape_links_from_text(contents):
+                queued.deferred_consume.delay(
+                    url,
+                    bandcamp.scrape_bandcamp_album_ids_from_url_forced,
+                    list_model.add_to_list,
+                    channel=channel_id,
+                    slack_token=slack_blueprint.config['SLACK_OAUTH_TOKEN']
+                )
+            response = {
+                'response_type': 'ephemeral',
+                'text': f'Scraping message for albums to add to the {slack_blueprint.config["LIST_NAME"]}...',
+                'replace_original': False,
+                'unfurl_links': False,
+            }
+            requests.post(payload['response_url'], data=response)
+        elif 'more_action' in payload['callback_id']:
+            # scrape album id from url
+            url = links.scrape_links_from_text(payload['message']['text'])[0]
+            # get album details
+            album = albums_model.get_album_details_by_url(url)
+            # return list results by tag
+            random_tag_to_use = random.choice(album.tags)
+            first_result = next(albums_model.search_albums_by_tag(random_tag_to_use))
+            response = {
+                'response_type': 'ephemeral',
+                'text': first_result.album_url,
+                'replace_original': False,
+                'unfurl_links': True,
+            }
+            requests.post(payload['response_url'], data=response)
+    except KeyError as missing_key:
+        flask.current_app.logger.warn(f'[slack]: missing key in action payload: {missing_key}')
+    return '', 200
+
+
+def handle_interactive_message(payload):
     try:
         action = payload['actions'][0]
         if 'tag' in action['name']:
@@ -500,9 +552,8 @@ def button():
                 'unfurl_links': False,
             }
             return flask.jsonify(response)
-    except KeyError as e:
-        flask.current_app.logger.error(f'[slack]: failed to build results: {e}')
-        return flask.current_app.db_error_message, 500
+    except KeyError as missing_key:
+        flask.current_app.logger.warn(f'[slack]: missing key in interactive payload: {missing_key}')
     return '', 200
 
 

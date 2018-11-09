@@ -39,9 +39,8 @@ class Album(object):
     def albums_from_values(cls, list_of_values):
         if not list_of_values:
             return
-        else:
-            for values in list_of_values:
-                yield cls.from_values(values)
+        for values in list_of_values:
+            yield cls.from_values(values)
 
     @staticmethod
     def details_map_from_albums(albums):
@@ -228,6 +227,21 @@ def get_album_details(album_id):
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
     
+
+def get_album_details_by_url(album_url):
+    sql = """
+        SELECT id, name, artist, url, img, available, channel, added, tags_json
+        FROM albums
+        WHERE url = %s;
+        """
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, (album_url, ))
+            return Album.from_values(cur.fetchone())
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
 
 def get_album_details_with_tags(album_id):
     sql = """
