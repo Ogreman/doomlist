@@ -174,7 +174,6 @@ def deferred_process_album_details(album_id, channel='', slack_token=None):
         albums_model.add_to_albums(album_id, artist, album, url, channel=channel)
         deferred_process_album_cover.delay(album_id)
         deferred_process_album_tags.delay(album_id)
-        deferred_attribute_album_url.delay(album_id, slack_token)
     except DatabaseError as e:
         print(f'[db]: failed to add album details for {album_id}')
         print(f'[db]: {e}')
@@ -186,6 +185,7 @@ def deferred_process_album_details(album_id, channel='', slack_token=None):
         print(f'[scraper]: processed album details for {album_id}')
         if channel and slack_token:
             slacker.Slacker(slack_token).chat.post_message(f'{channel}', f':full_moon_with_face: processed album details for "*{album}*" by *{artist}*')
+            deferred_attribute_album_url.delay(album_id, slack_token)
 
 
 @delayed.queue_func
