@@ -478,6 +478,21 @@ def handle_message_action(payload):
                                         unfurl_links=True)
             else:
                 flask.current_app.logger.warn(f'[slack]: unable to find album by url: {url}')
+        elif 'add_mine' in payload['callback_id']:
+            url = next(links.scrape_links_from_attachments([payload['message']]))
+            album = albums_model.get_album_details_by_url(url)
+            if album:
+                albums_model.add_user_to_album(album.album_id, payload['user']['id'])
+                flask.current_app.logger.info(f'[slack]: added user to album')
+                response = {
+                    'response_type': 'ephemeral',
+                    'text': f'Added album to your list. Use `/my_albums` to see all...',
+                    'replace_original': False,
+                    'unfurl_links': False,
+                }
+                requests.post(payload['response_url'], data=json.dumps(response))
+            else:
+                flask.current_app.logger.warn(f'[slack]: unable to find album by url: {url}')
     except StopIteration:
         flask.current_app.logger.warn(f'[slack]: no URL found in message')
     except KeyError as missing_key:
