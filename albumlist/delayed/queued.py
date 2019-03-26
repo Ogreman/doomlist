@@ -30,19 +30,19 @@ def deferred_scrape_channel(scrape_function, callback, channel_id, slack_token, 
         messages = response.body.get('messages', [])
         if response_url:
             requests.post(response_url, data=json.dumps({'text': f'Scraping {channel_name or channel_id}...'}))
-        results = scrape_function(messages)
-        album_ids = list_model.check_for_new_list_ids(results)
+        album_ids = scrape_function(messages)
+        new_album_ids = list_model.check_for_new_list_ids(album_ids)
         try:
-            if album_ids:
-                callback(album_ids)
-                print(f'[scraper]: {len(album_ids)} new albums found and added to the list')
+            if new_album_ids:
+                callback(new_album_ids)
+                print(f'[scraper]: {len(new_album_ids)} new albums found and added to the list')
                 deferred_process_all_album_details.delay(None)
         except DatabaseError as e:
             message = 'failed to update list'
             print(f'[db]: failed to perform {callback.__name__}')
             print(f'[db]: {e}')
         else:
-            message = f'Finished checking for new albums: {len(album_ids)} found in {channel_name or channel_id}'
+            message = f'Finished checking for new albums: {len(new_album_ids)} found in {channel_name or channel_id}'
     else:
         message = f'failed to get channel history for {channel_name or channel_id}'
     if response_url:
@@ -174,6 +174,7 @@ def deferred_process_album_details(album_id, channel='', slack_token=None):
         albums_model.add_to_albums(album_id, artist, album, url, channel=channel)
         deferred_process_album_cover.delay(album_id)
         deferred_process_album_tags.delay(album_id)
+        deferred_attribute_album_url.delay(album_id, slack_token)
     except DatabaseError as e:
         print(f'[db]: failed to add album details for {album_id}')
         print(f'[db]: {e}')
@@ -326,6 +327,36 @@ def deferred_check_all_album_urls(response_url=None):
             deferred_check_album_url.delay(album_id)
     except DatabaseError as e:
         print('[db]: failed to check for new album details')
+        print(f'[db]: {e}')
+        if response_url:
+            requests.post(response_url, data=json.dumps({'text': 'failed to check all album urls'}))
+
+
+@delayed.queue_func
+def deferred_attribute_album_url(album_id, slack_token):
+    try:
+        album = albums_model.get_album_details(album_id)
+        album_url = album.album_url
+        slack = slacker.Slacker(slack_token)
+        response = slack.search.all(album_url)
+        if response.successful:
+            for match in response.body['messages']['matches']:
+                if match.get('user'):
+                    albums_model.add_user_to_album(album_id, match['user'])
+    except DatabaseError as e:
+        print('[db]: failed to add user to album')
+        print(f'[db]: {e}')
+
+
+@delayed.queue_func
+def deferred_attribute_users_to_all_album_urls(slack_token, response_url=None):
+    try:
+        if response_url:
+            requests.post(response_url, data=json.dumps({'text': 'Attribution started...'}))
+        for album_id in albums_model.get_album_ids():
+            deferred_attribute_album_url.delay(album_id, slack_token)
+    except DatabaseError as e:
+        print('[db]: failed to start attribution process')
         print(f'[db]: {e}')
         if response_url:
             requests.post(response_url, data=json.dumps({'text': 'failed to check all album urls'}))

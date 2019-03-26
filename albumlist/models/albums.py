@@ -7,9 +7,9 @@ from albumlist.models import DatabaseError, get_connection
 from albumlist.models.list import get_list
 
 
-class Album(object):
+class Album:
 
-    def __init__(self, album_id, name, artist, url, img, available, channel, added, tags=None):
+    def __init__(self, album_id, name, artist, url, img, available, channel, added, tags=None, users=None):
         self.album_id = album_id
         self.album_artist = artist
         self.album_name = name
@@ -19,6 +19,7 @@ class Album(object):
         self.available = available
         self.added = added
         self.tags = tags
+        self.users = users
 
     def to_dict(self):
         return {
@@ -29,6 +30,7 @@ class Album(object):
             'img': self.album_image or '',
             'tags': self.tags if self.tags else [],
             'url': self.album_url or '',
+            'users': self.users if self.users else [],
         }
 
     @classmethod
@@ -62,7 +64,8 @@ def create_albums_table():
         channel varchar DEFAULT '',
         available boolean DEFAULT true, 
         added timestamp DEFAULT now(),
-        tags_json jsonb DEFAULT '[]'
+        tags_json jsonb DEFAULT '[]',
+        users_json jsonb DEFAULT '[]'
         );"""
     with closing(get_connection()) as conn:
         try:
@@ -105,6 +108,20 @@ def get_albums():
 def get_albums_with_tags():
     sql = """
         SELECT id, name, artist, url, img, available, channel, added, tags_json
+        FROM albums
+    """
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(sql)
+            return Album.albums_from_values(cur.fetchall())
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
+def get_albums_with_users():
+    sql = """
+        SELECT id, name, artist, url, img, available, channel, added, tags_json, users_json
         FROM albums
     """
     with closing(get_connection()) as conn:
@@ -288,6 +305,82 @@ def get_albums_by_channel(channel):
             raise DatabaseError(e)
 
 
+def set_album_users(album_id, users):
+    with closing(get_connection()) as conn:
+        try:
+            sql = """
+                UPDATE albums
+                SET users_json = %s
+                WHERE id = %s;
+                """
+            cur = conn.cursor()
+            cur.execute(sql, (json.dumps(users), album_id))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
+def add_user_to_album(album_id, user):
+    with closing(get_connection()) as conn:
+        try:
+            sql = """
+                UPDATE albums
+                SET users_json = users_json || %s
+                WHERE id = %s;
+                """
+            cur = conn.cursor()
+            cur.execute(sql, (json.dumps([user.lower()]), album_id))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
+def remove_user_from_album(album_id, user):
+    with closing(get_connection()) as conn:
+        try:
+            sql = """
+                UPDATE albums
+                SET users_json = users_json - %s
+                WHERE id = %s;
+                """
+            cur = conn.cursor()
+            cur.execute(sql, (json.dumps(user), album_id))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
+def get_albums_by_user(user):
+    sql = """
+        SELECT id, name, artist, url, img, available, channel, added, tags_json
+        FROM albums
+        WHERE users_json ? %s
+        AND available = true;
+        """
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, (user, ))
+            return Album.albums_from_values(cur.fetchall())
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
+def get_album_details_with_users(album_id):
+    sql = """
+        SELECT id, name, artist, url, img, available, channel, added, tags_json, users_json
+        FROM albums
+        WHERE id = %s;
+        """
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, (album_id, ))
+            return Album.from_values(cur.fetchone())
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
 def add_to_albums(album_id, artist, name, url, img='', channel=''):
     sql = """
         INSERT INTO albums (
@@ -296,7 +389,7 @@ def add_to_albums(album_id, artist, name, url, img='', channel=''):
         name, 
         url, 
         img,
-        channel, 
+        channel,
         available
         ) VALUES (%s, %s, %s, %s, %s, %s, %s);"""
     with closing(get_connection()) as conn:

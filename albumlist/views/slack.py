@@ -569,6 +569,28 @@ def restore_albums():
     return 'Restore request sent...', 200
 
 
+@slack_blueprint.route('/my_albums', methods=['POST'])
+@slack_check
+def my_albums():
+    user = flask.request.form.get('user_id')
+    if user:
+        response = flask.current_app.cache.get(f'u-{user}')
+        if not response:
+            try:
+                albums = albums_model.get_albums_by_user(user)
+            except DatabaseError as e:
+                flask.current_app.logger.error('[db]: failed to build album details')
+                flask.current_app.logger.error(f'[db]: {e}')
+                return 'failed to perform search', 500
+            else:
+                max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
+                list_name = slack_blueprint.config['LIST_NAME']
+                response = build_search_response(albums, list_name, max_attachments)
+                flask.current_app.cache.set(f'u-{user}', response, 60 * 15)
+        return flask.jsonify(response), 200
+    return '', 200
+
+
 @slack_blueprint.route('/events', methods=['POST'])
 def events_handler():
     if int(flask.request.headers.get('X-Slack-Retry-Num', 0)) > 1:
