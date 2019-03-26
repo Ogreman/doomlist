@@ -329,7 +329,7 @@ def add_user_to_album(album_id, user):
                 WHERE id = %s;
                 """
             cur = conn.cursor()
-            cur.execute(sql, (json.dumps([user.lower()]), album_id))
+            cur.execute(sql, (json.dumps([user]), album_id))
             conn.commit()
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
