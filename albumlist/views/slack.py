@@ -601,7 +601,7 @@ def my_albums():
                 max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
                 list_name = slack_blueprint.config['LIST_NAME']
                 response = build_search_response(albums, list_name, max_attachments)
-                flask.current_app.cache.set(f'u-{user}', response, 60 * 15)
+                flask.current_app.cache.set(f'u-{user}', response, 5)
         return flask.jsonify(response), 200
     return '', 200
 
