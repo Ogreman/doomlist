@@ -341,10 +341,12 @@ def deferred_attribute_album_url(album_id, slack_token):
         response = slack.search.all(album_url)
         if response.successful:
             for match in response.body['messages']['matches']:
-                if match.get('user'):
-                    albums_model.add_user_to_album(album_id, match['user'])
-    except DatabaseError as e:
-        print('[db]: failed to add user to album')
+                user = match['user']
+                if user:
+                    albums_model.add_user_to_album(album_id, user)
+                    print(f'[scraper]: added {user} to {album_id}')
+    except (DatabaseError, KeyError) as e:
+        print('[db]: failed to attribute users to album')
         print(f'[db]: {e}')
 
 
