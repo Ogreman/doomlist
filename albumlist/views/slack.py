@@ -577,8 +577,8 @@ def handle_interactive_message(payload):
             }
             return flask.jsonify(response)
         elif 'add_to_my_list' in action['name']:
-            queued.deferred_add_user_to_album(action['value'], payload['user']['id'],
-                                              response_url=payload.get('response_url'))
+            queued.deferred_add_user_to_album.delay(action['value'], payload['user']['id'],
+                                                    response_url=payload.get('response_url'))
             response = {
                 'response_type': 'ephemeral',
                 'text': f'Adding...',
@@ -587,8 +587,8 @@ def handle_interactive_message(payload):
             }
             return flask.jsonify(response)
         elif 'remove_from_my_list' in action['name']:
-            queued.deferred_remove_user_from_album(action['value'], payload['user']['id'],
-                                                   response_url=payload.get('response_url'))
+            queued.deferred_remove_user_from_album.delay(action['value'], payload['user']['id'],
+                                                         response_url=payload.get('response_url'))
             response = {
                 'response_type': 'ephemeral',
                 'text': f'Removing...',
