@@ -640,6 +640,7 @@ def my_albums():
                 response = build_search_response(albums, 'My List', max_attachments,
                                                  add_to_my_list=False,
                                                  remove_from_my_list=True)
+                response['attachments'] += build_my_list_attachment()
                 flask.current_app.cache.set(f'u-{user}', response, 5)
         return flask.jsonify(response), 200
     return '', 200
