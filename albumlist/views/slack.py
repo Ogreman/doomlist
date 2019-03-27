@@ -623,8 +623,7 @@ def my_albums():
                 return 'failed to perform search', 500
             else:
                 max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
-                list_name = slack_blueprint.config['LIST_NAME']
-                response = build_search_response(albums, list_name, max_attachments,
+                response = build_search_response(albums, 'My List', max_attachments,
                                                  add_to_my_list=False,
                                                  remove_from_my_list=True)
                 flask.current_app.cache.set(f'u-{user}', response, 5)
