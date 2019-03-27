@@ -186,7 +186,7 @@ def deferred_add_user_to_album(album_id, user_id, response_url=None):
         print(f'[db]: added user to album')
         message = f'Added album to your list. Use `/my_albums` to see all...'
     if response_url:
-        requests.post(response_url, data=message)
+        requests.post(response_url, data=json.dumps({'text': message}))
 
 
 @delayed.queue_func
@@ -202,7 +202,7 @@ def deferred_remove_user_from_album(album_id, user_id, response_url=None):
         print(f'[db]: removed user from album')
         message = f'Removed album from your list.'
     if response_url:
-        requests.post(response_url, data=message)
+        requests.post(response_url, data=json.dumps({'text': message}))
 
 
 @delayed.queue_func
