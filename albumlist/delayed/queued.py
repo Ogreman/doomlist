@@ -169,6 +169,7 @@ def deferred_delete(album_id, response_url=None):
 
 @delayed.queue_func
 def deferred_add_user_to_album(album_url, user_id, response_url=None):
+    response = {'text': 'Failed to add album to your list', 'attachments': []}
     try:
         album = albums_model.get_album_details_by_url(album_url)
         if album:
@@ -186,12 +187,27 @@ def deferred_add_user_to_album(album_url, user_id, response_url=None):
     except DatabaseError as e:
         print(f'[db]: failed to add user to album')
         print(f'[db]: {e}')
-        message = f'failed to add album to user\'s list'
     else:
         print(f'[db]: added user to album')
-        message = f'Added album to your list. Use `/my_albums` to see all...'
+        response['text'] = 'Added album to your list.'
+        response['attachments'] = [
+            {
+                "text": "My List",
+                "fallback": "My List actions are not accessible",
+                "callback_id": "my_list_action",
+                "color": "#3AA3E3",
+                "attachment_type": "default",
+                "actions": [
+                    {
+                        'name': 'view_mine',
+                        'text': 'View',
+                        'type': 'button',
+                    }
+                 ],
+            }
+        ]
     if response_url:
-        requests.post(response_url, data=json.dumps({'text': message}))
+        requests.post(response_url, data=json.dumps(response))
 
 
 @delayed.queue_func

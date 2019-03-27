@@ -496,9 +496,25 @@ def handle_message_action(payload):
                 flask.current_app.logger.info(f'[slack]: added user to album')
                 response = {
                     'response_type': 'ephemeral',
-                    'text': f'Added album to your list. Use `/my_albums` to see all...',
+                    'text': 'Added album to your list.',
                     'replace_original': False,
                     'unfurl_links': False,
+                    'attachments': [
+                        {
+                            "text": "My List",
+                            "fallback": "My List actions are not accessible",
+                            "callback_id": "my_list_action",
+                            "color": "#3AA3E3",
+                            "attachment_type": "default",
+                            "actions": [
+                                {
+                                    'name': 'view_mine',
+                                    'text': 'View',
+                                    'type': 'button',
+                                },
+                            ],
+                        },
+                    ],
                 }
                 requests.post(payload['response_url'], data=json.dumps(response))
             else:
@@ -582,6 +598,23 @@ def handle_interactive_message(payload):
         elif 'remove_from_my_list' in action['name']:
             queued.deferred_remove_user_from_album.delay(action['value'], payload['user']['id'],
                                                          response_url=payload.get('response_url'))
+        elif 'view_mine' in action['name']:
+            user = payload['user']['id']
+            response = flask.current_app.cache.get(f'u-{user}')
+            if not response:
+                try:
+                    albums = albums_model.get_albums_by_user(user)
+                except DatabaseError as e:
+                    flask.current_app.logger.error('[db]: failed to build album details')
+                    flask.current_app.logger.error(f'[db]: {e}')
+                    return 'failed to perform search', 500
+                else:
+                    response = build_search_response(albums, 'My List',
+                                                     max_attachments=slack_blueprint.config['SLACK_MAX_ATTACHMENTS'],
+                                                     add_to_my_list=False,
+                                                     remove_from_my_list=True)
+                    flask.current_app.cache.set(f'u-{user}', response, 5)
+            return flask.jsonify(response)
     except KeyError as missing_key:
         flask.current_app.logger.warn(f'[slack]: missing key in interactive payload: {missing_key}')
     return '', 200
