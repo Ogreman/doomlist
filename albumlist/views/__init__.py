@@ -37,7 +37,7 @@ def build_attachment(album_id, album_details, list_name, add_to_my_list=True, re
                 'name': 'add_to_my_list',
                 'text': 'Add to My List',
                 'type': 'button',
-                'value': album_id,
+                'value': album_details['url'],
             }
         ]
     elif remove_from_my_list:

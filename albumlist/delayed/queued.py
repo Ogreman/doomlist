@@ -168,15 +168,20 @@ def deferred_delete(album_id, response_url=None):
 
 
 @delayed.queue_func
-def deferred_add_user_to_album(album_id, user_id, response_url=None):
+def deferred_add_user_to_album(album_url, user_id, response_url=None):
     try:
-        if album_id not in list_model.get_list():
-            list_model.add_to_list(album_id)
-            print(f'[db]: added new album to list: {album_id}')
-            deferred_process_album_details.delay(str(album_id))
-            deferred_add_user_to_album(album_id, user_id, response_url=response_url)
+        album = albums_model.get_album_details_by_url(album_url)
+        if album:
+            albums_model.add_user_to_album(album.album_id, user_id)
+        else:
+            deferred_consume.delay(
+                album_url,
+                bandcamp.scrape_bandcamp_album_ids_from_url_forced,
+                list_model.add_to_list,
+                response_url=response_url,
+            )
+            deferred_add_user_to_album(album_url, user_id, response_url=response_url)
             return
-        albums_model.add_user_to_album(album_id, user_id)
         flask.current_app.cache.delete(f'u-{user_id}')
     except DatabaseError as e:
         print(f'[db]: failed to add user to album')
