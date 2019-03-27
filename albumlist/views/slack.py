@@ -579,17 +579,9 @@ def handle_interactive_message(payload):
         elif 'add_to_my_list' in action['name']:
             queued.deferred_add_user_to_album.delay(action['value'], payload['user']['id'],
                                                     response_url=payload.get('response_url'))
-            return '', 200
         elif 'remove_from_my_list' in action['name']:
             queued.deferred_remove_user_from_album.delay(action['value'], payload['user']['id'],
                                                          response_url=payload.get('response_url'))
-            response = {
-                'response_type': 'ephemeral',
-                'text': f'Removing...',
-                'replace_original': False,
-                'unfurl_links': False,
-            }
-            return flask.jsonify(response)
     except KeyError as missing_key:
         flask.current_app.logger.warn(f'[slack]: missing key in interactive payload: {missing_key}')
     return '', 200
