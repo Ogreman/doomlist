@@ -271,6 +271,19 @@ def process_tags():
     return 'Process request sent', 200
 
 
+@slack_blueprint.route('/process/attribution', methods=['POST'])
+@slack_check
+@admin_only
+def process_attribution():
+    form_data = flask.request.form
+    response = None if 'silence' in form_data else form_data.get('response_url')
+    slack_token = slack_blueprint.config['SLACK_OAUTH_TOKEN']
+    if not slack_token:
+        return 'Requires API scope', 200
+    queued.deferred_attribute_users_to_all_album_urls(slack_token, response_url=response)
+    return 'Process request sent', 200
+
+
 @slack_blueprint.route('/link', methods=['POST'])
 @slack_check
 def link():

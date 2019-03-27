@@ -427,7 +427,7 @@ def deferred_attribute_users_to_all_album_urls(slack_token, response_url=None):
         print('[db]: failed to start attribution process')
         print(f'[db]: {e}')
         if response_url:
-            requests.post(response_url, data=json.dumps({'text': 'failed to check all album urls'}))
+            requests.post(response_url, data=json.dumps({'text': 'Failed to check all album urls'}))
 
 
 @delayed.queue_func
