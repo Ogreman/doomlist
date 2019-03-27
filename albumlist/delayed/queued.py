@@ -12,6 +12,7 @@ from albumlist.models import DatabaseError
 from albumlist.models import albums as albums_model, list as list_model
 from albumlist.scrapers import NotFoundError
 from albumlist.scrapers import bandcamp
+from albumlist.views import build_my_list_attachment
 
 
 @delayed.queue_func
@@ -169,7 +170,7 @@ def deferred_delete(album_id, response_url=None):
 
 @delayed.queue_func
 def deferred_add_user_to_album(album_url, user_id, response_url=None):
-    response = {'text': 'Failed to add album to your list', 'attachments': []}
+    response = {'text': 'Added album to your list.', 'attachments': build_my_list_attachment()}
     try:
         album = albums_model.get_album_details_by_url(album_url)
         if album:
@@ -185,45 +186,45 @@ def deferred_add_user_to_album(album_url, user_id, response_url=None):
             return
         flask.current_app.cache.delete(f'u-{user_id}')
     except DatabaseError as e:
+        response['text'] = 'Failed to add album to your list.'
         print(f'[db]: failed to add user to album')
         print(f'[db]: {e}')
     else:
         print(f'[db]: added user to album')
-        response['text'] = 'Added album to your list.'
-        response['attachments'] = [
-            {
-                "text": "My List",
-                "fallback": "My List actions are not accessible",
-                "callback_id": "my_list_action",
-                "color": "#3AA3E3",
-                "attachment_type": "default",
-                "actions": [
-                    {
-                        'name': 'view_mine',
-                        'text': 'View',
-                        'type': 'button',
-                    }
-                 ],
-            }
-        ]
     if response_url:
         requests.post(response_url, data=json.dumps(response))
 
 
 @delayed.queue_func
 def deferred_remove_user_from_album(album_id, user_id, response_url=None):
+    response = {'text': 'Removed album from your list.', 'attachments': build_my_list_attachment()}
     try:
         albums_model.remove_user_from_album(album_id, user_id)
         flask.current_app.cache.delete(f'u-{user_id}')
     except DatabaseError as e:
+        response['text'] = 'Failed to remove album from user\'s list'
         print(f'[db]: failed to remove user from album')
         print(f'[db]: {e}')
-        message = f'failed to remove album from user\'s list'
     else:
         print(f'[db]: removed user from album')
-        message = f'Removed album from your list.'
     if response_url:
-        requests.post(response_url, data=json.dumps({'text': message}))
+        requests.post(response_url, data=json.dumps(response))
+
+
+@delayed.queue_func
+def deferred_remove_user_from_all_albums(user_id, response_url=None):
+    response = {'text': 'Cleared.', 'attachments': build_my_list_attachment()}
+    try:
+        albums_model.remove_user_from_all_albums(user_id)
+        flask.current_app.cache.delete(f'u-{user_id}')
+    except DatabaseError as e:
+        response['text'] = 'Failed to remove all albums from user\'s list'
+        print(f'[db]: failed to remove user from all albums')
+        print(f'[db]: {e}')
+    else:
+        print(f'[db]: removed user from all albums')
+    if response_url:
+        requests.post(response_url, data=json.dumps(response))
 
 
 @delayed.queue_func

@@ -12,7 +12,7 @@ from albumlist.delayed import queued
 from albumlist.models import DatabaseError
 from albumlist.models import albums as albums_model, list as list_model
 from albumlist.scrapers import NotFoundError, bandcamp, links
-from albumlist.views import build_attachment
+from albumlist.views import build_attachment, build_my_list_attachment
 
 
 slack_blueprint = flask.Blueprint(name='slack',
@@ -499,22 +499,7 @@ def handle_message_action(payload):
                     'text': 'Added album to your list.',
                     'replace_original': False,
                     'unfurl_links': False,
-                    'attachments': [
-                        {
-                            "text": "My List",
-                            "fallback": "My List actions are not accessible",
-                            "callback_id": "my_list_action",
-                            "color": "#3AA3E3",
-                            "attachment_type": "default",
-                            "actions": [
-                                {
-                                    'name': 'view_mine',
-                                    'text': 'View',
-                                    'type': 'button',
-                                },
-                            ],
-                        },
-                    ],
+                    'attachments': build_my_list_attachment(),
                 }
                 requests.post(payload['response_url'], data=json.dumps(response))
             else:
@@ -598,7 +583,10 @@ def handle_interactive_message(payload):
         elif 'remove_from_my_list' in action['name']:
             queued.deferred_remove_user_from_album.delay(action['value'], payload['user']['id'],
                                                          response_url=payload.get('response_url'))
-        elif 'view_mine' in action['name']:
+        elif 'clear_my_list' in action['name']:
+            queued.deferred_remove_user_from_all_albums.delay(payload['user']['id'],
+                                                              response_url=payload.get('response_url'))
+        elif 'view_my_list' in action['name']:
             user = payload['user']['id']
             response = flask.current_app.cache.get(f'u-{user}')
             if not response:
@@ -613,6 +601,7 @@ def handle_interactive_message(payload):
                                                      max_attachments=slack_blueprint.config['SLACK_MAX_ATTACHMENTS'],
                                                      add_to_my_list=False,
                                                      remove_from_my_list=True)
+                    response['attachments'] += build_my_list_attachment()
                     flask.current_app.cache.set(f'u-{user}', response, 5)
             return flask.jsonify(response)
     except KeyError as missing_key:

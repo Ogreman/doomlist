@@ -79,3 +79,34 @@ def build_attachment(album_id, album_details, list_name, add_to_my_list=True, re
             }
         ]
     return attachment
+
+
+def build_my_list_attachment():
+    return [
+        {
+            "text": "My List",
+            "fallback": "My List actions are not accessible",
+            "callback_id": "my_list_action",
+            "color": "#3AA3E3",
+            "attachment_type": "default",
+            "actions": [
+                {
+                    'name': 'view_my_list',
+                    'text': 'View',
+                    'type': 'button',
+                },
+                {
+                    'name': 'clear_my_list',
+                    'style': 'danger',
+                    'text': 'Clear',
+                    'type': 'button',
+                    'confirm': {
+                        "title": "Are you sure?",
+                        "text": "This will clear My List",
+                        "ok_text": "Yes",
+                        "dismiss_text": "No"
+                    }
+                }
+            ]
+        }
+    ]

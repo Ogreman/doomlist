@@ -350,6 +350,21 @@ def remove_user_from_album(album_id, user):
             raise DatabaseError(e)
 
 
+def remove_user_from_all_albums(user):
+    with closing(get_connection()) as conn:
+        try:
+            sql = """
+                UPDATE albums
+                SET users_json = []
+                WHERE users_json ? %s;
+                """
+            cur = conn.cursor()
+            cur.execute(sql, (user, ))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
 def get_albums_by_user(user):
     sql = """
         SELECT id, name, artist, url, img, available, channel, added, tags_json
