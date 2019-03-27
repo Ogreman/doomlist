@@ -344,7 +344,7 @@ def remove_user_from_album(album_id, user):
                 WHERE id = %s;
                 """
             cur = conn.cursor()
-            cur.execute(sql, (json.dumps(user), album_id))
+            cur.execute(sql, (user, album_id))
             conn.commit()
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
