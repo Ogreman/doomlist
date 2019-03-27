@@ -326,10 +326,10 @@ def add_user_to_album(album_id, user):
             sql = """
                 UPDATE albums
                 SET users_json = users_json || %s
-                WHERE id = %s;
+                WHERE id = %s AND NOT users_json ? %s;
                 """
             cur = conn.cursor()
-            cur.execute(sql, (json.dumps([user]), album_id))
+            cur.execute(sql, (json.dumps([user]), album_id, user))
             conn.commit()
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
@@ -355,11 +355,11 @@ def remove_user_from_all_albums(user):
         try:
             sql = """
                 UPDATE albums
-                SET users_json = '[]'
+                SET users_json = users_json - %s
                 WHERE users_json ? %s;
                 """
             cur = conn.cursor()
-            cur.execute(sql, (user, ))
+            cur.execute(sql, (user, user))
             conn.commit()
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
