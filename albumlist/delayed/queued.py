@@ -180,7 +180,7 @@ def deferred_add_user_to_album(album_url, user_id, response_url=None):
                 list_model.add_to_list,
                 response_url=response_url,
             )
-            deferred_add_user_to_album(album_url, user_id, response_url=response_url)
+            deferred_add_user_to_album.delay(album_url, user_id, response_url=response_url)
             return
         flask.current_app.cache.delete(f'u-{user_id}')
     except DatabaseError as e:
