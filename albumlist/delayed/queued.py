@@ -20,7 +20,8 @@ def deferred_scrape_channel(scrape_function, callback, channel_id, slack_token, 
     try:
         slack = slacker.Slacker(slack_token)
         if response_url:
-            requests.post(response_url, data=json.dumps({'text': f'Getting channel history for {channel_name or channel_id}...'}))
+            requests.post(response_url,
+                          data=json.dumps({'text': f'Getting channel history for {channel_name or channel_id}...'}))
         response = slack.channels.history(channel_id)
     except (KeyError, slacker.Error) as e:
         message = 'There was an error accessing the Slack API'
@@ -61,7 +62,7 @@ def deferred_consume(url, scrape_function, callback, channel='', tags=None, slac
             slack = slacker.Slacker(slack_token)
         try:
             if album_id not in list_model.get_list():
-                try:    
+                try:
                     callback(album_id)
                 except DatabaseError as e:
                     print(f'[db]: failed to perform {callback.__name__}')
@@ -72,12 +73,15 @@ def deferred_consume(url, scrape_function, callback, channel='', tags=None, slac
                         slack.chat.post_message(f'{channel}', ':red_circle: failed to update list')
                 else:
                     if response_url:
-                        requests.post(response_url, data=json.dumps({'text': f':full_moon: added album to list: {url}', 'unfurl_links': True}))
+                        requests.post(response_url, data=json.dumps(
+                            {'text': f':full_moon: added album to list: {url}', 'unfurl_links': True}))
                     elif slack_token and channel:
-                        slack.chat.post_message(f'{channel}', f':full_moon: added album to list: {url}', unfurl_links=True)
+                        slack.chat.post_message(f'{channel}', f':full_moon: added album to list: {url}',
+                                                unfurl_links=True)
                     deferred_process_album_details.delay(str(album_id), channel, slack_token)
             elif response_url:
-                requests.post(response_url, data=json.dumps({'text': f':new_moon: album already in list: {url}', 'unfurl_links': True}))
+                requests.post(response_url, data=json.dumps(
+                    {'text': f':new_moon: album already in list: {url}', 'unfurl_links': True}))
             elif slack_token and channel:
                 slack.chat.post_message(f'{channel}', f':new_moon: album already in list: {url}', unfurl_links=True)
             if tags:
@@ -94,7 +98,8 @@ def deferred_consume_artist_albums(artist_url, response_url=None):
         artist_albums = bandcamp.scrape_bandcamp_album_ids_from_artist_page(artist_url)
         new_album_ids = [album_id for album_id in artist_albums if album_id not in existing_albums]
         if response_url and new_album_ids:
-            requests.post(response_url, data=json.dumps({'text': f':full_moon: found {len(new_album_ids)} new albums to process...'}))
+            requests.post(response_url,
+                          data=json.dumps({'text': f':full_moon: found {len(new_album_ids)} new albums to process...'}))
         elif response_url:
             requests.post(response_url, data=json.dumps({'text': f':new_moon: found no new albums to process'}))
     except DatabaseError as e:
@@ -113,7 +118,8 @@ def deferred_consume_artist_albums(artist_url, response_url=None):
                 print(f'[db]: failed to update list with {new_album_id} from {artist_url}')
                 print(f'[db]: {e}')
         if response_url and new_album_ids:
-            requests.post(response_url, data=json.dumps({'text': f':full_moon_with_face: done processing artist albums'}))
+            requests.post(response_url,
+                          data=json.dumps({'text': f':full_moon_with_face: done processing artist albums'}))
 
 
 @delayed.queue_func
@@ -238,13 +244,18 @@ def deferred_process_album_details(album_id, channel='', slack_token=None):
         print(f'[db]: failed to add album details for {album_id}')
         print(f'[db]: {e}')
         if channel and slack_token:
-            slacker.Slacker(slack_token).chat.post_message(f'{channel}', f':red_circle: failed to add album details')
+            slacker.Slacker(slack_token) \
+                .chat \
+                .post_message(f'{channel}', f':red_circle: failed to add album details')
     except (TypeError, ValueError):
         pass
     else:
         print(f'[scraper]: processed album details for {album_id}')
         if channel and slack_token:
-            slacker.Slacker(slack_token).chat.post_message(f'{channel}', f':full_moon_with_face: processed album details for "*{album}*" by *{artist}*')
+            slacker.Slacker(slack_token) \
+                .chat \
+                .post_message(f'{channel}',
+                              f':full_moon_with_face: processed album details for "*{album}*" by *{artist}*')
             deferred_attribute_album_url.delay(album_id, slack_token)
 
 
