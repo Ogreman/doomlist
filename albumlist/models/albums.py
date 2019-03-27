@@ -355,7 +355,7 @@ def remove_user_from_all_albums(user):
         try:
             sql = """
                 UPDATE albums
-                SET users_json = []
+                SET users_json = '[]'
                 WHERE users_json ? %s;
                 """
             cur = conn.cursor()
