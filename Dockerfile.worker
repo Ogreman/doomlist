@@ -1,8 +1,6 @@
 FROM python:3.6
 
-RUN apt-get update && apt-get install -y libmemcached-dev
-
-RUN pip install pipenv
+RUN apt-get update && apt-get install -y libmemcached-dev && pip install pipenv
 
 ADD . /code
 WORKDIR /code
