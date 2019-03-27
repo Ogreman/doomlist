@@ -24,13 +24,15 @@ def slack_check(func):
     """
     Decorator for locking down slack endpoints to registered apps only
     """
+
     @functools.wraps(func)
     def wraps(*args, **kwargs):
         if flask.request.form.get('token', '') in slack_blueprint.config['APP_TOKENS'] \
-        or slack_blueprint.config['DEBUG']:
+                or slack_blueprint.config['DEBUG']:
             return func(*args, **kwargs)
         flask.current_app.logger.error('[access]: failed slack-check test')
         flask.abort(403)
+
     return wraps
 
 
@@ -38,6 +40,7 @@ def admin_only(func):
     """
     Decorator for locking down slack endpoints to admins
     """
+
     @functools.wraps(func)
     def wraps(*args, **kwargs):
         if slack_blueprint.config['DEBUG']:
@@ -57,6 +60,7 @@ def admin_only(func):
             return func(*args, **kwargs)
         flask.current_app.logger.error('[access]: failed admin-only test')
         flask.abort(403)
+
     return wraps
 
 
@@ -64,12 +68,14 @@ def not_bots(func):
     """
     Decorator for preventing triggers by bots
     """
+
     @functools.wraps(func)
     def wraps(*args, **kwargs):
         if 'bot_id' not in flask.request.form:
             return func(*args, **kwargs)
         flask.current_app.logger.error('[access]: failed not-bot test')
         flask.abort(403)
+
     return wraps
 
 
@@ -322,10 +328,14 @@ def random_album():
         return flask.jsonify(response), 200
 
 
-def build_search_response(albums, list_name, max_attachments=None, delete=False):
+def build_search_response(albums, list_name, max_attachments=None, delete=False, add_to_my_list=False,
+                          remove_from_my_list=False):
     details = albums_model.Album.details_map_from_albums(albums)
     attachments = [
-        build_attachment(album_id, album_details, list_name, delete=delete)
+        build_attachment(album_id, album_details, list_name,
+                         add_to_my_list=add_to_my_list,
+                         remove_from_my_list=remove_from_my_list,
+                         delete=delete)
         for album_id, album_details in details.items()
     ]
     text = f'Your {list_name} search returned {len(details)} results'
@@ -566,6 +576,26 @@ def handle_interactive_message(payload):
                 'unfurl_links': False,
             }
             return flask.jsonify(response)
+        elif 'add_to_my_list' in action['name']:
+            queued.deferred_add_user_to_album(action['value'], payload['user']['id'],
+                                              response_url=payload.get('response_url'))
+            response = {
+                'response_type': 'ephemeral',
+                'text': f'Adding...',
+                'replace_original': False,
+                'unfurl_links': False,
+            }
+            return flask.jsonify(response)
+        elif 'remove_from_my_list' in action['name']:
+            queued.deferred_remove_user_from_album(action['value'], payload['user']['id'],
+                                                   response_url=payload.get('response_url'))
+            response = {
+                'response_type': 'ephemeral',
+                'text': f'Removing...',
+                'replace_original': False,
+                'unfurl_links': False,
+            }
+            return flask.jsonify(response)
     except KeyError as missing_key:
         flask.current_app.logger.warn(f'[slack]: missing key in interactive payload: {missing_key}')
     return '', 200
@@ -600,7 +630,9 @@ def my_albums():
             else:
                 max_attachments = slack_blueprint.config['SLACK_MAX_ATTACHMENTS']
                 list_name = slack_blueprint.config['LIST_NAME']
-                response = build_search_response(albums, list_name, max_attachments)
+                response = build_search_response(albums, list_name, max_attachments,
+                                                 add_to_my_list=False,
+                                                 remove_from_my_list=True)
                 flask.current_app.cache.set(f'u-{user}', response, 5)
         return flask.jsonify(response), 200
     return '', 200

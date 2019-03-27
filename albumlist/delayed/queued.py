@@ -168,6 +168,44 @@ def deferred_delete(album_id, response_url=None):
 
 
 @delayed.queue_func
+def deferred_add_user_to_album(album_id, user_id, response_url=None):
+    try:
+        if album_id not in list_model.get_list():
+            list_model.add_to_list(album_id)
+            print(f'[db]: added new album to list: {album_id}')
+            deferred_process_album_details.delay(str(album_id))
+            deferred_add_user_to_album(album_id, user_id, response_url=response_url)
+            return
+        albums_model.add_user_to_album(album_id, user_id)
+        flask.current_app.cache.delete(f'u-{user_id}')
+    except DatabaseError as e:
+        print(f'[db]: failed to add user to album')
+        print(f'[db]: {e}')
+        message = f'failed to add album to user\'s list'
+    else:
+        print(f'[db]: added user to album')
+        message = f'Added album to your list. Use `/my_albums` to see all...'
+    if response_url:
+        requests.post(response_url, data=message)
+
+
+@delayed.queue_func
+def deferred_remove_user_from_album(album_id, user_id, response_url=None):
+    try:
+        albums_model.remove_user_from_album(album_id, user_id)
+        flask.current_app.cache.delete(f'u-{user_id}')
+    except DatabaseError as e:
+        print(f'[db]: failed to remove user from album')
+        print(f'[db]: {e}')
+        message = f'failed to remove album from user\'s list'
+    else:
+        print(f'[db]: removed user from album')
+        message = f'Removed album from your list.'
+    if response_url:
+        requests.post(response_url, data=message)
+
+
+@delayed.queue_func
 def deferred_process_album_details(album_id, channel='', slack_token=None):
     try:
         album, artist, url = bandcamp.scrape_bandcamp_album_details_from_id(album_id)

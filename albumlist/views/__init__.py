@@ -1,4 +1,5 @@
-def build_attachment(album_id, album_details, list_name, tags=True, scrape=False, delete=False):
+def build_attachment(album_id, album_details, list_name, add_to_my_list=True, remove_from_my_list=False, tags=True,
+                     scrape=False, delete=False):
     attachment = {
         'fallback': f'{album_details["album"]} by {album_details["artist"]}',
         'color': '#36a64f',
@@ -30,6 +31,24 @@ def build_attachment(album_id, album_details, list_name, tags=True, scrape=False
         ],
         'footer': list_name,
     }
+    if add_to_my_list:
+        attachment['actions'] += [
+            {
+                'name': 'add_to_my_list',
+                'text': 'Add to My List',
+                'type': 'button',
+                'value': album_id,
+            }
+        ]
+    elif remove_from_my_list:
+        attachment['actions'] += [
+            {
+                'name': 'remove_from_my_list',
+                'text': 'Remove from My List',
+                'type': 'button',
+                'value': album_id,
+            }
+        ]
     if tags:
         attachment['actions'] += [
             {
