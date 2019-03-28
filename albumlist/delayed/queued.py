@@ -210,7 +210,6 @@ def deferred_add_user_to_album(album_url, user_id, response_url=None):
 def deferred_remove_user_from_album(album_id, user_id, response_url=None):
     response = {
         'attachments': build_my_list_attachment(),
-        'replace_original': False,
         'response_type': 'ephemeral',
         'text': 'Removed album from your list.',
     }
@@ -231,7 +230,6 @@ def deferred_remove_user_from_album(album_id, user_id, response_url=None):
 def deferred_remove_user_from_all_albums(user_id, response_url=None):
     response = {
         'attachments': build_my_list_attachment(),
-        'replace_original': False,
         'response_type': 'ephemeral',
         'text': 'Cleared.',
     }
