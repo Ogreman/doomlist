@@ -256,7 +256,7 @@ def deferred_process_album_details(album_id, channel='', slack_token=None):
                 .chat \
                 .post_message(f'{channel}',
                               f':full_moon_with_face: processed album details for "*{album}*" by *{artist}*')
-            deferred_attribute_album_url.delay(album_id, slack_token)
+            # deferred_attribute_album_url.delay(album_id, slack_token)
 
 
 @delayed.queue_func
