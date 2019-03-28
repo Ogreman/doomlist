@@ -176,7 +176,12 @@ def deferred_delete(album_id, response_url=None):
 
 @delayed.queue_func
 def deferred_add_user_to_album(album_url, user_id, response_url=None):
-    response = {'text': 'Added album to your list.', 'attachments': build_my_list_attachment()}
+    response = {
+        'attachments': build_my_list_attachment(),
+        'replace_original': False,
+        'response_type': 'ephemeral',
+        'text': 'Added album to your list.',
+    }
     try:
         album = albums_model.get_album_details_by_url(album_url)
         if album:
@@ -203,7 +208,12 @@ def deferred_add_user_to_album(album_url, user_id, response_url=None):
 
 @delayed.queue_func
 def deferred_remove_user_from_album(album_id, user_id, response_url=None):
-    response = {'text': 'Removed album from your list.', 'attachments': build_my_list_attachment()}
+    response = {
+        'attachments': build_my_list_attachment(),
+        'replace_original': False,
+        'response_type': 'ephemeral',
+        'text': 'Removed album from your list.',
+    }
     try:
         albums_model.remove_user_from_album(album_id, user_id)
         flask.current_app.cache.delete(f'u-{user_id}')
@@ -219,7 +229,12 @@ def deferred_remove_user_from_album(album_id, user_id, response_url=None):
 
 @delayed.queue_func
 def deferred_remove_user_from_all_albums(user_id, response_url=None):
-    response = {'text': 'Cleared.', 'attachments': build_my_list_attachment()}
+    response = {
+        'attachments': build_my_list_attachment(),
+        'replace_original': False,
+        'response_type': 'ephemeral',
+        'text': 'Cleared.',
+    }
     try:
         albums_model.remove_user_from_all_albums(user_id)
         flask.current_app.cache.delete(f'u-{user_id}')
@@ -256,7 +271,6 @@ def deferred_process_album_details(album_id, channel='', slack_token=None):
                 .chat \
                 .post_message(f'{channel}',
                               f':full_moon_with_face: processed album details for "*{album}*" by *{artist}*')
-            # deferred_attribute_album_url.delay(album_id, slack_token)
 
 
 @delayed.queue_func
