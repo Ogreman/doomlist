@@ -78,8 +78,8 @@ def api_dump_album_details():
     # need StringIO for csv.writer
     proxy = io.StringIO()
     csv_writer = csv.writer(proxy)
-    csv_writer.writerow(('id', 'added', 'album', 'artist', 'channel', 'img', 'tags', 'url'))
-    albums = albums_model.get_albums_with_tags()
+    csv_writer.writerow(('id', 'added', 'album', 'artist', 'channel', 'img', 'tags', 'url', 'users'))
+    albums = albums_model.get_albums_with_users()
     details = albums_model.Album.details_map_from_albums(albums)
     for album_id, album_details in details.items():
         csv_writer.writerow([album_id] + list(album_details.values()))

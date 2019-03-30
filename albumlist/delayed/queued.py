@@ -135,6 +135,17 @@ def deferred_process_tags(album_id, tags):
 
 
 @delayed.queue_func
+def deferred_process_users(album_id, users):
+    try:
+        albums_model.set_album_users(album_id, users)
+    except DatabaseError as e:
+        print(f'[db]: failed to add users "{users}" to album {album_id}')
+        print(f'[db]: {e}')
+    else:
+        print(f'[scraper]: set {album_id} with users "{users}"')
+
+
+@delayed.queue_func
 def deferred_process_all_album_details(response_url=None):
     try:
         if response_url:
@@ -272,7 +283,7 @@ def deferred_process_album_details(album_id, channel='', slack_token=None):
 
 
 @delayed.queue_func
-def deferred_add_new_album_details(album_id, added, album, artist, channel, img, tags, url):
+def deferred_add_new_album_details(album_id, added, album, artist, channel, img, tags, url, users):
     try:
         if album_id not in list_model.get_list():
             list_model.add_to_list(album_id)
@@ -287,6 +298,10 @@ def deferred_add_new_album_details(album_id, added, album, artist, channel, img,
             deferred_process_tags.delay(album_id, tags)
         else:
             deferred_process_album_tags.delay(album_id)
+        if users is not None:
+            if isinstance(users, str):
+                users = ast.literal_eval(users)
+            deferred_process_users.delay(album_id, users)
         deferred_check_album_url.delay(album_id)
     except DatabaseError as e:
         print(f'[db]: failed to add new album details for [{album_id}] {album} by {artist}')
