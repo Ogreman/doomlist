@@ -17,7 +17,7 @@ flask = "*"
 flask-caching = "*"
 flask-heroku-cacheify = {git = "https://github.com/Ogreman/flask-heroku-cacheify", editable = true}
 gunicorn = "*"
-"psycopg2" = "==2.7.1"
+"psycopg2" = "==2.7.7"
 redis = "==2.10.5"
 requests = "*"
 slacker = "==0.9.60"
