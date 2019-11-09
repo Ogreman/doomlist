@@ -30,7 +30,7 @@ def build_attachment(album_id, album_details, list_name, add_to_my_list=True, re
                 'name': 'post_album',
                 'text': 'Post',
                 'type': 'button',
-                'value': get_embedded_url(album_id),
+                'value': album_details['url'],
             }
         ],
         'footer': list_name,
@@ -41,7 +41,7 @@ def build_attachment(album_id, album_details, list_name, add_to_my_list=True, re
                 'name': 'preview_album',
                 'text': 'Preview',
                 'type': 'button',
-                'url': album_details['url'],
+                'url': get_embedded_url(album_id),
             }
         ]
     if add_to_my_list:
