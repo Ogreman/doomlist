@@ -30,6 +30,7 @@ def post_random_album():
             album.album_id,
             album.to_dict(),
             list_name,
+            preview_album=True,
             tags=True,
         )
         print(f'[random]: posting random album to {channel}')

@@ -1,5 +1,9 @@
+def get_embedded_url(album_id):
+    return f'https://bandcamp.com/EmbeddedPlayer/album={album_id}/size=large/bgcol=000000'
+
+
 def build_attachment(album_id, album_details, list_name, add_to_my_list=True, remove_from_my_list=False, tags=True,
-                     scrape=False, delete=False):
+                     scrape=False, delete=False, preview_album=False):
     attachment = {
         'fallback': f'{album_details["album"]} by {album_details["artist"]}',
         'color': '#36a64f',
@@ -26,11 +30,20 @@ def build_attachment(album_id, album_details, list_name, add_to_my_list=True, re
                 'name': 'post_album',
                 'text': 'Post',
                 'type': 'button',
-                'value': album_details['url'],
+                'value': get_embedded_url(album_id),
             }
         ],
         'footer': list_name,
     }
+    if preview_album:
+        attachment['actions'] += [
+            {
+                'name': 'preview_album',
+                'text': 'Preview',
+                'type': 'button',
+                'url': album_details['url'],
+            }
+        ]
     if add_to_my_list:
         attachment['actions'] += [
             {
