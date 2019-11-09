@@ -331,6 +331,7 @@ def random_album():
                 album.album_id,
                 album.to_dict(),
                 slack_blueprint.config['LIST_NAME'],
+                preview_album=True,
                 tags=False,
             )
             response = {
