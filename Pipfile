@@ -12,6 +12,7 @@ python_version = "3.6"
 
 [packages]
 
+werkzeug = ">=0.15.0"
 flask = "*"
 flask-caching = "*"
 flask-heroku-cacheify = {git = "https://github.com/Ogreman/flask-heroku-cacheify", editable = true}
