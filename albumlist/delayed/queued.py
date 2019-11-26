@@ -287,7 +287,8 @@ def deferred_add_new_album_details(album_id, added, album, artist, channel, img,
     try:
         if album_id not in list_model.get_list():
             list_model.add_to_list(album_id)
-        albums_model.add_to_albums(album_id, artist=artist, name=album, url=url, img=img, channel=channel)
+        if albums_model.get_album_details(album_id) is None:
+            albums_model.add_to_albums(album_id, artist=artist, name=album, url=url, img=img, channel=channel)
         if added:
             albums_model.update_album_added(album_id, added)
         if not img:
