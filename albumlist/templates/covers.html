@@ -1,0 +1,87 @@
+<head>
+<style>
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #6570bf;
+}
+
+h1 {
+  margin-left: 4px;
+}
+
+.albumframe {
+  display: inline-grid;
+  border: 2px solid #6570bf;
+  border-radius: 5px;
+  margin: 5px;
+  width: 260px;
+  -webkit-box-shadow: 5px 5px 5px 0px rgba(186,186,186,1);
+  -moz-box-shadow: 5px 5px 5px 0px rgba(186,186,186,1);
+  box-shadow: 5px 5px 5px 0px rgba(186,186,186,1);
+}
+
+.cover {
+  background-color: #6570bf;
+  padding: 5px;
+}
+
+.cover:hover {
+  background-color: #6570bf;
+}
+
+.albumframe:hover {
+  border: 2px solid #0000aa;
+}
+
+.cover img {
+  height:250px;
+}
+
+.blurb {
+  padding: 5px;
+  background-color: #eeeeee;
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+  min-height: 3.5em;
+}
+
+a {
+  color: #6570bf;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #0000aa;
+  text-decoration: none;
+}
+</style>
+</head>
+
+<body style="background-color: black">
+<div id="albumlist">
+
+</div>
+</body>
+
+<script>
+(function() {
+    const albums = "{{ albums_url }}";
+    const urlParams = new URLSearchParams(window.location.search);
+    var year = urlParams.get('year');
+
+    if (year == undefined){
+        year = 2019;
+    }
+
+    $('#albumlist').append(`<p><h1>{{ list_name }} Postings For ${year}</h1></p>`)
+
+    $.getJSON( albums ).done(function( mainlist ) {
+        $.each( mainlist, function( key, album ) {
+            const mediaid = Object.keys(album)[0];
+            if (album[mediaid].added.substring(0,4) == year ) {
+                $('#albumlist').append(`<a href="${album[mediaid].url}" target="_blank"><div class="albumframe"><div class="cover"><img src="${album[mediaid].img}" /></div><div class="blurb">${album[mediaid].artist} - ${album[mediaid].album}</div></div></a>`);
+            }
+        });
+    });
+})();
+</script>

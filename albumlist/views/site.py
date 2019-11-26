@@ -10,6 +10,13 @@ site_blueprint = flask.Blueprint(name='site',
                                  url_prefix='')
 
 
+@site_blueprint.route('/covers', methods=['GET'])
+def covers_view():
+    list_name = site_blueprint.config['LIST_NAME']
+    albums_url = flask.url_for('api.api_list_album_details', _external=True, _scheme="https")
+    return flask.render_template('covers.html', list_name=list_name, albums_url=albums_url)
+
+
 @site_blueprint.route('/', methods=['GET'])
 def embedded_random():
     try:
