@@ -4,6 +4,8 @@ def get_embedded_url(album_id):
 
 def build_attachment(album_id, album_details, list_name, add_to_my_list=True, remove_from_my_list=False, tags=True,
                      scrape=False, delete=False, preview_album=False):
+    from datetime import datetime  # noqa
+
     attachment = {
         'fallback': f'{album_details["album"]} by {album_details["artist"]}',
         'color': '#36a64f',
@@ -17,7 +19,7 @@ def build_attachment(album_id, album_details, list_name, add_to_my_list=True, re
             {
                 'title': 'Album ID',
                 'value': album_id,
-                'short': 'false',
+                'short': 'true',
             },
             {
                 'title': 'Tags',
@@ -35,6 +37,14 @@ def build_attachment(album_id, album_details, list_name, add_to_my_list=True, re
         ],
         'footer': list_name,
     }
+    if album_details['released']:
+        attachment['fields'].insert(
+            1, {
+                'title': 'Released',
+                'value': datetime.strptime(album_details['released'], '%Y%m%d').strftime('%d %B %Y'),
+                'short': 'true',
+            }
+        )
     if preview_album:
         attachment['actions'] += [
             {
