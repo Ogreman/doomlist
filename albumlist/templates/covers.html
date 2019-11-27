@@ -85,25 +85,28 @@ a:hover {
 
     $('#albumlist').append(`<p><h1>{{ list_name }} Postings For ${year}</h1></p>`)
 
-    mainlist.map(d => {
-    	var yearadded = new Date(d[Object.keys(d)[0]].added).getFullYear();
-      
-      if(yeararray.indexOf(yearadded) === -1) {
-        yeararray.push(yearadded)
-      }
-    });
-    
-    if (yeararray.length > 1) {
-      yeararray.sort();
-    
-      yeararray.forEach(function(part, index) {
-        this[index] = `<span class="navbutton"><a href="covers?year=${this[index]}">${this[index]}</a></span>`;
-      }, yeararray);
-    
-      $('#albumlist').append(`<div class="navbar">` + yeararray.join(" | ") + `</div`);
-    }
-
     $.getJSON( albums ).done(function( mainlist ) {
+      
+      mainlist.map(d => {
+    	  var yearadded = new Date(d[Object.keys(d)[0]].added).getFullYear();
+      
+        if(yeararray.indexOf(yearadded) === -1) {
+          yeararray.push(yearadded)
+        }
+      });
+
+      if (yeararray.length > 1) {
+        yeararray.sort();
+
+        yeararray.forEach(function(part, index) {
+          this[index] = `<span class="navbutton"><a href="covers?year=${this[index]}">${this[index]}</a></span>`;
+        }, yeararray);
+
+        $('#albumlist').append(`<div class="navbar">` + yeararray.join(" | ") + `</div`);
+    }
+      
+      
+      
         $.each( mainlist, function( key, album ) {
             const mediaid = Object.keys(album)[0];
             if (album[mediaid].added.substring(0,4) == year ) {
