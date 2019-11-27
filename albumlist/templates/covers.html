@@ -14,15 +14,20 @@ h1 {
   margin-left: 4px;
 }
 
+.navbar {
+  margin-left: 4px;
+  margin-bottom: 20px;
+}
+
 .albumframe {
   display: inline-grid;
   border: 2px solid #6570bf;
   border-radius: 5px;
   margin: 5px;
   width: 260px;
-  -webkit-box-shadow: 5px 5px 5px 0px rgba(186,186,186,1);
-  -moz-box-shadow: 5px 5px 5px 0px rgba(186,186,186,1);
-  box-shadow: 5px 5px 5px 0px rgba(186,186,186,1);
+  -webkit-box-shadow: 5px 5px 5px 0px rgba(69,69,69,1);
+  -moz-box-shadow: 5px 5px 5px 0px rgba(69,69,69,1);
+  box-shadow: 5px 5px 5px 0px rgba(69,69,69,1);
 }
 
 .cover {
@@ -79,6 +84,24 @@ a:hover {
     }
 
     $('#albumlist').append(`<p><h1>{{ list_name }} Postings For ${year}</h1></p>`)
+
+    mainlist.map(d => {
+    	var yearadded = new Date(d[Object.keys(d)[0]].added).getFullYear();
+      
+      if(yeararray.indexOf(yearadded) === -1) {
+        yeararray.push(yearadded)
+      }
+    });
+    
+    if (yeararray.length > 1) {
+      yeararray.sort();
+    
+      yeararray.forEach(function(part, index) {
+        this[index] = `<span class="navbutton"><a href="covers?year=${this[index]}">${this[index]}</a></span>`;
+      }, yeararray);
+    
+      $('#albumlist').append(`<div class="navbar">` + yeararray.join(" | ") + `</div`);
+    }
 
     $.getJSON( albums ).done(function( mainlist ) {
         $.each( mainlist, function( key, album ) {
