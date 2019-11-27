@@ -271,6 +271,16 @@ def process_tags():
     return 'Process request sent', 200
 
 
+@slack_blueprint.route('/process/released', methods=['POST'])
+@slack_check
+@admin_only
+def process_released():
+    form_data = flask.request.form
+    response = None if 'silence' in form_data else form_data.get('response_url')
+    queued.deferred_process_all_album_released.delay(response)
+    return 'Process request sent', 200
+
+
 @slack_blueprint.route('/process/attribution', methods=['POST'])
 @slack_check
 @admin_only

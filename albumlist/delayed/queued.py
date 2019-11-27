@@ -264,6 +264,7 @@ def deferred_process_album_details(album_id, channel='', slack_token=None):
         albums_model.add_to_albums(album_id, artist, album, url, channel=channel)
         deferred_process_album_cover.delay(album_id)
         deferred_process_album_tags.delay(album_id)
+        deferred_process_album_released.delay(album_id)
     except DatabaseError as e:
         print(f'[db]: failed to add album details for {album_id}')
         print(f'[db]: {e}')
@@ -304,6 +305,7 @@ def deferred_add_new_album_details(album_id, added, album, artist, channel, img,
                 users = ast.literal_eval(users)
             deferred_process_users.delay(album_id, users)
         deferred_check_album_url.delay(album_id)
+        deferred_process_album_released.delay(album_id)
     except DatabaseError as e:
         print(f'[db]: failed to add new album details for [{album_id}] {album} by {artist}')
         print(f'[db]: {e}')
@@ -346,6 +348,23 @@ def deferred_process_album_tags(album_id):
 
 
 @delayed.queue_func
+def deferred_process_album_released(album_id):
+    try:
+        album = albums_model.get_album_details(album_id)
+        date = bandcamp.scrape_bandcamp_album_released_from_url(album.album_url)
+        if date:
+            albums_model.add_released_to_album(album_id, date)
+            print(f'[scraper]: added release date {date} to {album_id}')
+    except DatabaseError as e:
+        print(f'[db]: failed to get album details for {album_id}')
+        print(f'[db]: {e}')
+    except (TypeError, ValueError):
+        pass
+    else:
+        print(f'[scraper]: processed release date for {album_id}')
+
+
+@delayed.queue_func
 def deferred_process_all_album_covers(response_url=None):
     try:
         if response_url:
@@ -375,6 +394,23 @@ def deferred_process_all_album_tags(response_url=None):
         message = 'failed to process all album details...'
     else:
         message = 'Processed all album tags'
+    if response_url:
+        requests.post(response_url, data=json.dumps({'text': message}))
+
+
+@delayed.queue_func
+def deferred_process_all_album_released(response_url=None):
+    try:
+        if response_url:
+            requests.post(response_url, data=json.dumps({'text': 'Process started...'}))
+        for album in albums_model.get_albums():
+            deferred_process_album_released.delay(album.album_id)
+    except DatabaseError as e:
+        print('[db]: failed to get all album details')
+        print(f'[db]: {e}')
+        message = 'failed to process all album release dates...'
+    else:
+        message = 'Processed all album release dates'
     if response_url:
         requests.post(response_url, data=json.dumps({'text': message}))
 

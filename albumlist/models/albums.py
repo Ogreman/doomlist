@@ -9,7 +9,7 @@ from albumlist.models.list import get_list
 
 class Album:
 
-    def __init__(self, album_id, name, artist, url, img, available, channel, added, tags=None, users=None):
+    def __init__(self, album_id, name, artist, url, img, available, channel, added, released, tags=None, users=None):
         self.album_id = album_id
         self.album_artist = artist
         self.album_name = name
@@ -18,6 +18,7 @@ class Album:
         self.channel = channel
         self.available = available
         self.added = added
+        self.released = released
         self.tags = tags
         self.users = users
 
@@ -28,6 +29,7 @@ class Album:
             'artist': self.album_artist or '',
             'channel': self.channel or '',
             'img': self.album_image or '',
+            'released': self.released or '',
             'tags': self.tags if self.tags else [],
             'url': self.album_url or '',
             'users': self.users if self.users else [],
@@ -64,6 +66,7 @@ def create_albums_table():
         channel varchar DEFAULT '',
         available boolean DEFAULT true, 
         added timestamp DEFAULT now(),
+        released varchar DEFAULT '',
         tags_json jsonb DEFAULT '[]',
         users_json jsonb DEFAULT '[]'
         );"""
@@ -93,7 +96,7 @@ def create_albums_index():
 
 def get_albums():
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added
+        SELECT id, name, artist, url, img, available, channel, added, released
         FROM albums
     """
     with closing(get_connection()) as conn:
@@ -107,7 +110,7 @@ def get_albums():
 
 def get_albums_with_tags():
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, tags_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json
         FROM albums
     """
     with closing(get_connection()) as conn:
@@ -121,7 +124,7 @@ def get_albums_with_tags():
 
 def get_albums_with_users():
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, tags_json, users_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json, users_json
         FROM albums
     """
     with closing(get_connection()) as conn:
@@ -135,7 +138,7 @@ def get_albums_with_users():
 
 def get_albums_by_channel_with_tags(channel):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, tags_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json
         FROM albums
         WHERE channel = %s;
     """
@@ -150,7 +153,7 @@ def get_albums_by_channel_with_tags(channel):
 
 def get_albums_available():
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added
+        SELECT id, name, artist, url, img, available, channel, added, released
         FROM albums
         WHERE available = true;
     """
@@ -165,7 +168,7 @@ def get_albums_available():
 
 def get_albums_unavailable():
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added
+        SELECT id, name, artist, url, img, available, channel, added, released
         FROM albums 
         WHERE available = false;
     """
@@ -180,7 +183,7 @@ def get_albums_unavailable():
 
 def get_albums_without_covers():
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added
+        SELECT id, name, artist, url, img, available, channel, added, released
         FROM albums
         WHERE img = '';
     """
@@ -205,7 +208,7 @@ def get_albums_count():
 
 def find_album_artist_duplicates():
     sql = """
-        SELECT a1.* from (SELECT id, LOWER(name) as name, LOWER(artist) as artist, url, img, available, channel, added from albums) a1
+        SELECT a1.* from (SELECT id, LOWER(name) as name, LOWER(artist) as artist, url, img, available, channel, added, released from albums) a1
         LEFT JOIN (SELECT LOWER(artist) as artist, LOWER(name) as name, COUNT(*) as duplicates from albums GROUP BY LOWER(artist), LOWER(name)) a2
         ON a1.artist = a2.artist AND a1.name = a2.name
         WHERE a2.duplicates > 1
@@ -232,7 +235,7 @@ def get_albums_unavailable_count():
         
 def get_album_details(album_id):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added
+        SELECT id, name, artist, url, img, available, channel, added, released
         FROM albums
         WHERE id = %s;
         """
@@ -247,7 +250,7 @@ def get_album_details(album_id):
 
 def get_album_details_by_url(album_url):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, tags_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json
         FROM albums
         WHERE url = %s;
         """
@@ -262,7 +265,7 @@ def get_album_details_by_url(album_url):
 
 def get_album_details_with_tags(album_id):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, tags_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json
         FROM albums
         WHERE id = %s;
         """
@@ -277,7 +280,7 @@ def get_album_details_with_tags(album_id):
 
 def get_album_details_from_ids(album_ids):
     sql = """
-        SELECT id, artist, name, url, img, available, channel, added
+        SELECT id, artist, name, url, img, available, channel, added, released
         FROM albums 
         WHERE id IN %s;
         """
@@ -292,7 +295,7 @@ def get_album_details_from_ids(album_ids):
 
 def get_albums_by_channel(channel):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added
+        SELECT id, name, artist, url, img, available, channel, added, released
         FROM albums
         WHERE channel = %s
     """
@@ -377,7 +380,7 @@ def reset_users():
 
 def get_albums_by_user(user):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, tags_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json
         FROM albums
         WHERE users_json ? %s
         AND available = true;
@@ -393,7 +396,7 @@ def get_albums_by_user(user):
 
 def get_album_details_with_users(album_id):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, tags_json, users_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json, users_json
         FROM albums
         WHERE id = %s;
         """
@@ -491,6 +494,21 @@ def add_added_to_album(album_id, dt):
             raise DatabaseError(e)
 
 
+def add_released_to_album(album_id, date):
+    with closing(get_connection()) as conn:
+        try:
+            sql = """
+                UPDATE albums
+                SET released = %s
+                WHERE id = %s;
+                """
+            cur = conn.cursor()
+            cur.execute(sql, (date, album_id))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
 def update_album_availability(album_id, status):
     with closing(get_connection()) as conn:
         try:
@@ -578,7 +596,7 @@ def get_album_ids():
 
 def get_random_album():
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, tags_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json
         FROM albums 
         WHERE available = true
         ORDER BY RANDOM() 
@@ -595,7 +613,7 @@ def get_random_album():
 
 def get_albums_by_tag(tag):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, tags_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json
         FROM albums
         WHERE tags_json ? %s
         AND available = true;
@@ -611,7 +629,7 @@ def get_albums_by_tag(tag):
 
 def search_albums(query):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, tags_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json
         FROM albums
         WHERE LOWER(name) LIKE %s 
         OR LOWER(artist) LIKE %s
@@ -630,7 +648,7 @@ def search_albums(query):
 
 def search_albums_by_tag(query):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, tags_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json
         FROM albums 
         WHERE tags_json ? %s
         AND available = true;

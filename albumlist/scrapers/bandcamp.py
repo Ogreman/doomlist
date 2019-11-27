@@ -118,3 +118,16 @@ def scrape_bandcamp_album_details_from_search(query):
                 continue
     else:
         raise NotFoundError
+
+
+def scrape_bandcamp_album_released_from_url(url):
+    response = requests.get(url)
+    if response.ok:
+        html = lxh.fromstring(response.text)
+        try:
+            data = html.cssselect('div.tralbum-credits')[0].cssselect('meta')[0].attrib
+            if data['itemprop'] == 'datePublished':
+                return data['content']  # YYYYMMDD
+        except (IndexError, KeyError):
+            raise NotFoundError
+    raise NotFoundError
