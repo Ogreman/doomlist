@@ -78,7 +78,8 @@ a:hover {
     const albums = "{{ albums_url }}";
     const urlParams = new URLSearchParams(window.location.search);
     var year = urlParams.get('year');
-
+    var yeararray = [];
+  
     if (year == undefined){
         year = 2019;
     }
@@ -103,16 +104,14 @@ a:hover {
         }, yeararray);
 
         $('#albumlist').append(`<div class="navbar">` + yeararray.join(" | ") + `</div`);
-    }
+      }
       
-      
-      
-        $.each( mainlist, function( key, album ) {
-            const mediaid = Object.keys(album)[0];
-            if (album[mediaid].added.substring(0,4) == year ) {
-                $('#albumlist').append(`<a href="${album[mediaid].url}" target="_blank"><div class="albumframe"><div class="cover"><img src="${album[mediaid].img}" /></div><div class="blurb">${album[mediaid].artist} - ${album[mediaid].album}</div></div></a>`);
-            }
-        });
+      $.each( mainlist, function( key, album ) {
+        const mediaid = Object.keys(album)[0];
+        if (album[mediaid].added.substring(0,4) == year ) {
+            $('#albumlist').append(`<a href="${album[mediaid].url}" target="_blank"><div class="albumframe"><div class="cover"><img src="${album[mediaid].img}" /></div><div class="blurb">${album[mediaid].artist} - ${album[mediaid].album}</div></div></a>`);
+        }
+      });
     });
 })();
 </script>
