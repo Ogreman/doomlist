@@ -97,10 +97,13 @@ a:hover {
     $.getJSON( albums ).done(function( mainlist ) {
       
       mainlist.map(d => {
-        var yearadded = new Date(d[Object.keys(d)[0]][mode]).getFullYear();
+        var dateValue = d[Object.keys(d)[0]][mode];
+        if (dateValue) {
+          var yearadded = dateValue.substring(0,4);
 
-        if(yeararray.indexOf(yearadded) === -1) {
-          yeararray.push(yearadded)
+          if(yeararray.indexOf(yearadded) === -1) {
+            yeararray.push(yearadded)
+          }
         }
       });
 
