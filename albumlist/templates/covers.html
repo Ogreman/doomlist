@@ -77,20 +77,28 @@ a:hover {
 (function() {
     const albums = "{{ albums_url }}";
     const urlParams = new URLSearchParams(window.location.search);
-    var year = urlParams.get('year');
+    var year = urlParams.get('year') || 2019;
+    var mode = urlParams.get('mode') || "added";
     var yeararray = [];
-  
-    if (year == undefined){
-        year = 2019;
+
+    switch (mode) {
+      case 'added':
+        var titleMode = "Postings";
+        break;
+      case 'created':
+        var titleMode = "Releases";
+        break;
+      default:
+        var titleMode = "Postings";
     }
 
-    $('#albumlist').append(`<p><h1>{{ list_name }} Postings For ${year}</h1></p>`)
+    $('#albumlist').append(`<p><h1>{{ list_name }} ${titleMode} For ${year}</h1></p>`)
 
     $.getJSON( albums ).done(function( mainlist ) {
       
       mainlist.map(d => {
-    	  var yearadded = new Date(d[Object.keys(d)[0]].added).getFullYear();
-      
+        var yearadded = new Date(d[Object.keys(d)[0]][mode]).getFullYear();
+
         if(yeararray.indexOf(yearadded) === -1) {
           yeararray.push(yearadded)
         }
@@ -108,7 +116,7 @@ a:hover {
       
       $.each( mainlist, function( key, album ) {
         const mediaid = Object.keys(album)[0];
-        if (album[mediaid].added.substring(0,4) == year ) {
+        if (album[mediaid][mode].substring(0,4) == year ) {
             $('#albumlist').append(`<a href="${album[mediaid].url}" target="_blank"><div class="albumframe"><div class="cover"><img src="${album[mediaid].img}" /></div><div class="blurb">${album[mediaid].artist} - ${album[mediaid].album}</div></div></a>`);
         }
       });

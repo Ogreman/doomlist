@@ -55,7 +55,7 @@ def api_list_album_details():
         if not details:
             details = albums_model.Album.details_map_from_albums(albums)
             details = [{key: d} for key, d in details.items()]
-            flask.current_app.cache.set(key, details, 60 * 30)
+            flask.current_app.cache.set(key, details, 60 * 5)
         return flask.jsonify(details), 200
     except DatabaseError as e:
         print('[db]: failed to get albums')
