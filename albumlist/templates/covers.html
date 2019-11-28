@@ -85,7 +85,7 @@ a:hover {
       case 'added':
         var titleMode = "Postings";
         break;
-      case 'created':
+      case 'released':
         var titleMode = "Releases";
         break;
       default:
@@ -111,7 +111,7 @@ a:hover {
         yeararray.sort();
 
         yeararray.forEach(function(part, index) {
-          this[index] = `<span class="navbutton"><a href="covers?year=${this[index]}">${this[index]}</a></span>`;
+          this[index] = `<span class="navbutton"><a href="covers?year=${this[index]}&mode=${mode}">${this[index]}</a></span>`;
         }, yeararray);
 
         $('#albumlist').append(`<div class="navbar">` + yeararray.join(" | ") + `</div`);
