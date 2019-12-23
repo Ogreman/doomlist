@@ -670,6 +670,27 @@ def my_albums():
     return '', 200
 
 
+@slack_blueprint.route('/review', methods=['POST'])
+@slack_check
+def add_review():
+    form_data = flask.request.form
+    user = form_data.get('user_id')
+    contents = form_data.get('text', '')
+    response = None if 'silence' in form_data else form_data.get('response_url')
+    try:
+        album_url = links.scrape_links_from_text(contents)[0]
+        review = contents.split(album_url)[-1].strip()
+        queued.deferred_add_review_to_album.delay(
+            album_url=album_url,
+            user_id=user,
+            review=review,
+            response_url=response,
+        )
+    except IndexError:
+        flask.abort(401)
+    return 'Review request sent...', 200
+
+
 @slack_blueprint.route('/events', methods=['POST'])
 def events_handler():
     if int(flask.request.headers.get('X-Slack-Retry-Num', 0)) > 1:

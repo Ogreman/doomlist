@@ -68,7 +68,8 @@ def create_albums_table():
         added timestamp DEFAULT now(),
         released varchar DEFAULT '',
         tags_json jsonb DEFAULT '[]',
-        users_json jsonb DEFAULT '[]'
+        users_json jsonb DEFAULT '[]',
+        reviews_json jsonb DEFAULT '[]'
         );"""
     with closing(get_connection()) as conn:
         try:
@@ -405,6 +406,21 @@ def get_album_details_with_users(album_id):
             cur = conn.cursor()
             cur.execute(sql, (album_id, ))
             return Album.from_values(cur.fetchone())
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
+def add_user_review_to_album(album_id, user, review):
+    with closing(get_connection()) as conn:
+        try:
+            sql = """
+                UPDATE albums
+                SET reviews_json = reviews_json || %s
+                WHERE id = %s;
+                """
+            cur = conn.cursor()
+            cur.execute(sql, (json.dumps([{user: review}]), album_id))
+            conn.commit()
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 

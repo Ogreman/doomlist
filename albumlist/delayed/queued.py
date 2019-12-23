@@ -257,6 +257,37 @@ def deferred_remove_user_from_all_albums(user_id, response_url=None):
         requests.post(response_url, data=json.dumps(response))
 
 
+
+@delayed.queue_func
+def deferred_add_review_to_album(album_url, user_id, review, response_url=None):
+    response = {
+        'replace_original': False,
+        'response_type': 'ephemeral',
+        'text': 'Added review to your album.',
+    }
+    try:
+        album = albums_model.get_album_details_by_url(album_url)
+        if album:
+            albums_model.add_user_review_to_album(album.album_id, user_id, review)
+        else:
+            deferred_consume.delay(
+                album_url,
+                bandcamp.scrape_bandcamp_album_ids_from_url_forced,
+                list_model.add_to_list,
+                response_url=response_url,
+            )
+            deferred_add_review_to_album.delay(album_url, user_id, review, response_url=response_url)
+            return
+    except DatabaseError as e:
+        response['text'] = 'Failed to add review to album.'
+        print(f'[db]: failed to add review to album')
+        print(f'[db]: {e}')
+    else:
+        print(f'[db]: added review to album')
+    if response_url:
+        requests.post(response_url, data=json.dumps(response))
+
+
 @delayed.queue_func
 def deferred_process_album_details(album_id, channel='', slack_token=None):
     try:
