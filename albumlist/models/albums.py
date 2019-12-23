@@ -9,7 +9,7 @@ from albumlist.models.list import get_list
 
 class Album:
 
-    def __init__(self, album_id, name, artist, url, img, available, channel, added, released, tags=None, users=None):
+    def __init__(self, album_id, name, artist, url, img, available, channel, added, released, tags=None, users=None, reviews=None):
         self.album_id = album_id
         self.album_artist = artist
         self.album_name = name
@@ -19,6 +19,7 @@ class Album:
         self.available = available
         self.added = added
         self.released = released
+        self.reviews = reviews
         self.tags = tags
         self.users = users
 
@@ -30,6 +31,7 @@ class Album:
             'channel': self.channel or '',
             'img': self.album_image or '',
             'released': self.released or '',
+            'reviews': self.reviews if self.reviews else [],
             'tags': self.tags if self.tags else [],
             'url': self.album_url or '',
             'users': self.users if self.users else [],
@@ -421,6 +423,21 @@ def add_user_review_to_album(album_id, user, review):
             cur = conn.cursor()
             cur.execute(sql, (json.dumps([{user: review}]), album_id))
             conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
+
+def get_album_details_with_reviews(album_id):
+    sql = """
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json, reviews_json
+        FROM albums
+        WHERE id = %s;
+        """
+    with closing(get_connection()) as conn:
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, (album_id, ))
+            return Album.from_values(cur.fetchone())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
             raise DatabaseError(e)
 

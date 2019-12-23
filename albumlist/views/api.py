@@ -95,12 +95,32 @@ def api_dump_album_details():
 @api_blueprint.route('/album/<album_id>', methods=['GET'])
 def api_album(album_id):
     try:
-        album = flask.current_app.get_cached_album_details(album_id)
+        if flask.request.args.get('reviews'):
+            album = albums_model.get_album_details_with_reviews(album_id)
+        else:
+            album = flask.current_app.get_cached_album_details(album_id)
         if album is None:
             return flask.jsonify({'text': 'not found'}), 404
         response = {
             'text': 'success',
             'album': album.to_dict(),
+        }
+        return flask.jsonify(response), 200
+    except DatabaseError as e:
+        print(f'[db]: failed to get album: {album_id}')
+        print(f'[db]: {e}')
+        return flask.jsonify({'text': 'failed'}), 500
+
+
+@api_blueprint.route('/album/<album_id>/reviews', methods=['GET'])
+def api_album_reviews(album_id):
+    try:
+        album = albums_model.get_album_details_with_reviews(album_id)
+        if album is None:
+            return flask.jsonify({'text': 'not found'}), 404
+        response = {
+            'text': 'success',
+            'reviews': album.reviews,
         }
         return flask.jsonify(response), 200
     except DatabaseError as e:
