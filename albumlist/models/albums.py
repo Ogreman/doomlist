@@ -429,7 +429,7 @@ def add_user_review_to_album(album_id, user, review):
 
 def get_album_details_with_reviews(album_id):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, released, tags_json, reviews_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json, users_json, reviews_json
         FROM albums
         WHERE id = %s;
         """

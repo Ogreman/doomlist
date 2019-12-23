@@ -283,7 +283,7 @@ def deferred_add_review_to_album(album_url, user_id, review, response_url=None):
         print(f'[db]: failed to add review to album')
         print(f'[db]: {e}')
     else:
-        print(f'[db]: added review to album')
+        print(f'[db]: added review to album {album.album_id}')
     if response_url:
         requests.post(response_url, data=json.dumps(response))
 
