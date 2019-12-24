@@ -49,7 +49,7 @@ def build_attachment(album_id, album_details, list_name, add_to_my_list=True, re
         attachment['fields'].insert(
             1, {
                 'title': 'Reviewed',
-                'value': f"{len(album_details['reviews'])} times",
+                'value': f"{len(album_details['reviews'])} time{"s" if len(album_details['reviews']) > 1 else ""}",
                 'short': 'true',
             }
         )
