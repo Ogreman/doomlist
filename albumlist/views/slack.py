@@ -623,7 +623,7 @@ def handle_interactive_message(payload):
                             }
                         ] if payload['user']['id'] == review_user else [],
                     }
-                    for array_element, review_user, review_text in enumerate([review.popitem() for review in album.reviews])
+                    for array_element, (review_user, review_text) in enumerate([review.popitem() for review in album.reviews])
                 ]
             }
             return flask.jsonify(response)
