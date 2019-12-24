@@ -612,7 +612,7 @@ def handle_interactive_message(payload):
                 'attachments': [
                     {
                         'title': 'Review',
-                        'author_name': f'@{review_user}',
+                        'author_name': f'<@{review_user}>',
                         'text': review_text,
                     }
                     for review_user, review_text in [review.popitem() for review in album.reviews]

@@ -633,7 +633,7 @@ def get_album_ids():
 
 def get_random_album():
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, released, tags_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json, reviews_json
         FROM albums 
         WHERE available = true
         ORDER BY RANDOM() 
@@ -641,7 +641,7 @@ def get_random_album():
         """
     with closing(get_connection()) as conn:
         try:
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=NamedTupleCursor)
             cur.execute(sql)
             return Album.from_values(cur.fetchone())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
