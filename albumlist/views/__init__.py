@@ -53,6 +53,15 @@ def build_attachment(album_id, album_details, list_name, add_to_my_list=True, re
                 'short': 'true',
             }
         )
+        attachment['actions'] += [
+            {
+                'name': 'list_reviews',
+                'text': 'Reviews',
+                'type': 'button',
+                'value': album_id,
+
+            }
+        ]
     if preview_album:
         attachment['actions'] += [
             {

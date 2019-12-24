@@ -601,6 +601,24 @@ def handle_interactive_message(payload):
                 'unfurl_links': False,
             }
             return flask.jsonify(response)
+        elif 'list_reviews' in action['name']:
+            album_id = action['value']
+            album = albums_model.get_album_details_with_reviews(album_id)
+            response = {
+                'response_type': 'ephemeral',
+                'text': f'{len(album.reviews)} reviews for {album.album_name} by {album.album_artist}',
+                'replace_original': False,
+                'unfurl_links': False,
+                'attachments': [
+                    {
+                        'title': 'Review',
+                        'author_name': f'@{review_user}',
+                        'text': review_text,
+                    }
+                    for review_user, review_text in [review.popitem() for review in album.reviews]
+                ]
+            }
+            return flask.jsonify(response)
         elif 'add_to_my_list' in action['name']:
             queued.deferred_add_user_to_album.delay(action['value'], payload['user']['id'],
                                                     response_url=payload.get('response_url'))
