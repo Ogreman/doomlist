@@ -431,6 +431,20 @@ def add_user_review_to_album(album_id, user, review):
             raise DatabaseError(e)
 
 
+def remove_user_review_from_album(album_id, array_element):
+    with closing(get_connection()) as conn:
+        try:
+            sql = """
+                UPDATE albums
+                SET reviews_json = reviews_json - %s
+                WHERE id = %s;
+                """
+            cur = conn.cursor()
+            cur.execute(sql, (array_element, album_id))
+            conn.commit()
+        except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
+            raise DatabaseError(e)
+
 def get_album_details_with_reviews(album_id):
     sql = """
         SELECT id, name, artist, url, img, available, channel, added, released, reviews_json

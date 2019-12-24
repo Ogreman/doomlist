@@ -186,6 +186,24 @@ def deferred_delete(album_id, response_url=None):
 
 
 @delayed.queue_func
+def deferred_delete_review(album_id, array_element, response_url=None):
+    response = {
+        'response_type': 'ephemeral',
+        'text': 'Removed review from an album.',
+    }
+    try:
+        albums_model.remove_user_review_from_album(album_id, array_element)
+    except DatabaseError as e:
+        response['text'] = 'Failed to remove review from album'
+        print(f'[db]: failed to remove review from album')
+        print(f'[db]: {e}')
+    else:
+        print(f'[db]: removed review from album')
+    if response_url:
+        requests.post(response_url, data=json.dumps(response))
+
+
+@delayed.queue_func
 def deferred_add_user_to_album(album_url, user_id, response_url=None):
     response = {
         'attachments': build_my_list_attachment(),

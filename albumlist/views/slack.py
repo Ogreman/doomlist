@@ -614,11 +614,22 @@ def handle_interactive_message(payload):
                         'title': 'Review',
                         'author_name': f'<@{review_user}>',
                         'text': review_text,
+                        'actions': [
+                            {
+                                'name': 'delete_review',
+                                'text': 'Delete',
+                                'type': 'button',
+                                'value': f'{album_id}|{array_element}',
+                            }
+                        ] if payload['user']['id'] == review_user else [],
                     }
-                    for review_user, review_text in [review.popitem() for review in album.reviews]
+                    for array_element, review_user, review_text in enumerate([review.popitem() for review in album.reviews])
                 ]
             }
             return flask.jsonify(response)
+        elif 'delete_review' in action['name']:
+            album_id, array_element = action['value'].split('|')
+            queued.deferred_delete_review.delay(album_id, array_element, response_url=payload.get('response_url'))
         elif 'add_to_my_list' in action['name']:
             queued.deferred_add_user_to_album.delay(action['value'], payload['user']['id'],
                                                     response_url=payload.get('response_url'))
