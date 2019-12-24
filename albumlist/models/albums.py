@@ -2,6 +2,7 @@ from contextlib import closing
 import json
 
 import psycopg2
+from psycopg2.extras import NamedTupleCursor
 
 from albumlist.models import DatabaseError, get_connection
 from albumlist.models.list import get_list
@@ -9,8 +10,8 @@ from albumlist.models.list import get_list
 
 class Album:
 
-    def __init__(self, album_id, name, artist, url, img, available, channel, added, released, tags=None, users=None, reviews=None):
-        self.album_id = album_id
+    def __init__(self, id, name, artist, url, img, available, channel, added, released, tags_json=None, users_json=None, reviews_json=None):
+        self.album_id = id
         self.album_artist = artist
         self.album_name = name
         self.album_url = url
@@ -19,9 +20,9 @@ class Album:
         self.available = available
         self.added = added
         self.released = released
-        self.reviews = reviews
-        self.tags = tags
-        self.users = users
+        self.reviews = reviews_json
+        self.tags = tags_json
+        self.users = users_json
 
     def to_dict(self):
         return {
@@ -39,7 +40,10 @@ class Album:
 
     @classmethod
     def from_values(cls, values):
-        return cls(*values) if values else None
+        try:
+            return cls(**values._asdict())
+        except AttributeError:
+            return cls(*values) if values else None
 
     @classmethod
     def albums_from_values(cls, list_of_values):
@@ -429,13 +433,13 @@ def add_user_review_to_album(album_id, user, review):
 
 def get_album_details_with_reviews(album_id):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, released, tags_json, users_json, reviews_json
+        SELECT id, name, artist, url, img, available, channel, added, released, reviews_json
         FROM albums
         WHERE id = %s;
         """
     with closing(get_connection()) as conn:
         try:
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=NamedTupleCursor)
             cur.execute(sql, (album_id, ))
             return Album.from_values(cur.fetchone())
         except (psycopg2.ProgrammingError, psycopg2.InternalError) as e:
