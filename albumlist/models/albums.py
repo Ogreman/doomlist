@@ -666,7 +666,7 @@ def get_albums_by_tag(tag):
 
 def search_albums(query):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, released, tags_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json, reviews_json
         FROM albums
         WHERE LOWER(name) LIKE %s 
         OR LOWER(artist) LIKE %s
@@ -675,7 +675,7 @@ def search_albums(query):
         """
     with closing(get_connection()) as conn:
         try:
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=NamedTupleCursor)
             term = f'%{query}%'
             cur.execute(sql, (term, term, query))
             return Album.albums_from_values(cur.fetchall())
@@ -685,14 +685,14 @@ def search_albums(query):
 
 def search_albums_by_tag(query):
     sql = """
-        SELECT id, name, artist, url, img, available, channel, added, released, tags_json
+        SELECT id, name, artist, url, img, available, channel, added, released, tags_json, reviews_json
         FROM albums 
         WHERE tags_json ? %s
         AND available = true;
         """
     with closing(get_connection()) as conn:
         try:
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=NamedTupleCursor)
             # term = f'%{query}%' TODO
             cur.execute(sql, (query, ))
             return Album.albums_from_values(cur.fetchall())

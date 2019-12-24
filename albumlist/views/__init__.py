@@ -45,6 +45,14 @@ def build_attachment(album_id, album_details, list_name, add_to_my_list=True, re
                 'short': 'true',
             }
         )
+    if album_details['reviews']:
+        attachment['fields'].insert(
+            1, {
+                'title': 'Reviewed',
+                'value': f"{len(album_details['reviews'])} times",
+                'short': 'true',
+            }
+        )
     if preview_album:
         attachment['actions'] += [
             {
