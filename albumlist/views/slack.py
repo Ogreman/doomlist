@@ -606,7 +606,7 @@ def handle_interactive_message(payload):
             album = albums_model.get_album_details_with_reviews(album_id)
             response = {
                 'response_type': 'ephemeral',
-                'text': f'{len(album.reviews)} review{"s" if len(album.reviews) > 1} for {album.album_name} by {album.album_artist}',
+                'text': f'{len(album.reviews)} review{"s" if len(album.reviews) > 1 else ""} for {album.album_name} by {album.album_artist}',
                 'replace_original': False,
                 'unfurl_links': False,
                 'attachments': [
