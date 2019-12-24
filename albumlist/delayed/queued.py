@@ -192,7 +192,7 @@ def deferred_delete_review(album_id, array_element, response_url=None):
         'text': 'Removed review from an album.',
     }
     try:
-        albums_model.remove_user_review_from_album(album_id, array_element)
+        albums_model.remove_user_review_from_album(album_id, int(array_element))
     except DatabaseError as e:
         response['text'] = 'Failed to remove review from album'
         print(f'[db]: failed to remove review from album')
