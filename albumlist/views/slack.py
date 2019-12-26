@@ -524,7 +524,9 @@ def handle_message_action(payload):
                 },
                 data=json.dumps(response)
             )
-            if not response.json()['ok']:
+            if response.ok and response.json()['ok']:
+                flask.current_app.logger.info('[slack]: opening new input modal')
+            else:
                 flask.current_app.logger.error(f'[slack]: {response.json()}')
         elif 'add_mine' in payload['callback_id']:
             url = next(links.scrape_links_from_attachments([payload['message']]))
@@ -764,6 +766,10 @@ def events_handler():
                             channel=channel,
                             slack_token=slack_blueprint.config['SLACK_OAUTH_TOKEN']
                         )
+
+                elif event_type == 'view_submission':
+                    flask.current_app.logger.info('[events]: received a view submission event')
+                    flask.current_app.logger.info(body['event']['view'])
 
         except KeyError:
             flask.abort(401)
