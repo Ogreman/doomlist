@@ -482,7 +482,7 @@ def buttons():
 
 def handle_message_action(payload):
     try:
-        flask.current_app.logger.info('[access]: handling message action', callback_id=payload['callback_id'])
+        flask.current_app.logger.info(f'[access]: handling message action: {payload["callback_id"]}')
         if 'scrape_action' in payload['callback_id']:
             contents = payload['message']['text']
             channel_id = payload['channel']['id']
@@ -550,7 +550,7 @@ def handle_message_action(payload):
 def handle_interactive_message(payload):
     try:
         action = payload['actions'][0]
-        flask.current_app.logger.info('[access]: handling interactive message', action_name=action['name'])
+        flask.current_app.logger.info(f'[access]: handling interactive message: {action["name"]}')
         if 'tag' in action['name']:
             query = action['value'].lower()
             search_response = flask.current_app.cache.get(f't-{query}')
