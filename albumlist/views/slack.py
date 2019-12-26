@@ -517,13 +517,15 @@ def handle_message_action(payload):
             slack_token=slack_blueprint.config['SLACK_OAUTH_TOKEN']
             trigger_id = payload['trigger_id']
             response = build_slack_modal(trigger_id)
-            requests.post('https://slack.com/api/views.open',
+            response = requests.post('https://slack.com/api/views.open',
                 headers={
                     'Content-type': 'application/json',
                     'Authorization': f'Bearer {slack_token}'
                 },
                 data=json.dumps(response)
             )
+            if not response.json()['ok']:
+                flask.current_app.logger.error(f'[slack]: {response.json()}')
         elif 'add_mine' in payload['callback_id']:
             url = next(links.scrape_links_from_attachments([payload['message']]))
             album = albums_model.get_album_details_by_url(url)
