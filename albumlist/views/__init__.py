@@ -177,6 +177,8 @@ def build_slack_modal(trigger_id, album_url):
                 "element": {
                     "type": "plain_text_input",
                     "action_id": "review-input",
+                    "multiline": True,
+                    "min_length": 50,
                     "placeholder": {
                         "type": "plain_text",
                         "text": "Enter some plain text",
