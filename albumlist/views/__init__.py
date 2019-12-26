@@ -160,21 +160,25 @@ def build_slack_modal(trigger_id):
             "callback_id": "review-modal",
             "title": {
                 "type": "plain_text",
-                "text": "Reviews"
+                "text": "Reviews",
+            },
+            "submit": {
+                "type": "plain_text",
+                "text": "Submit",
             },
             "blocks": [{
                 "type": "input",
                 "block_id": "review-block",
                 "label": {
                     "type": "plain_text",
-                    "text": "Add your review"
+                    "text": "Add your review",
                 },
                 "element": {
                     "type": "plain_text_input",
                     "action_id": "review-input",
                     "placeholder": {
                         "type": "plain_text",
-                        "text": "Enter some plain text"
+                        "text": "Enter some plain text",
                     }
                 }
             }],
