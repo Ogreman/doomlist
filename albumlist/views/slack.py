@@ -12,7 +12,7 @@ from albumlist.delayed import queued
 from albumlist.models import DatabaseError
 from albumlist.models import albums as albums_model, list as list_model
 from albumlist.scrapers import NotFoundError, bandcamp, links
-from albumlist.views import build_attachment, build_my_list_attachment
+from albumlist.views import build_attachment, build_my_list_attachment, build_slack_modal
 
 
 slack_blueprint = flask.Blueprint(name='slack',
@@ -512,6 +512,17 @@ def handle_message_action(payload):
                                         unfurl_links=True)
             else:
                 flask.current_app.logger.warn(f'[slack]: unable to find album by url: {url}')
+        elif 'review_action' in payload['callback_id']:
+            slack_token=slack_blueprint.config['SLACK_OAUTH_TOKEN']
+            trigger_id = payload['trigger_id']
+            response = build_slack_modal(trigger_id)
+            requests.post('https://slack.com/api/views.open',
+                headers={
+                    'Content-type': 'application/json',
+                    'Authorization': f'Bearer {slack_token}'
+                },
+                data=json.dumps(response)
+            )
         elif 'add_mine' in payload['callback_id']:
             url = next(links.scrape_links_from_attachments([payload['message']]))
             album = albums_model.get_album_details_by_url(url)
