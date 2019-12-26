@@ -474,15 +474,25 @@ def buttons():
         return {
             'message_action': handle_message_action,
             'interactive_message': handle_interactive_message,
+            'view_submission': handle_submission,
         }[payload['type']](payload)
     except KeyError as unknown_type:
         flask.current_app.logger.warn(f'[slack]: unknown message type: {unknown_type}')
     return '', 200
 
 
+def handle_submission(payload):
+    try:
+        flask.current_app.logger.debug(f'[access]: handling view submission: {payload["hash"]}')
+        flask.current_app.logger.info(payload)
+    except KeyError as missing_key:
+        flask.current_app.logger.warn(f'[slack]: missing key in submission payload: {missing_key}')
+    return '', 200
+
+
 def handle_message_action(payload):
     try:
-        flask.current_app.logger.info(f'[access]: handling message action: {payload["callback_id"]}')
+        flask.current_app.logger.debug(f'[access]: handling message action: {payload["callback_id"]}')
         if 'scrape_action' in payload['callback_id']:
             contents = payload['message']['text']
             channel_id = payload['channel']['id']
@@ -554,7 +564,7 @@ def handle_message_action(payload):
 def handle_interactive_message(payload):
     try:
         action = payload['actions'][0]
-        flask.current_app.logger.info(f'[access]: handling interactive message: {action["name"]}')
+        flask.current_app.logger.debug(f'[access]: handling interactive message: {action["name"]}')
         if 'tag' in action['name']:
             query = action['value'].lower()
             search_response = flask.current_app.cache.get(f't-{query}')
