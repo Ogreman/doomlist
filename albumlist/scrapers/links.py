@@ -10,7 +10,10 @@ def scrape_links_from_attachments(messages):
                 try:
                     yield attachment['from_url']
                 except KeyError:
-                    continue
+                    try:
+                        yield attachment['title_link']
+                    except KeyError:
+                        continue
 
 
 def scrape_links_from_text(text):
