@@ -152,12 +152,13 @@ def build_my_list_attachment():
     ]
 
 
-def build_slack_modal(trigger_id):
+def build_slack_modal(trigger_id, album_url):
     return {
         "trigger_id": trigger_id,
         "view": {
             "type": "modal",
             "callback_id": "review-modal",
+            "private_metadata": album_url,
             "title": {
                 "type": "plain_text",
                 "text": "Reviews",

@@ -483,8 +483,17 @@ def buttons():
 
 def handle_submission(payload):
     try:
-        # flask.current_app.logger.debug(f'[access]: handling view submission: {payload["hash"]}')
-        flask.current_app.logger.info(payload)
+        flask.current_app.logger.debug('[access]: handling view submission')
+        if payload['view']['callback_id'] == 'review-modal':
+            album_url = payload['view']['private_metadata']
+            user_id = payload['user']['id']
+            review_contents = payload['view']['state']['values']['review-block']['review-input']['value']
+            queued.deferred_add_review_to_album.delay(
+                album_url=album_url,
+                user_id=user_id,
+                review=review_contents,
+                response_url=None,
+            )
     except KeyError as missing_key:
         flask.current_app.logger.warn(f'[slack]: missing key in submission payload: {missing_key}')
     return '', 200
@@ -526,7 +535,8 @@ def handle_message_action(payload):
         elif 'review_action' in payload['callback_id']:
             slack_token=slack_blueprint.config['SLACK_OAUTH_TOKEN']
             trigger_id = payload['trigger_id']
-            response = build_slack_modal(trigger_id)
+            url = next(links.scrape_links_from_attachments([payload['message']]))
+            response = build_slack_modal(trigger_id, url)
             response = requests.post('https://slack.com/api/views.open',
                 headers={
                     'Content-type': 'application/json',
