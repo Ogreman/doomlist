@@ -483,7 +483,7 @@ def buttons():
 
 def handle_submission(payload):
     try:
-        flask.current_app.logger.debug(f'[access]: handling view submission: {payload["hash"]}')
+        # flask.current_app.logger.debug(f'[access]: handling view submission: {payload["hash"]}')
         flask.current_app.logger.info(payload)
     except KeyError as missing_key:
         flask.current_app.logger.warn(f'[slack]: missing key in submission payload: {missing_key}')
