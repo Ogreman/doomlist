@@ -333,33 +333,33 @@ def deferred_process_album_details(album_id, channel='', slack_token=None):
 
 
 @delayed.queue_func
-def deferred_add_new_album_details(album_id, added, album, artist, channel, img, tags, url, users):
+def deferred_add_new_album_details(album_object):
     try:
-        if album_id not in list_model.get_list():
-            list_model.add_to_list(album_id)
-        if albums_model.get_album_details(album_id) is None:
-            albums_model.add_to_albums(album_id, artist=artist, name=album, url=url, img=img, channel=channel)
-        if added:
-            albums_model.update_album_added(album_id, added)
-        if not img:
-            deferred_process_album_cover.delay(album_id)
-        if tags is not None:
-            if isinstance(tags, str):
-                tags = ast.literal_eval(tags)
-            deferred_process_tags.delay(album_id, tags)
+        if album_object.album_id not in list_model.get_list():
+            list_model.add_to_list(album_object.album_id)
+        if albums_model.get_album_details(album_object.album_id) is None:
+            album_object.save()
+        if album_object.added:
+            albums_model.update_album_added(album_object.album_id, album_object.added.isoformat())
+        if not album_object.album_image:
+            deferred_process_album_cover.delay(album_object.album_id)
+        if album_object.tags is not None:
+            if isinstance(album_object.tags, str):
+                album_object.tags = ast.literal_eval(album_object.tags)
+            deferred_process_tags.delay(album_object.album_id, album_object.tags)
         else:
-            deferred_process_album_tags.delay(album_id)
-        if users is not None:
-            if isinstance(users, str):
-                users = ast.literal_eval(users)
-            deferred_process_users.delay(album_id, users)
-        deferred_check_album_url.delay(album_id)
-        deferred_process_album_released.delay(album_id)
+            deferred_process_album_tags.delay(album_object.album_id)
+        if album_object.users is not None:
+            if isinstance(album_object.users, str):
+                album_object.users = ast.literal_eval(album_object.users)
+            deferred_process_users.delay(album_object.album_id, album_object.users)
+        deferred_check_album_url.delay(album_object.album_id)
+        deferred_process_album_released.delay(album_object.album_id)
     except DatabaseError as e:
-        print(f'[db]: failed to add new album details for [{album_id}] {album} by {artist}')
+        print(f'[db]: failed to add new album details for [{album_object.album_id}] {album_object.album_name} by {album_object.album_artist}')
         print(f'[db]: {e}')
     else:
-        print(f'[db]: added new album details for [{album_id}] {album} by {artist}')
+        print(f'[db]: added new album details for [{album_object.album_id}] {album_object.album_name} by {album_object.album_artist}')
 
 
 @delayed.queue_func
@@ -571,9 +571,8 @@ def deferred_fetch_and_restore(url_to_csv):
     response = requests.get(url_to_csv)
     if response.ok and csv.Sniffer().has_header(response.text):
         f = io.StringIO(response.text)
-        reader = csv.reader(f)
-        _ = next(reader)  # skip header
+        reader = csv.DictReader(f)
         for album_details in reader:
-            deferred_add_new_album_details.delay(*tuple(album_details))
+            deferred_add_new_album_details.delay(albums_model.Album.from_dict(album_details))
     else:
         print('[restore]: failed to get csv')

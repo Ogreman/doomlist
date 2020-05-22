@@ -1,5 +1,6 @@
-from contextlib import closing
 import json
+from contextlib import closing
+from datetime import datetime
 
 import psycopg2
 from psycopg2.extras import NamedTupleCursor
@@ -24,12 +25,34 @@ class Album:
         self.tags = tags_json
         self.users = users_json
 
+    @property
+    def fieldnames(self):
+        return list(self.to_dict().keys())
+
+    @classmethod
+    def from_dict(cls, d):
+        return cls(
+            id=d['id'],
+            name=d['album'],
+            artist=d['artist'],
+            url=d['url'],
+            img=d['img'],
+            available=True,
+            channel=d['channel'],
+            added=datetime.strptime(d['added'], '%Y-%m-%dT%H:%M:%S.%f'),
+            released=d['released'],
+            tags_json=d['tags'],
+            users_json=d['users'],
+            reviews_json=d['reviews'],
+        )
+
     def to_dict(self):
         return {
             'added': self.added.isoformat() or '',
             'album': self.album_name or '',
             'artist': self.album_artist or '',
             'channel': self.channel or '',
+            'id': self.album_id or '',
             'img': self.album_image or '',
             'released': self.released or '',
             'reviews': self.reviews if self.reviews else [],
@@ -59,6 +82,16 @@ class Album:
             if album.album_id not in details:
                 details[album.album_id] = album.to_dict()
         return details
+
+    def save(self):
+        return add_to_albums(
+            album_id=self.album_id,
+            artist=self.album_artist,
+            name=self.album_name,
+            url=self.album_url,
+            im=self.album_image,
+            channel=self.channel,
+        )
 
 
 def create_albums_table():

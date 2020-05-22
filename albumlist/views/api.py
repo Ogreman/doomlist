@@ -1,6 +1,7 @@
 import csv
 import flask
 import io
+import itertools
 
 from albumlist import constants
 from albumlist.delayed import queued
@@ -77,12 +78,12 @@ def api_count_albums():
 def api_dump_album_details():
     # need StringIO for csv.writer
     proxy = io.StringIO()
-    csv_writer = csv.writer(proxy)
-    csv_writer.writerow(('id', 'added', 'album', 'artist', 'channel', 'img', 'tags', 'url', 'users'))
     albums = albums_model.get_albums_with_users()
-    details = albums_model.Album.details_map_from_albums(albums)
-    for album_id, album_details in details.items():
-        csv_writer.writerow([album_id] + list(album_details.values()))
+    first_album = next(albums)
+    csv_writer = csv.DictWriter(proxy, fieldnames=first_album.fieldnames)
+    csv_writer.writeheader()
+    for album in itertools.chain([first_album], albums):
+        csv_writer.writerow(album.to_dict())
     # and BytesIO for flask.send_file
     mem = io.BytesIO()
     mem.write(proxy.getvalue().encode('utf-8'))
