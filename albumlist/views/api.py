@@ -90,7 +90,11 @@ def api_dump_album_details():
     mem.seek(0)
     proxy.close()
     # see: https://stackoverflow.com/a/45111660
-    return flask.send_file(mem, as_attachment=True, attachment_filename="albums.csv", mimetype='text/csv')
+    return flask.send_file(mem,
+                           as_attachment=True,
+                           attachment_filename="albums.csv",
+                           mimetype='text/csv',
+                           cache_timeout=0 if flask.request.args.get('fresh') else None)
 
 
 @api_blueprint.route('/album/<album_id>', methods=['GET'])
